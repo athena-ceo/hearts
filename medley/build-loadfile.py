@@ -120,6 +120,10 @@ def build(text):
         + ct_fix
         + card_fix)
     text = text.replace("(PUTPROPS HEARTS COPYRIGHT", patch + "(PUTPROPS HEARTS COPYRIGHT", 1)
+    # 2h. Case-fix: HP.Menuer calls PromptPrint (mixed case) 3x, but the function is the
+    #     system PROMPTPRINT and Interlisp is case-sensitive, so DWIM prompts at runtime.
+    #     Original 1986 inconsistency (kept in the faithful transcription); correct it here.
+    text = text.replace("PromptPrint", "PROMPTPRINT")
     # 3. arrow -> underscore
     text = text.replace("←", "_")
     # collapse runs of >2 blank lines left by stripping

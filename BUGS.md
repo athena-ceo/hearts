@@ -30,6 +30,7 @@ image-as-source-of-truth**, and why a scanned listing isn't a complete program.
 | # | Status | Issue |
 |---|---|---|
 | H1 | **fixed (CLOWN), open (HP)** | `CLOWN.Play` and `HP.Play` call `H.GetLegals` without the `FirstTrick?` arg the trick loop passes, so the 2♣ opening-lead rule never fired for them (`CP.Play` does it right). `CLOWN.Play` fixed via revival patch; `HP.Play` still needs the same fix. |
+| H2 | **fixed (build)** | `HP.Menuer` calls `PromptPrint` (mixed case) in 3 places, but the function is the system `PROMPTPRINT` (all caps) — Interlisp is case-sensitive, so DWIM prompts to correct at runtime. Corrected in the build (`PromptPrint → PROMPTPRINT`); the faithful transcription keeps the original casing. |
 
 ## Missing 1986 dependencies (not in modern Medley)
 
