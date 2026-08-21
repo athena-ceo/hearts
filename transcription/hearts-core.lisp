@@ -387,7 +387,7 @@
                                                        to (TIMES PlayerNum 13) collect (ELT Deck j))
                                               Player))
                             (H.Apply Player (QUOTE GiveHand)
-                                   Hand PlayerNum))
+                                   Hand PlayerNum)
                     Hand))
          (replace Hands of Deal with (COPY (fetch D.RealHands of Deal)))
          (bind Passes for Player in Players do (SETQ Passes (NCONC1 Passes (H.Apply Player (QUOTE

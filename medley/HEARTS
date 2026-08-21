@@ -370,7 +370,7 @@
                                                        to (TIMES PlayerNum 13) collect (ELT Deck j))
                                               Player))
                             (H.Apply Player (QUOTE GiveHand)
-                                   Hand PlayerNum))
+                                   Hand PlayerNum)
                     Hand))
          (replace Hands of Deal with (COPY (fetch D.RealHands of Deal)))
          (bind Passes for Player in Players do (SETQ Passes (NCONC1 Passes (H.Apply Player (QUOTE
@@ -2773,5 +2773,24 @@
 (* neutralized H.MakeIcon icon call)
 (* revival patch: ClownNames was undefined in the recovered source; names invented)
 (RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))
+(* revival patch: ACTIVEREGIONS LispUsers library is not in Medley; stub it (no-op UI))
+(RECORD ACTIVEREGION (REGION DATA HELPSTRING SELECTFN HIGHLIGHTFN))
+(DEFINEQ
+(ACTIVEREGIONS/DEFAULTHIGHLIGHTFN (LAMBDA (Win AR) NIL))
+(ACTIVEREGIONS/DOLOWLIGHT (LAMBDA (Win Reg) NIL))
+(SETACTIVEREGIONS (LAMBDA (Win ARList) NIL))
+(GETPICKREGION (LAMBDA (Win) NIL))
+)
+(* revival FIX of an original 1986 bug: CLOWN.Play (and HP.Play) call H.GetLegals
+   without the FirstTrick? arg the trick loop provides, so the 2-of-clubs opening
+   lead was never enforced for those players. Redefine CLOWN.Play to forward it.
+   The faithful transcription keeps the original bug; see REVIVAL-LOG.md.)
+(DEFINEQ
+(CLOWN.Play (LAMBDA (Clown Trick HeartsBroken? FirstTrick?)
+    (LET* ((Possibles (H.GetLegals (fetch Clown.Hand of Clown) Trick HeartsBroken? FirstTrick?))
+           (Card (CAR (NTH Possibles (RAND 1 (LENGTH Possibles))))))
+      (Hand.RemoveCard (fetch Clown.Hand of Clown) Card)
+      Card)))
+)
 (PUTPROPS HEARTS COPYRIGHT ("Harley Davis and Ramana Rao" 1986))
 STOP

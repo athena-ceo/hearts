@@ -51,8 +51,33 @@ def build(text):
     #     in the file's COMS (unlike the parallel ConservativeNames) — the 1986 definition
     #     lived elsewhere and is lost. Inject an invented list so Clown players can be made.
     #     (Original clown names unknown; these are in the spirit of the ConservativeNames.)
-    patch = ("(* revival patch: ClownNames was undefined in the recovered source; names invented)\n"
-             "(RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))\n")
+    # 2e. Revival patch: stub the ACTIVEREGIONS LispUsers library, which is not shipped with
+    #     Medley (it came from INTERMEZZO> alongside the dead EVALSERVER we neutralized above).
+    #     It provides clickable/highlightable window regions — used to highlight the winning
+    #     trick and, for the HUMAN player, to click cards. No-op stubs let a Clown game run;
+    #     the real library (or a reimplementation) is needed for the interactive human UI.
+    patch = (
+        "(* revival patch: ClownNames was undefined in the recovered source; names invented)\n"
+        "(RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))\n"
+        "(* revival patch: ACTIVEREGIONS LispUsers library is not in Medley; stub it (no-op UI))\n"
+        "(RECORD ACTIVEREGION (REGION DATA HELPSTRING SELECTFN HIGHLIGHTFN))\n"
+        "(DEFINEQ\n"
+        "(ACTIVEREGIONS/DEFAULTHIGHLIGHTFN (LAMBDA (Win AR) NIL))\n"
+        "(ACTIVEREGIONS/DOLOWLIGHT (LAMBDA (Win Reg) NIL))\n"
+        "(SETACTIVEREGIONS (LAMBDA (Win ARList) NIL))\n"
+        "(GETPICKREGION (LAMBDA (Win) NIL))\n"
+        ")\n"
+        "(* revival FIX of an original 1986 bug: CLOWN.Play (and HP.Play) call H.GetLegals\n"
+        "   without the FirstTrick? arg the trick loop provides, so the 2-of-clubs opening\n"
+        "   lead was never enforced for those players. Redefine CLOWN.Play to forward it.\n"
+        "   The faithful transcription keeps the original bug; see REVIVAL-LOG.md.)\n"
+        "(DEFINEQ\n"
+        "(CLOWN.Play (LAMBDA (Clown Trick HeartsBroken? FirstTrick?)\n"
+        "    (LET* ((Possibles (H.GetLegals (fetch Clown.Hand of Clown) Trick HeartsBroken? FirstTrick?))\n"
+        "           (Card (CAR (NTH Possibles (RAND 1 (LENGTH Possibles))))))\n"
+        "      (Hand.RemoveCard (fetch Clown.Hand of Clown) Card)\n"
+        "      Card)))\n"
+        ")\n")
     text = text.replace("(PUTPROPS HEARTS COPYRIGHT", patch + "(PUTPROPS HEARTS COPYRIGHT", 1)
     # 3. arrow -> underscore
     text = text.replace("←", "_")
