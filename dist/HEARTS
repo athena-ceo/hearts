@@ -2761,7 +2761,7 @@
 
 (RPAQ HShadowBM (BITMAPCREATE 50 50))
 
-(* neutralized EVALSERVER and ACTIVEREGIONS FILESLOAD)
+(FILESLOAD ACTIVEREGIONS)
 (DECLARE: DONTEVAL@LOAD DOEVAL@COMPILE DONTCOPY COMPILERVARS
 
 (ADDTOVAR NLAMA )
@@ -2773,52 +2773,6 @@
 (* neutralized H.MakeIcon icon call)
 (* revival patch: ClownNames was undefined in the recovered source; names invented)
 (RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))
-(* revival: our ACTIVEREGIONS reimplementation -- medley/activeregions.lisp)
-(RECORD ACTIVEREGION (REGION DATA HELPSTRING UPFN DOWNFN HIGHLIGHTFN))
-
-(DEFINEQ
-
-(ACTIVEREGIONS/DEFAULTHIGHLIGHTFN
-  (LAMBDA (Win AR)
-    (COND (AR (DSPFILL (fetch (ACTIVEREGION REGION) of AR) BLACKSHADE (QUOTE INVERT)
-                       (WINDOWPROP Win (QUOTE DSP)))))))
-
-(ACTIVEREGIONS/DOLOWLIGHT
-  (LAMBDA (Win AR)
-    (COND (AR (DSPFILL (fetch (ACTIVEREGION REGION) of AR) BLACKSHADE (QUOTE INVERT)
-                       (WINDOWPROP Win (QUOTE DSP)))))))
-
-(GETPICKREGION
-  (LAMBDA (Win)
-    (WINDOWPROP Win (QUOTE PickRegion))))
-
-(SETACTIVEREGIONS
-  (LAMBDA (Win ARList)
-    (WINDOWPROP Win (QUOTE ActiveRegions) ARList)
-    (WINDOWPROP Win (QUOTE BUTTONEVENTFN) (FUNCTION \AR.BUTTONEVENTFN))
-    ARList))
-
-(\AR.REGIONUNDER
-  (LAMBDA (Win X Y)
-    (for AR in (WINDOWPROP Win (QUOTE ActiveRegions))
-       thereis (AND (INSIDEP (fetch (ACTIVEREGION REGION) of AR) X Y) AR))))
-
-(\AR.BUTTONEVENTFN
-  (LAMBDA (Win)
-    (TOTOPW Win)
-    (PROG ((AR (\AR.REGIONUNDER Win (LASTMOUSEX Win) (LASTMOUSEY Win))))
-      (COND (AR
-             (WINDOWPROP Win (QUOTE PickRegion) AR)
-             (ACTIVEREGIONS/DEFAULTHIGHLIGHTFN Win AR)
-             [while (NOT (MOUSESTATE UP)) do (BLOCK]
-             (ACTIVEREGIONS/DOLOWLIGHT Win AR)
-             (COND ((fetch (ACTIVEREGION UPFN) of AR)
-                    (APPLY* (fetch (ACTIVEREGION UPFN) of AR)
-                           Win
-                           (fetch (ACTIVEREGION REGION) of AR)
-                           (fetch (ACTIVEREGION DATA) of AR)))))))))
-
-)
 (* revival FIX -- CLOWN.Play dropped the FirstTrick? arg so the 2-of-clubs opening lead was never enforced; forward it. Original bug kept faithful in the transcription -- see HEARTS-BUGS.md)
 (DEFINEQ
 (CLOWN.Play (LAMBDA (Clown Trick HeartsBroken? FirstTrick?)

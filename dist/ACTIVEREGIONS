@@ -1,0 +1,65 @@
+(FILECREATED " 21-Aug-2026 22:00:00" ACTIVEREGIONS.;1)
+
+(PRETTYCOMPRINT ACTIVEREGIONSCOMS)
+
+(RPAQQ ACTIVEREGIONSCOMS ((RECORDS ACTIVEREGION)
+                          (FNS ACTIVEREGIONS/DEFAULTHIGHLIGHTFN ACTIVEREGIONS/DOLOWLIGHT
+                               GETPICKREGION SETACTIVEREGIONS \AR.REGIONUNDER \AR.BUTTONEVENTFN)))
+
+(* * ACTIVEREGIONS -- a small reimplementation of the 1986 INTERMEZZO LispUsers library of
+   the same name, written for the HEARTS revival (github.com/athena-ceo/hearts) because the
+   original is not shipped with modern Medley Interlisp. It gives a window a set of
+   clickable / highlightable rectangular regions, driven by the window BUTTONEVENTFN --
+   the classic ACTIVEREGIONS job. Public interface:
+     (create ACTIVEREGION REGION _ r DATA _ d UPFN _ fn HELPSTRING _ s)
+     (SETACTIVEREGIONS win arlist)   install regions + click handler on win
+     (GETPICKREGION win)             the ACTIVEREGION last clicked, or NIL
+     (ACTIVEREGIONS/DEFAULTHIGHLIGHTFN win ar) / (ACTIVEREGIONS/DOLOWLIGHT win ar))
+
+(RECORD ACTIVEREGION (REGION DATA HELPSTRING UPFN DOWNFN HIGHLIGHTFN))
+
+(DEFINEQ
+
+(ACTIVEREGIONS/DEFAULTHIGHLIGHTFN
+  (LAMBDA (Win AR)
+    (COND (AR (DSPFILL (fetch (ACTIVEREGION REGION) of AR) BLACKSHADE (QUOTE INVERT)
+                       (WINDOWPROP Win (QUOTE DSP)))))))
+
+(ACTIVEREGIONS/DOLOWLIGHT
+  (LAMBDA (Win AR)
+    (COND (AR (DSPFILL (fetch (ACTIVEREGION REGION) of AR) BLACKSHADE (QUOTE INVERT)
+                       (WINDOWPROP Win (QUOTE DSP)))))))
+
+(GETPICKREGION
+  (LAMBDA (Win)
+    (WINDOWPROP Win (QUOTE PickRegion))))
+
+(SETACTIVEREGIONS
+  (LAMBDA (Win ARList)
+    (WINDOWPROP Win (QUOTE ActiveRegions) ARList)
+    (WINDOWPROP Win (QUOTE BUTTONEVENTFN) (FUNCTION \AR.BUTTONEVENTFN))
+    ARList))
+
+(\AR.REGIONUNDER
+  (LAMBDA (Win X Y)
+    (for AR in (WINDOWPROP Win (QUOTE ActiveRegions))
+       thereis (AND (INSIDEP (fetch (ACTIVEREGION REGION) of AR) X Y) AR))))
+
+(\AR.BUTTONEVENTFN
+  (LAMBDA (Win)
+    (TOTOPW Win)
+    (PROG ((AR (\AR.REGIONUNDER Win (LASTMOUSEX Win) (LASTMOUSEY Win))))
+      (COND (AR
+             (WINDOWPROP Win (QUOTE PickRegion) AR)
+             (ACTIVEREGIONS/DEFAULTHIGHLIGHTFN Win AR)
+             [while (NOT (MOUSESTATE UP)) do (BLOCK]
+             (ACTIVEREGIONS/DOLOWLIGHT Win AR)
+             (COND ((fetch (ACTIVEREGION UPFN) of AR)
+                    (APPLY* (fetch (ACTIVEREGION UPFN) of AR)
+                           Win
+                           (fetch (ACTIVEREGION REGION) of AR)
+                           (fetch (ACTIVEREGION DATA) of AR)))))))))
+
+)
+
+(PUTPROPS ACTIVEREGIONS COPYRIGHT ("Harley Davis and Ramana Rao" 2026))

@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Generate the Medley-loadable HEARTS file from the human-readable master.
+"""Generate the Medley-loadable HEARTS file(s) from the human-readable master.
+
+Two outputs:
+  * medley/HEARTS        — self-contained DEV build (ACTIVEREGIONS inlined). This is
+                           what we copy to ~/il and test/play with; one file, no deps.
+  * dist/HEARTS          — DISTRIBUTION build: same revival patches folded in, but it
+    dist/ACTIVEREGIONS     (FILESLOAD ACTIVEREGIONS) instead of inlining it, and ships
+                           ACTIVEREGIONS as its own standalone lispusers module. This is
+                           the package the Interlisp-D community loads (see dist/README.md).
 
 Mechanical, fidelity-preserving transforms ONLY:
   1. Drop our own annotation lines  (^\\s*;;  — page markers, file header).
@@ -14,10 +22,19 @@ Output is written with LF line endings (retry with CR if Medley's reader chokes)
 """
 import re, sys, pathlib
 
-SRC = pathlib.Path(__file__).resolve().parent.parent / "transcription" / "hearts-core.lisp"
-OUT = pathlib.Path(__file__).resolve().parent / "HEARTS"
+HERE = pathlib.Path(__file__).resolve().parent
+SRC = HERE.parent / "transcription" / "hearts-core.lisp"
+OUT = HERE / "HEARTS"
+DIST = HERE.parent / "dist"
 
-def build(text):
+
+def load_ar_src():
+    """The ACTIVEREGIONS fns/record, ;;-comments stripped (;; isn't Interlisp syntax)."""
+    ar_src = (HERE / "activeregions.lisp").read_text()
+    return "\n".join(l for l in ar_src.split("\n") if not re.match(r"\s*;;", l)).strip()
+
+
+def build(text, dist=False):
     # 2. remove #| ... |# (multi-line, non-greedy)
     text = re.sub(r"#\|.*?\|#", "", text, flags=re.DOTALL)
     # 1. drop pure ;; annotation lines
@@ -34,14 +51,15 @@ def build(text):
         r'\(RPAQ (HIconBM|HShadowBM) \(READBITMAP\)\)\s*\((\d+)\s+(\d+)(?:\s*"[^"]*")+\s*\)',
         r'(RPAQ \1 (BITMAPCREATE \2 \3))',
         text)
-    # 2c. Neutralize end-of-file forms that depend on things Medley no longer has:
-    #   - FILESLOAD of EVALSERVER.DCOM / ACTIVEREGIONS.DCOM (dead Ethernet remote-eval +
-    #     an old UI lib) — networking is deferred (see ARCHITECTURE.md §9);
-    #   - the top-level (H.MakeIcon) call that builds the desktop icon (UI side-effect,
-    #     not needed to run the core headless).
-    # Replaced with Interlisp (* ...) no-op comments so the load completes cleanly.
+    # 2c. Handle the end-of-file FILESLOAD of EVALSERVER.DCOM / ACTIVEREGIONS.DCOM and the
+    #     top-level (H.MakeIcon) desktop-icon call.
+    #   - DEV build: neutralize both (ACTIVEREGIONS is inlined below; networking deferred).
+    #   - DIST build: restore (FILESLOAD ACTIVEREGIONS) — it ships as its own module now —
+    #     but still drop EVALSERVER (dead Ethernet remote-eval; networking deferred, see
+    #     ARCHITECTURE.md §9). H.MakeIcon stays neutralized in both (icon bitmaps are lost).
     text = re.sub(r'\(FILESLOAD.*?ACTIVEREGIONS\.DCOM\)',
-                  '(* neutralized EVALSERVER and ACTIVEREGIONS FILESLOAD)',
+                  '(FILESLOAD ACTIVEREGIONS)' if dist
+                  else '(* neutralized EVALSERVER and ACTIVEREGIONS FILESLOAD)',
                   text, flags=re.DOTALL)
     text = re.sub(r'(?m)^\(H\.MakeIcon\)$',
                   '(* neutralized H.MakeIcon icon call)',
@@ -51,12 +69,9 @@ def build(text):
     #     in the file's COMS (unlike the parallel ConservativeNames) — the 1986 definition
     #     lived elsewhere and is lost. Inject an invented list so Clown players can be made.
     #     (Original clown names unknown; these are in the spirit of the ConservativeNames.)
-    # 2e. Revival: install our ACTIVEREGIONS reimplementation (medley/activeregions.lisp) —
-    #     the 1986 INTERMEZZO LispUsers library isn't in modern Medley. Ours gives the human
-    #     player clickable card regions via the window BUTTONEVENTFN. Injected here with its
-    #     ;; header comments stripped (;; isn't Interlisp reader syntax).
-    ar_src = (pathlib.Path(__file__).resolve().parent / "activeregions.lisp").read_text()
-    ar_src = "\n".join(l for l in ar_src.split("\n") if not re.match(r"\s*;;", l)).strip()
+    # 2e. Revival: ACTIVEREGIONS reimplementation (medley/activeregions.lisp). In the DEV
+    #     build it is inlined here; in the DIST build it is a separate FILESLOAD'd module.
+    ar_src = load_ar_src()
 
     clown_fix = (
         "(* revival FIX -- CLOWN.Play dropped the FirstTrick? arg so the 2-of-clubs opening"
@@ -111,11 +126,13 @@ def build(text):
         "                     (fetch Suit of Card)))))\n"
         ")\n")
 
+    ar_block = ("" if dist else
+                "(* revival: our ACTIVEREGIONS reimplementation -- medley/activeregions.lisp)\n"
+                + ar_src + "\n")
     patch = (
         "(* revival patch: ClownNames was undefined in the recovered source; names invented)\n"
         "(RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))\n"
-        "(* revival: our ACTIVEREGIONS reimplementation -- medley/activeregions.lisp)\n"
-        + ar_src + "\n"
+        + ar_block
         + clown_fix
         + ct_fix
         + card_fix)
@@ -141,16 +158,60 @@ def build(text):
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text
 
+
+def build_activeregions():
+    """Wrap the ACTIVEREGIONS fns as a standalone, loadable Interlisp lispusers module.
+
+    Same fns/record as the inlined dev copy, but with a real FILEPKG header (FILECREATED +
+    ACTIVEREGIONSCOMS) so the community can (FILESLOAD ACTIVEREGIONS), and later
+    (MAKEFILE 'ACTIVEREGIONS)/(TCOMPL 'ACTIVEREGIONS) to compile it. ;; comments are
+    stripped (not Interlisp syntax); the header uses (* ... ) Interlisp comments instead.
+    """
+    ar_src = load_ar_src()
+    header = (
+        '(FILECREATED " 21-Aug-2026 22:00:00" ACTIVEREGIONS.;1)\n\n'
+        "(PRETTYCOMPRINT ACTIVEREGIONSCOMS)\n\n"
+        "(RPAQQ ACTIVEREGIONSCOMS ((RECORDS ACTIVEREGION)\n"
+        "                          (FNS ACTIVEREGIONS/DEFAULTHIGHLIGHTFN ACTIVEREGIONS/DOLOWLIGHT\n"
+        "                               GETPICKREGION SETACTIVEREGIONS \\AR.REGIONUNDER \\AR.BUTTONEVENTFN)))\n\n"
+        "(* * ACTIVEREGIONS -- a small reimplementation of the 1986 INTERMEZZO LispUsers library of\n"
+        "   the same name, written for the HEARTS revival (github.com/athena-ceo/hearts) because the\n"
+        "   original is not shipped with modern Medley Interlisp. It gives a window a set of\n"
+        "   clickable / highlightable rectangular regions, driven by the window BUTTONEVENTFN --\n"
+        "   the classic ACTIVEREGIONS job. Public interface:\n"
+        "     (create ACTIVEREGION REGION _ r DATA _ d UPFN _ fn HELPSTRING _ s)\n"
+        "     (SETACTIVEREGIONS win arlist)   install regions + click handler on win\n"
+        "     (GETPICKREGION win)             the ACTIVEREGION last clicked, or NIL\n"
+        "     (ACTIVEREGIONS/DEFAULTHIGHLIGHTFN win ar) / (ACTIVEREGIONS/DOLOWLIGHT win ar))\n\n")
+    footer = ('\n(PUTPROPS ACTIVEREGIONS COPYRIGHT ("Harley Davis and Ramana Rao" 2026))\n')
+    return header + ar_src + "\n" + footer
+
+
+def _report(name, out):
+    print(f"wrote {name}  ({len(out.splitlines())} lines)")
+    assert "←" not in out, f"arrow left in {name}"
+    assert "#|" not in out, f"annotation block left in {name}"
+    assert not any(re.match(r"\s*;;", ln) for ln in out.split("\n")), f";; line left in {name}"
+
+
 if __name__ == "__main__":
     raw = SRC.read_text(encoding="utf-8")
-    out = build(raw)
-    OUT.write_text(out, encoding="utf-8", newline="\n")
-    # sanity report
-    assert "←" not in out, "arrow left in output"
-    assert "#|" not in out, "annotation block left in output"
-    leftmarks = sum(1 for ln in out.split("\n") if re.match(r"\s*;;", ln))
-    print(f"wrote {OUT}  ({len(out.splitlines())} lines)")
-    print(f"  ← arrows remaining: {out.count(chr(0x2190))}")
-    print(f"  _ underscores now:  {out.count('_')}")
-    print(f"  ;; annotation lines remaining: {leftmarks}")
-    print(f"  #| annotation blocks remaining: {out.count('#|')}")
+
+    # DEV build — self-contained, what we copy to ~/il and play with.
+    dev = build(raw)
+    OUT.write_text(dev, encoding="utf-8", newline="\n")
+    _report(OUT, dev)
+
+    # DIST package — the two-file build the community loads.
+    DIST.mkdir(exist_ok=True)
+    dist_hearts = build(raw, dist=True)
+    (DIST / "HEARTS").write_text(dist_hearts, encoding="utf-8", newline="\n")
+    _report(DIST / "HEARTS", dist_hearts)
+    ar = build_activeregions()
+    (DIST / "ACTIVEREGIONS").write_text(ar, encoding="utf-8", newline="\n")
+    _report(DIST / "ACTIVEREGIONS", ar)
+    assert "FILESLOAD ACTIVEREGIONS" in dist_hearts, "dist HEARTS should FILESLOAD ACTIVEREGIONS"
+    # \AR.BUTTONEVENTFN is our lib's private handler -- HEARTS never calls it, so its
+    # presence uniquely means the AR *definition* got inlined (dev), absence means it did not.
+    assert "\\AR.BUTTONEVENTFN" not in dist_hearts, "dist HEARTS must not inline AR (FILESLOAD instead)"
+    assert "\\AR.BUTTONEVENTFN" in dev, "dev HEARTS should inline AR"
