@@ -1,0 +1,555 @@
+=== page 1 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25     5-May-86 02:15:08                    Page 1
+
+
+(FILECREATED " 5-May-86 02:14:32" {MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA% RAO>EXPERT.
+
+      changes to:  (FNS EP.Init EP.Play EP.PrintLastGameReasons EP.PrintReasons EP.SuitsWithCards
+                        EP.Create EP.ShootPlay EP.HeartyOpponentVoidSuits)
+                    (VARS EXPERTCOMS AUTOBACKTRACEFLG)
+
+      previous date: " 3-May-86 18:13:16"
+{MITFS1-E40:SLOAN% SCHOOL:MASSINSTTECH}<RAMANA% RAO>EXPERT.;23)
+
+
+(* Copyright (c) 1986 by Harley Davis and Ramana Rao. All rights reserved.)
+
+(PRETTYCOMPRINT EXPERTCOMS)
+
+(RPAQQ EXPERTCOMS ((VARS AUTOBACKTRACEFLG ExpertNames INITIALS)
+        (FNS EP.ComputeStats EP.ComputeWinnersAndLosers EP.Create EP.DoPass EP.EclipsePlay
+             EP.Equivalent? EP.EquivalentCards EP.HeartyNonShooterVoidSuits
+             EP.HeartyOpponentVoidSuits EP.HighestEquivalent EP.LastCardPlayed EP.Losers
+             EP.LowestEquivalent EP.OpInit EP.UpdateModel EP.WinnerSuit? EP.WinnerSuits EP.Winners
+             EP.FewestWinners EP.GetLoser EP.GetOpponent EP.GetWinner EP.GiveHand EP.Init EP.MinPass
+             EP.MinPlay EP.NonWinners EP.NumbrWithPoints EP.PassIn EP.PassOut EP.Play
+             EP.PrintLastGameReasons EP.PrintReasons EP.Results EP.ShootPass EP.ShootPlay
+             EP.SuitsWithCards EP.Test EP.Trick KillExperts)))
+
+(RPAQQ AUTOBACKTRACEFLG ALWAYS)
+
+(RPAQQ ExpertNames (Einstein Spinoza Aristotle Plato Nietzsche Tolstoy Dostoevsky Hoyle Schopenhauer
+                    Kant Leibniz Heidegger Hegel Thoreau HenryJames WilliamJames Melville
+                    EdgarPoe Democritus Darwin Goedel Fichte Flaubert Hemingway Maupassant
+                    MarcelProust Voltaire BlaisePascal Moliere ChuckBabbage SinclairLewis
+                    Fitzgerald JohnRawls BertRussell ALWhitehead MarvinMinsky JoeConrad
+                    JamesJoyce Descartes))
+
+(RPAQQ INITIALS hed)
+(DEFINEQ
+
+(EP.ComputeStats
+  [LAMBDA (self Trick)                                          (* hed " 3-May-86 13:09")
+    (LET ((Player (GET.VALUE self (QUOTE Player)))
+          (WinnerNum (fetch Winner of Trick))
+          PlayerNum WinnerSlot)
+      (SETQ PlayerNum (GET.VALUE Player (QUOTE MyNumber)))
+      (for Card in (Trick.Cards Trick)
+         do (REMOVE.VALUE self (QUOTE CardsLeft)
+                          Card)
+            (REMOVE.VALUE self (SELECTQ (Card.Suit Card)
+                                        ((QUOTE S)
+                                          (QUOTE SpadesLeft))
+                                        ((QUOTE H)
+                                          (QUOTE HeartsLeft))
+                                        ((QUOTE D)
+                                          (QUOTE DiamondsLeft))
+                                        ((QUOTE C)
+                                          (QUOTE ClubsLeft))
+                                        (SHOULDNT (CONCAT "Invalid card " Card " in trick.")))
+                            Card)
+            (ADD.VALUE self (QUOTE CardsPlayed)
+                       Card)
+            (ADD.VALUE self (SELECTQ (Card.Suit Card)
+                                     ((QUOTE S)
+                                       (QUOTE SpadesPlayed))
+                                     ((QUOTE H)
+                                       (QUOTE HeartsPlayed))
+                                     ((QUOTE D)
+                                       (QUOTE DiamondsPlayed))
+                                     ((QUOTE C)
+                                       (QUOTE ClubsPlayed))
+                                     NIL)
+                          Card))
+      (UNITMSG self (QUOTE ComputeWinnersAndLosers)))
+
+          (* * Scoring)
+
+
+=== page 2 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25     5-May-86 02:15:08                    Page 2
+
+
+      (SETQ WinnerSlot (SELECTQ (PlayerLoc PlayerNum WinnerNum)
+                                ((QUOTE Left)
+                                  (QUOTE LeftPoints))
+                                ((QUOTE Right)
+                                  (QUOTE RightPoints))
+                                ((QUOTE Across)
+                                  (QUOTE AcrossPoints))
+                                (QUOTE MyPoints)))
+      (PUT.VALUE self WinnerSlot (PLUS (Trick.Points Trick)
+                                       (GET.VALUE self WinnerSlot)))
+      (if (NEQ WinnerNum PlayerNum)
+          then (PUT.VALUE (UNITMSG Player (QUOTE GetOpponent)
+                                   WinnerNum)
+                          (QUOTE Points)
+                          (GET.VALUE self WinnerSlot])
+
+(EP.ComputeWinnersAndLosers
+  [LAMBDA (self)                                                (* rao "23-Apr-86 19:05")
+    (for LeftSlot in (QUOTE (SpadesLeft HeartsLeft DiamondsLeft ClubsLeft)) as WinnerSlot
+       in (QUOTE (SpadeWinner HeartWinner DiamondWinner ClubWinner)) as LoserSlot
+       in (QUOTE (SpadeLoser HeartLoser DiamondLoser ClubLoser))
+       do (LET ((CardsLeft (GET.VALUES self LeftSlot)))
+            (PUT.VALUE self WinnerSlot (Card.MaxCard CardsLeft))
+            (PUT.VALUE self LoserSlot (Card.MinCard CardsLeft])
+
+(EP.Create
+  [LAMBDA (self Open?)                                          (* hed "4-May-86 16:38")
+    (LET ([PlayerName (GENSYM (CAR (FNTH ExpertNames (RAND 1 (FLENGTH ExpertNames]
+          PlayerUnit HistUnit NewPlayer)
+
+          (* * Create the player's unit)
+
+
+      (SETQ PlayerUnit (UNITCREATE PlayerName NIL self (CONCAT "Unit for a single expert player.")
+                                   NIL))
+
+          (* * If this is to be an open-hand player, create his display window)
+
+
+      (if Open?
+          then (PUT.VALUE PlayerUnit (QUOTE HandWindow)
+                          (Open.CreateWindow PlayerName "%"expert%""")))
+
+          (* * Create and set up history unit.)
+
+
+      (SETQ HistUnit (UNITCREATE (MKATOM (CONCAT PlayerName (QUOTE History)))
+                                 NIL
+                                 (QUOTE histories)
+                                 (CONCAT "History of " PlayerName)
+                                 NIL))
+      (PUT.VALUE PlayerUnit (QUOTE history)
+                 HistUnit)
+      (PUT.VALUE HistUnit (QUOTE Player)
+                 PlayerUnit)
+      (for PSlot in (QUOTE (MyTotalPoints MyPoints LeftTotalPoints LeftPoints RightTotalPoints
+                                  RightPoints AcrossTotalPoints AcrossPoints))
+         do (PUT.VALUE HistUnit PSlot 0))
+
+          (* * Set up opponent models)
+
+
+      (for Slot in (QUOTE (LeftPlayer RightPlayer AcrossPlayer)) bind OpUnit
+         do (PUT.VALUE PlayerUnit Slot (SETQ OpUnit (UNITCREATE (MKATOM (CONCAT PlayerName Slot))
+                                                                NIL
+                                                                (QUOTE opponent.models)
+                                                                (CONCAT Slot " from " PlayerName
+                                                                        " model")
+                                                                NIL)))
+            (PUT.VALUE OpUnit (QUOTE MainPlayer)
+                       PlayerUnit)
+            (PUT.VALUE OpUnit (QUOTE Points)
+                       0))
+
+
+=== page 3 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25     5-May-86 02:15:08                    Page 3
+
+
+          (* * Create the actual Player.)
+
+
+      (SETQ NewPlayer (create Player
+                              Name ← PlayerName
+                              Type ←(QUOTE Kee)
+                              Object ← PlayerUnit))
+      NewPlayer])
+
+(EP.DoPass
+  [LAMBDA (Self PCards)                                         (* hed "30-Apr-86 20:59")
+    (LET* ((CurrentPassCards (GET.VALUE Self (QUOTE PassCards)))
+           [NewNPC (PLUS (FLENGTH PCards))
+                   (GET.VALUE Self (QUOTE NumberOfPassCards)]
+           (PCards (for PC in PCards collect PC unless (CardList.Member PC CurrentPassCards)))
+      (if (OR (NULL PCards)
+              (GREATERP NewNPC 3))
+          then NIL
+        else (ADD.VALUES Self (QUOTE PassCards)
+                         PCards)
+             (Hand.RemoveCards (GET.VALUE Self (QUOTE Hand))
+                               PCards)
+             (PUT.VALUE Self (QUOTE NumberOfPassCards)
+                        NewNPC)
+             NewNPC])
+
+(EP.EclipsePlay
+  [LAMBDA (self Player Trick HeartsBroken? FirstTrick?)         (* hed " 1-May-86 04:55")
+    (LET [(PlayMode (GET.VALUE Player (QUOTE PlayMode]
+      (QUERY (LIST (QUOTE THE)
+                   (QUOTE PlayCard)
+                   (QUOTE OF)
+                   (UNIT.NAME Player)
+                   (QUOTE IS)
+                   (QUOTE ?Card))
+             1
+             (SELECTQ PlayMode
+                      ((QUOTE FollowSuit)
+                        (QUOTE (eclipse.follow expert)))
+                      ((QUOTE Dump)
+                        (QUOTE (eclipse.dump expert)))
+                      ((QUOTE Lead)
+                        (QUOTE (eclipse.lead expert)))
+                      NIL))
+      (GET.VALUE Player (QUOTE PlayCard])
+
+(EP.Equivalent?
+  [LAMBDA (self Card1 Card2 Not?)                               (* HED "25-Apr-86 00:48")
+    (if (EQUAL (Card.Suit Card1)
+               (Card.Suit Card2))
+        then [LET* ((suit (Card.Suit Card1))
+                    (PlayedCards (CardList.CardsOfSuit (GET.VALUES self (QUOTE CardsPlayed))
+                                                       (Card.Suit Card1)))
+                    (HandCards (Hand.CardsInSuit (GET.VALUE (GET.VALUE self (QUOTE Player))
+                                                            (QUOTE Hand))
+                                                 suit)))
+               (if (Card.Higher? Card1 Card2)
+                   then (swap Card1 Card2))
+               (if Not?
+                   then [for val in (Card.ValueSublist (Card.Value Card1)
+                                                       (Card.Value Card2))
+                           thereis (LET ((testcard (Card.Create val suit)))
+                                     (NOT (OR (CardList.Member testcard PlayedCards)
+                                              (CardList.Member testcard HandCards]
+                 else (for val in (Card.ValueSublist (Card.Value Card1)
+                                                     (Card.Value Card2))
+                         always (LET ((testcard (Card.Create val suit)))
+                                  (OR (CardList.Member testcard PlayedCards)
+                                      (CardList.Member testcard HandCards]
+      else (SHOULDNT (CONCAT "EP.Equivalent: Cards " Card1 " and " Card2 " not of same suit."])
+
+(EP.EquivalentCards
+  [LAMBDA (Self Card LimitingCards)                             (* hed "3-May-86 15.06")
+    (for c in (OR LimitingCards (Hand.CardsInSuit (GET.VALUE (GET.VALUE Self (QUOTE Player))
+
+
+=== page 4 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25     5-May-86 02:15:08                    Page 4
+
+
+                                                            (QUOTE Hand))
+                                                 (Card.Suit Card)))
+       collect c when (UNITMSG Self (QUOTE Equivalent?)
+                               Card c])
+
+(EP.HeartyNonShooterVoidSuits
+  [LAMBDA (Self)                                                (* hed " 1-May-86 04:22")
+    (LET ((Voids NIL))
+      [for op in (LIST (GET.VALUE Self (QUOTE LeftPlayer))
+                       (GET.VALUE Self (QUOTE RightPlayer))
+                       (GET.VALUE Self (QUOTE AcrossPlayer)))
+         do [SETQ Voids (UNION Voids (GET.VALUES op (QUOTE Voids]
+            unless (OR (EQUAL op (GET.VALUE Self (QUOTE Shooter)))
+                       (FMEMB (QUOTE H)
+                              (GET.VALUES op (QUOTE Voids]
+      Voids])
+
+(EP.HeartyOpponentVoidSuits
+  [LAMBDA (Self)                                                (* hed " 4-May-86 21:10")
+    (LET ((Voids NIL))
+      [for op in (LIST (GET.VALUE Self (QUOTE LeftPlayer))
+                       (GET.VALUE Self (QUOTE RightPlayer))
+                       (GET.VALUE Self (QUOTE AcrossPlayer)))
+         do [SETQ Voids (UNION Voids (GET.VALUES op (QUOTE Voids] unless (FMEMB (QUOTE H)
+                                                                                (GET.VALUES
+                                                                                 op
+                                                                                 (QUOTE Voids]
+      Voids])
+
+(EP.HighestEquivalent
+  [LAMBDA (Self Card LimitingCards)                             (* rao "29-Apr-86 04:56")
+    (Card.MaxCard (UNITMSG Self (QUOTE EquivalentCards)
+                           Card LimitingCards])
+
+(EP.LastCardPlayed
+  [LAMBDA (self)                                                (* hed "30-Apr-86 21:52")
+    (CAR (GET.VALUES self (QUOTE PlayedCards])
+
+(EP.Losers
+  [LAMBDA (self suit cardlist)                                  (* hed "3-May-86 13:49")
+    (if suit
+        then (for card in (if cardlist
+                              then (CardList.CardsOfSuit cardlist suit)
+                            else (Hand.CardsInSuit (GET.VALUE (GET.VALUE self (QUOTE Player))
+                                                              (QUOTE Hand))
+                                                   suit))
+                collect card when (UNITMSG self (QUOTE Equivalent?)
+                                           card
+                                           (UNITMSG self (QUOTE GetLoser)
+                                                    suit)))
+      else (for card in [OR cardlist (Hand.Cards (GET.VALUE (GET.VALUE self (QUOTE Player))
+                                                            (QUOTE Hand]
+              collect card when (UNITMSG self (QUOTE Equivalent?)
+                                         card
+                                         (UNITMSG self (QUOTE GetLoser)
+                                                  (Card.Suit card])
+
+(EP.LowestEquivalent
+  [LAMBDA (Self Card LimitingCards)                             (* rao "29-Apr-86 04:56")
+    (Card.MinCard (UNITMSG Self (QUOTE EquivalentCards)
+                           Card LimitingCards])
+
+(EP.OpInit
+  [LAMBDA (Self)                                                (* hed " 1-May-86 01:16")
+    (for slot in (QUOTE (HandCards PlayedCards Strategy TricksWon Voids)) do (REMOVE.ALL.LOCAL.VALUES
+                                                                              Self slot))
+    (PUT.VALUE Self (QUOTE Points)
+               0)
+    (REMOVE.FACET Self (QUOTE Strategy)
+                  (QUOTE UNCERTAIN.VALUES])
+
+(EP.UpdateModel
+  [LAMBDA (Self Trick)                                          (* hed "30-Apr-86 20:25")
+    (LET ((MyNumber (GET.VALUE Self (QUOTE PlayerNum))))
+
+
+=== page 5 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25     5-May-86 02:15:08                    Page 5
+
+
+          (OwnerNumber (GET.VALUE (GET.VALUE Self (QUOTE MainPlayer))
+                                  (QUOTE PlayerNumber)))
+          (Winner (Trick.Winner Trick))
+          [LeadSuit (Card.Suit (CAR (Trick.Cards Trick]
+          MyCard)
+
+          (* * Put Trick in TricksWon, if true)
+
+
+      (if (EQP MyNumber Winner)
+          then (ADD.VALUE Self (QUOTE TricksWon)
+                          Trick NIL NIL T))
+
+          (* * Put the opponent's card in PlayedCards)
+
+
+      (ADD.VALUE Self (QUOTE PlayedCards)
+                 (SETQ MyCard (Trick.PlayOf MyNumber Trick)))
+
+          (* * Figure out if the opponent has a previously unknown void)
+
+
+      (if (NOT (EQUAL LeadSuit (Card.Suit MyCard)))
+          then (REPLACE.VALUE Self (QUOTE Voids)
+                              LeadSuit LeadSuit NIL T))
+
+          (* * QUERY for updating strategy guess)
+
+
+      (QUERY (LIST (QUOTE THE)
+                   (QUOTE CERTAINTY)
+                   (QUOTE THAT)
+                   (QUOTE THE)
+                   (QUOTE Strategy)
+                   (QUOTE OF)
+                   (UNIT.NAME Self)
+                   (QUOTE IS)
+                   (QUOTE ?Strat)
+                   (QUOTE IS)
+                   (QUOTE ?Cert)
+                   (QUOTE :UPDATE))
+             (QUOTE ALL)
+             (QUOTE opponent.trick.evaluation])
+
+(EP.WinnerSuit?
+  [LAMBDA (self suit)                                           (* hed " 3-May-86 15:12")
+    (LET ((Winners (UNITMSG self (QUOTE Winners)
+                            suit))
+          (CardsLeft (CardList.CardsOfSuit (GET.VALUES self (QUOTE CardsLeft))
+                                           suit))
+          (HandCards (Hand.CardsInSuit (GET.VALUE self (QUOTE Player))
+                                       (QUOTE Hand))
+                                 suit)))
+      (OR (EQP 0 (FLENGTH (UNITMSG self (QUOTE NonWinners)
+                                   suit)))
+          (GREATERP (FLENGTH Winners)
+                    (FLENGTH (LDIFFERENCE CardsLeft HandCards])
+
+(EP.WinnerSuits
+  [LAMBDA (Self)                                                (* hed " 3-May-86 14:38")
+    (for suit in SuitValues collect suit when (UNITMSG Self (QUOTE WinnerSuit?)
+                                                       suit])
+
+(EP.Winners
+  [LAMBDA (self suit cardlist)                                  (* hed " 3-May-86 13:51")
+    (if suit
+        then (for card in (if cardlist
+                              then (CardList.CardsOfSuit cardlist suit)
+                            else (Hand.CardsInSuit (GET.VALUE (GET.VALUE self (QUOTE Player))
+                                                              (QUOTE Hand))
+                                                   suit))
+                collect card when (UNITMSG self (QUOTE Equivalent?)
+                                           card
+                                           (UNITMSG self (QUOTE GetWinner)
+
+
+=== page 6 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25     5-May-86 02:15:08                    Page 6
+
+
+                                                    suit)))
+      else (for card in [OR cardlist (Hand.Cards (GET.VALUE (GET.VALUE self (QUOTE Player))
+                                                            (QUOTE Hand]
+              collect card when (UNITMSG self (QUOTE Equivalent?)
+                                         card
+                                         (UNITMSG self (QUOTE GetWinner)
+                                                  (Card.Suit card])
+
+(EP.FewestWinners
+  [LAMBDA (Self ExcludedSuits)                                  (* rao "29-Apr-86 05:02")
+    (for suit in SuitValues smallest (FLENGTH (UNITMSG Self (QUOTE EquivalentCards)
+                                                       (UNITMSG Self (QUOTE GetWinner)
+                                                                suit)))
+       unless (FMEMB suit ExcludedSuits])
+
+(EP.GetLoser
+  [LAMBDA (self suit)                                           (* hed " 3-May-86 13:53")
+    (GET.VALUE self (SELECTQ suit
+                             ((QUOTE S)
+                               (QUOTE SpadeLoser))
+                             ((QUOTE H)
+                               (QUOTE HeartLoser))
+                             ((QUOTE D)
+                               (QUOTE DiamondLoser))
+                             ((QUOTE C)
+                               (QUOTE ClubLoser))
+                             (SHOULDNT (CONCAT "EP.GetWinner: Illegal suit " suit])
+
+(EP.GetOpponent
+  [LAMBDA (Self NumOrLoc)                                       (* hed "30-Apr-86 05:42")
+    (if (NUMBERP NumOrLoc)
+        then (SETQ NumOrLoc (PlayerLoc (GET.VALUE Self (QUOTE PlayerNumber))
+                                       NumOrLoc)))
+    (if NumOrLoc
+        then (GET.VALUE Self (SELECTQ NumOrLoc
+                                      ((QUOTE Left)
+                                        (QUOTE LeftPlayer))
+                                      ((QUOTE Right)
+                                        (QUOTE RightPlayer))
+                                      ((QUOTE Across)
+                                        (QUOTE AcrossPlayer))
+                                      (SHOULDNT (CONCAT "Illegal Opponent Location: " NumOrLoc])
+
+(EP.GetWinner
+  [LAMBDA (self suit)                                           (* hed " 1-May-86 04:48")
+    (GET.VALUE self (SELECTQ suit
+                             ((QUOTE S)
+                               (QUOTE SpadeWinner))
+                             ((QUOTE H)
+                               (QUOTE HeartWinner))
+                             ((QUOTE D)
+                               (QUOTE DiamondWinner))
+                             ((QUOTE C)
+                               (QUOTE ClubWinner))
+                             (SHOULDNT (CONCAT "EP.GetWinner: Illegal suit " suit])
+
+(EP.GiveHand
+  [LAMBDA (self Hand MyNumber)                                  (* hed "30-Apr-86 06:01")
+    (LET [(HWin (GET.VALUE self (QUOTE HandWindow]
+      (PUT.VALUE self (QUOTE Hand)
+                 Hand)
+      (PUT.VALUE self (QUOTE MaggieStatus)
+                 (QUOTE NotPlayed))
+      (PUT.VALUE self (QUOTE TrickNumber)
+                 0)
+      (PUT.VALUE self (QUOTE MyNumber)
+                 MyNumber)
+      (PUT.VALUE self (QUOTE PlayerNumber)
+                 MyNumber)
+      (UNITMSG (GET.VALUE self (QUOTE history))
+               (QUOTE Init))
+      (if (CardList.Member (CP.Maggie)
+                           (Hand.CardsInSuit Hand (QUOTE S)))
+          then (PUT.VALUE self (QUOTE MaggieLocation)
+
+
+=== page 7 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25     5-May-86 02:15:08                    Page 7
+
+
+                          (QUOTE InHand)))
+      (if HWin
+          then (Open.RemakeWindow HWin Hand)
+               (CLEARW (GETPROMPTWINDOW HWin)))
+      (for dir in (QUOTE (Left Right Across)) as OpSlot in (QUOTE (LeftPlayer RightPlayer
+                                                                             AcrossPlayer))
+         do (LET ((Op (GET.VALUE self OpSlot)))
+              (UNITMSG Op (QUOTE Init))
+              (PUT.VALUE Op (QUOTE PlayerNum)
+                         (PlayerNum MyNumber dir])
+
+(EP.Init
+  [LAMBDA (self)                                                (* hed " 4-May-86 23:55")
+
+          (* * Initializes the multifarious slots of a history for a new hand)
+
+
+    (for slot in (QUOTE (CardsLeft CardsPlayed SpadesLeft HeartsLeft DiamondsLeft ClubsLeft
+                                SpadesPlayed HeartsPlayed DiamondsPlayed ClubsPlayed Reasons))
+       do (REMOVE.ALL.LOCAL.VALUES self slot))
+    (LET [(Cards (for v in CardValues join (for s in SuitValues collect (Card.Create v s]
+      (PUT.VALUES self (QUOTE CardsLeft)
+                  Cards)
+      (PUT.VALUES self (QUOTE SpadesLeft)
+                  (CardList.CardsOfSuit Cards (QUOTE S)))
+      (PUT.VALUES self (QUOTE HeartsLeft)
+                  (CardList.CardsOfSuit Cards (QUOTE H)))
+      (PUT.VALUES self (QUOTE DiamondsLeft)
+                  (CardList.CardsOfSuit Cards (QUOTE D)))
+      (PUT.VALUES self (QUOTE ClubsLeft)
+                  (CardList.CardsOfSuit Cards (QUOTE C)))
+      [PUT.VALUE self (QUOTE MyTotalPoints)
+                 (PLUS (GET.VALUE self (QUOTE MyTotalPoints))
+                       (GET.VALUE self (QUOTE MyPoints]
+      [PUT.VALUE self (QUOTE LeftTotalPoints)
+                 (PLUS (GET.VALUE self (QUOTE LeftTotalPoints))
+                       (GET.VALUE self (QUOTE LeftPoints]
+      [PUT.VALUE self (QUOTE RightTotalPoints)
+                 (PLUS (GET.VALUE self (QUOTE RightTotalPoints))
+                       (GET.VALUE self (QUOTE RightPoints]
+      [PUT.VALUE self (QUOTE AcrossTotalPoints)
+                 (PLUS (GET.VALUE self (QUOTE AcrossTotalPoints))
+                       (GET.VALUE self (QUOTE AcrossPoints]
+      (UNITMSG self (QUOTE ComputeWinnersAndLosers])
+
+(EP.MinPass
+  [LAMBDA (self Player PassDir)                                 (* rao "25-Apr-86 15:28")
+    (ASSERT.UNKNOWN (QUOTE (Poor Spades Protection)))
+    (do [PROGN (ASSERT.UNKNOWN (QUOTE (More Cards Selected)))
+               (QUERY (QUOTE (More Cards Selected))
+                      1
+                      (GET.VALUE self (QUOTE PassOutRuleClass]
+        repeatuntil (EQP (GET.VALUE Player (QUOTE NumberOfPassCards))
+                         3))
+    (GET.VALUES Player (QUOTE PassCards])
+
+(EP.MinPlay
+  [LAMBDA (self Player Trick HeartsBroken? FirstTrick?)         (* hed " 1-May-86 04:55")
+    (LET [(PlayMode (GET.VALUE Player (QUOTE PlayMode]
+      (QUERY (LIST (QUOTE THE)
+                   (QUOTE PlayCard)
+                   (QUOTE OF)
+                   (UNIT.NAME Player)
+                   (QUOTE IS)
+                   (QUOTE ?Card))
+             1
+             (SELECTQ PlayMode
+                      ((QUOTE FollowSuit)
+                        (QUOTE (follow.play expert)))
+                      ((QUOTE Dump)
+                        (QUOTE (dump.play expert)))
+                      ((QUOTE Lead)
+                        (QUOTE (lead.play expert)))
+                      NIL))

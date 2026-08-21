@@ -1,0 +1,458 @@
+=== page 1 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>HRULES.OUT;2        5-May-86 22:53:16                    Page 1
+
+
+Rule Class expert.rules
+     Rule Class evaluation.rules
+          Rule Class trick.evaluation
+               Rule trick.eval.cant.shoot - Weight is 100
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE Strategy OF ?Self IS Shooting)
+                        (THE CurrentTrick OF ?Self IS ?Trick)
+                        (GREATERP (Trick.Points ?Trick)
+                                  0)
+                        (NEQ (Trick.Winner ?Trick)
+                             (THE PlayerNumber OF ?Self)))
+                   THEN (THE NewStrategy OF ?Self IS Minimizing) DO
+                        (if (GET.VALUE ?Self (QUOTE HandWindow))
+                            then (Open.Print (GET.VALUE ?Self (QUOTE HandWindow))
+                                             "I can't make it. Damn!")))
+
+               Rule te.right.shooting - Weight is 100
+               [IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE Strategy OF ?Self IS Minimizing)
+                                                    (* It would be foolish to go into eclipsing from
+                                                     eclipsing or shooting)
+                        (THE CERTAINTY THAT THE Strategy OF (THE RightPlayer OF ?Self)
+                             IS Shooting IS ?Cert)
+                        (GEQ ?Cert (THE TriggerHappiness OF (THE Personality OF ?Self)))
+                        )                          (* A random choice)
+                   THEN (THE NewStrategy OF ?Self IS Eclipsing) DO
+                        (LET NIL
+                           (if (GET.VALUE ?Self (QUOTE HandWindow))
+                               then (Open.Print (GET.VALUE ?Self (QUOTE HandWindow))
+                                                "I think the player to my right is shooting."))
+                           (PUT.VALUE ?Self (QUOTE Shooter)
+                                      (GET.VALUE ?Self (QUOTE RightPlayer]
+
+               Rule te.left.shooting - Weight is 100
+               [IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE Strategy OF ?Self IS Minimizing)
+                                                    (* It would be foolish to go into eclipsing from
+                                                     eclipsing or shooting)
+                        (THE CERTAINTY THAT THE Strategy OF (THE LeftPlayer OF ?Self)
+                             IS Shooting IS ?Cert)
+                        (GEQ ?Cert (THE TriggerHappiness OF (THE Personality OF ?Self)))
+                        )                          (* A random choice)
+                   THEN (THE NewStrategy OF ?Self IS Eclipsing) DO
+                        (LET NIL
+                           (if (GET.VALUE ?Self (QUOTE HandWindow))
+                               then (Open.Print (GET.VALUE ?Self (QUOTE HandWindow))
+                                                "I think the player to my left is shooting."))
+                           (PUT.VALUE ?Self (QUOTE Shooter)
+                                      (GET.VALUE ?Self (QUOTE LeftPlayer]
+
+               Rule te.go.for.it - Weight is 100
+               (IF [AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (OR (THE Strategy OF ?Self IS Eclipsing)
+                            (THE Strategy OF ?Self IS Minimizing))
+                        (THE history OF ?Self is ?Hist)
+                        (EQUAL ?NumWithPoints (UNITMSG ?Hist (QUOTE NumberWithPoints)))
+                        (OR (AND (EQUAL 1 ?NumWithPoints)
+                                 (GREATERP (GET.VALUE ?Hist (QUOTE MyPoints))
+                                           0)))
+                        (EQUAL ?NumWithPoints 0))
+                        (EQUAL (FLENGTH (UNITMSG ?Hist (QUOTE SuitsWithCards)))
+                               (FLENGTH (UNITMSG ?Hist (QUOTE WinnerSuits]
+                   THEN (THE NewStrategy OF ?Self IS Shooting) DO (if (GET.VALUE ?Self (QUOTE
+                                                                                        HandWindow))
+                                                                      then
+                                                                        (Open.Print
+                                                                          (GET.VALUE ?Self
+                                                                            (QUOTE HandWindow)
+                                                                            )
+                                                                          "I can shoot!")))
+
+=== page 2 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>HRULES.OUT;2        5-May-86 22:53:16                    Page 2
+
+               Rule te.across.shooting - Weight is 100
+               [IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE Strategy OF ?Self IS Minimizing)
+                                                    (* It would be foolish to go into eclipsing from
+                                                     eclipsing or shooting)
+                        (THE CERTAINTY THAT THE Strategy OF (THE AcrossPlayer OF ?Self)
+                             IS Shooting IS ?Cert)
+                        (GEQ ?Cert (THE TriggerHappiness OF (THE Personality OF ?Self)))
+                        )                          (* A random choice)
+                   THEN (THE NewStrategy OF ?Self IS Eclipsing) DO
+                        (LET NIL
+                           (if (GET.VALUE ?Self (QUOTE HandWindow))
+                               then (Open.Print (GET.VALUE ?Self (QUOTE HandWindow))
+                                                "I think the player across from me is shooting."))
+                           (PUT.VALUE ?Self (QUOTE Shooter)
+                                      (GET.VALUE ?Self (QUOTE AcrossPlayer]
+
+               Rule eclipse.success - Weight is 100
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?self)
+                        (THE Strategy OF ?Self IS Eclipsing)
+                        (GREATERP (UNITMSG (THE history OF ?Self)
+                                           (QUOTE NumberWithPoints))
+                                  1))
+                   THEN (THE NewStrategy OF ?Self IS Minimizing) DO
+                        (if (GET.VALUE ?Self (QUOTE HandWindow))
+                            then (Open.Print (GET.VALUE ?Self (QUOTE HandWindow))
+                                             "The shooter has been stopped!")))
+
+               Rule trickeval.keep.strategy - Weight is 0
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?self)
+                        (THE Strategy OF ?Self IS ?Strat))
+                   THEN (THE NewStrategy OF ?Self IS ?Strat))
+
+          Rule Class passin.evaluation
+               Rule pi.shoot.test - Weight is 100
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?self)
+                        (THE Hand OF ?self IS ?Hand)
+                        (EQUAL ?Spades (Hand.CardsInSuit ?Hand (QUOTE S)))
+                        (THE Personality OF ?self IS ?Personality)
+                        (OR (CardList.HighSpades? ?Spades)
+                            (LEQ (FLENGTH ?Spades)
+                                 (THE PIMaxLowSpades OF ?Personality)))
+                        (THE history OF ?self IS ?Hist)
+                        (EQUAL ?NonWinnerHearts (UNITMSG ?Hist (QUOTE NonWinners)
+                                                         (QUOTE H)))
+                        [OR (NULL ?NonWinnerHearts)
+                            (AND (LEQ (FLENGTH ?NonWinnerHearts)
+                                      (THE PIMaxLoserHearts OF ?Personality))
+                                 (Card.Higher? (Card.MinCard ?NonWinnerHearts)
+                                               (Card.Create (THE PILowestHeart OF ?Personality)
+                                                            (QUOTE H]
+                        (GEQ (CardList.BridgePoints (Hand.FaceCards ?Hand))
+                             (THE PIMinShootPoints OF ?Personality)))
+                   THEN (A NewStrategy OF ?self IS Shooting))
+
+               Rule pi.default.strategy - Weight is 0
+               (IF (THE CurrentPlayer OF expert.players IS ?self)
+                   THEN (A NewStrategy OF ?self IS Minimizing))
+
+     Rule Class opponent.trick.evaluation
+          Rule ote.only.point.taker - Weight is 100
+          (IF [AND (THE CurrentPlayer OF expert.players IS ?MainDude)
+                   (THE CurrentOpponent OF ?MainDude IS ?Self)
+                   (THE CurrentTrick OF ?MainDude IS ?Trick)
+                   (EQUAL (Trick.Winner ?Trick)
+                          (THE PlayerNum OF ?Self))
+                   (GEQ (Trick.Points ?Trick)
+                        1)
+                   (EQUAL 1 (UNITMSG (THE history OF ?MainDude)
+                                     (QUOTE NumberWithPoints]
+             THEN (THE CERTAINTY THAT THE Strategy OF ?Self IS Shooting IS .2 :UPDATE))
+
+          Rule ote.no.shooting - Weight is 100
+
+=== page 3 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>HRULES.OUT;2        5-May-86 22:53:16                    Page 3
+
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?MainDude)
+                   (GREATERP (UNITMSG (THE history OF ?MainDude)
+                                      (QUOTE NumberWithPoints))
+                             1))
+             THEN (THE CERTAINTY THAT THE Strategy OF ?Self IS Shooting IS -.99 :UPDATE))
+
+          Rule ote.low.on.trick.1 - Weight is 100
+          (IF [AND (THE CurrentPlayer OF expert.players IS ?MainDude)
+                   (THE TrickNumber OF ?MainDude IS 1)
+                   (THE CurrentOpponent OF ?MainDude IS ?Self)
+                   (EQUAL ?CardPlayed (UNITMSG ?Self (QUOTE LastCardPlayed)))
+                   (Card.NotEqual? ?CardPlayed (Card.Create 2 (QUOTE C)))
+                   (Card.Lower? ?CardPlayed (Card.Create 10 (Card.Suit ?CardPlayed]
+             THEN (THE CERTAINTY THAT THE Strategy OF ?Self IS Shooting IS .12 :UPDATE))
+
+          Rule ote.dump.non.point - Weight is 100
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?MainDude)
+                   (THE CurrentOpponent OF ?MainDude IS ?Self)
+                   (THE CurrentTrick OF ?MainDude IS ?Trick)
+
+(* * Check if card was dumped)
+
+
+                   (EQUAL ?LastCardPlayed (UNITMSG ?Self (QUOTE LastCardPlayed)))
+                   (EQUAL ?PlayedSuit (Card.Suit ?LastCardPlayed))
+                   (NEQ (Trick.LeadSuit ?Trick)
+                        ?PlayedSuit)
+
+(* * Check if points were dumped)
+
+
+                   (NEQ ?PlayedSuit (QUOTE H))
+                   (Card.NotEqual? (Card.Create (QUOTE Q)
+                                                (QUOTE S))
+                                   ?LastCardPlayed)
+
+(* * Check if winner was dumped)
+
+
+                   (THE history OF ?MainDude IS ?Hist)
+                   [CardList.Member ?LastCardPlayed (UNITMSG ?Hist (QUOTE NonWinners)
+                                                             ?PlayedSuit
+                                                             (GET.VALUES ?Hist (QUOTE CardsLeft]
+                   )                              (* Normal discards are points and winners.)
+             THEN (THE CERTAINTY THAT THE Strategy OF ?Self IS Shooting IS .11 :UPDATE))
+
+     Rule Class opponent.passin.evaluation
+          Rule ope.two.h.pass - Weight is 100
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?MainDude)
+                   (THE CurrentOpponent OF ?MainDude IS ?Self)
+                   (THE PassInCards OF ?MainDude IS ?PassIn)
+                   (EQUAL ?Hearts (CardList.CardsOfSuit ?PassIn (QUOTE H)))
+                   (EQUAL (FLENGTH ?Hearts)
+                          2)                       (* Hearts not usually passed unless shooting, unless
+                                                    they are high)
+                   (LESSP (CardList.BridgePoints ?Hearts)
+                          4))
+             THEN (THE CERTAINTY THAT THE Strategy OF ?Self IS Shooting IS .2 :UPDATE))
+
+          Rule ope.min.is.normal - Weight is 100
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?MainDude)
+                   (THE CurrentOpponent OF ?MainDude IS ?Self)
+                                                    (* The a priori chances of minimization are fairly
+                                                     high.)
+                   )
+             THEN (THE CERTAINTY THAT THE Strategy OF ?Self IS Minimizing IS .3 :UPDATE))
+
+          Rule ope.low.pass - Weight is 100
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?MainDude)
+                   (THE CurrentOpponent OF ?MainDude IS ?Self)
+                   (THE PassInCards OF ?MainDude IS ?PassIn)
+                   (LEQ (CardList.BridgePoints ?PassIn)
+                        (THE LowPassPoints OF (THE Personality OF ?MainDude)))
+
+=== page 4 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>HRULES.OUT;2        5-May-86 22:53:16                    Page 4
+
+                                                    (* No face cards passed at all.
+                                                     Very suspicious)
+                   )
+             THEN (THE CERTAINTY THAT THE Strategy OF ?Self IS Shooting IS .3 :UPDATE))
+
+          Rule ope.high.pass - Weight is 100
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?MainDude)
+                   (THE CurrentOpponent OF ?MainDude IS ?Self)
+                   (THE PassInCards OF ?MainDude IS ?PassIn)
+                   (GEQ (CardList.BridgePoints ?PassIn)
+                        (THE HiPassPoints OF (THE Personality OF ?MainDude)))
+                                                    (* Bridge points are a convenient way of measuring the
+                                                     "highness" of a group of cards.
+                                                     Standard Goren counting system used.)
+                   )
+             THEN (THE CERTAINTY THAT THE Strategy OF ?Self IS Minimizing IS .5 :UPDATE))
+
+          Rule ope.all.h.pass - Weight is 100
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?MainDude)
+                   (THE CurrentOpponent OF ?MainDude IS ?Self)
+                   (THE PassInCards OF ?MainDude IS ?PassIn)
+                   (EQUAL ?Hearts (CardList.CardsOfSuit ?PassIn (QUOTE H)))
+                   (EQUAL (FLENGTH ?Hearts)
+                          3)                        (* Hearts not usually passed unless shooting, unless
+                                                     they are high)
+                   (LESSP (CardList.BridgePoints ?Hearts)
+                          4))
+             THEN (THE CERTAINTY THAT THE Strategy OF ?Self IS Shooting IS .4 :UPDATE))
+
+     Rule Class initial.evaluation
+          Rule default.strategy - Weight is 0
+          (IF (THE CurrentPlayer OF expert.players IS ?self)
+             THEN (A Strategy OF ?self IS Minimizing))
+
+          Rule shoot.test - Weight is 100
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?self)
+                   (THE Hand OF ?self IS ?Hand)
+                   (EQUAL ?Spades (Hand.CardsInSuit ?Hand (QUOTE S)))
+                   (THE Personality OF ?Self IS ?Personality)
+                   (OR (CardList.HighSpades? ?Spades)
+                       (LEQ (FLENGTH ?Spades)
+                            (THE POMaxLowSpades OF ?Personality)))
+                   (THE history OF ?self IS ?Hist)
+                   (LEQ (FLENGTH (UNITMSG ?Hist (QUOTE NonWinners)
+                                         (QUOTE H)))
+                        (THE POMaxLoserHearts OF ?Personality))
+                   (GEQ (CardList.BridgePoints (Hand.FaceCards ?Hand))
+                        (THE POMinShootPoints OF ?Personality)))
+             THEN (A Strategy OF ?self IS Shooting))
+
+Rule Class play.rules
+     Rule Class minimizing.play
+          Rule Class lead.play
+               Rule lead.lowest.non.winner - Weight is 50
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE LegalCards OF ?Self IS ?Legals)
+                        (THE history OF ?Self IS ?Hist)
+                        (EQUAL ?NonWinners (UNITMSG ?Hist (QUOTE NonWinners)
+                                                    NIL ?Legals))
+                        (Not.Null ?NonWinners))
+                   THEN (THE PlayCard OF ?Self IS (UNITMSG ?Hist (QUOTE HighestEquivalent)
+                                                           (Card.MinCard ?NonWinners)))
+                        DO
+                        (PUT.VALUE ?Self (QUOTE LatestReason)
+                                   "Leading lowest non-winner."))
+
+               Rule lead.lowest.non.s - Weight is 70
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE LegalCards OF ?Self IS ?Legals)
+                        (THE MaggieLocation OF ?Self IS InHand)
+                        (EQUAL ?NonSpades (CardList.EliminateSuit ?Legals (QUOTE S)))
+                        (EQUAL ?NonWinnerNonSpades (INTERSECTION ?NonSpades
+                                                                 (UNITMSG (THE history OF ?Self)
+                                                                          (QUOTE NonWinners)
+
+=== page 5 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>HRULES.OUT;2        5-May-86 22:53:16                    Page 5
+
+                                                                          NIL ?Legals)))
+                        (Not.Null ?NonWinnerNonSpades))
+                   THEN (THE PlayCard OF ?Self IS (UNITMSG (THE history OF ?Self)
+                                                          (QUOTE HighestEquivalent)
+                                                          (Card.MinCard ?NonWinnerNonSpades)))
+                        DO
+                        (PUT.VALUE ?Self (QUOTE LatestReason)
+                                   "Leading lowest non-spade."))
+
+               Rule lead.lowest - Weight is 0
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE LegalCards OF ?Self IS ?Legals)
+                        (EQUAL ?PickCard (Card.MinCard ?Legals)))
+                   THEN (THE PlayCard OF ?Self IS ?PickCard) DO (PUT.VALUE ?Self (QUOTE
+                                                                                  LatestReason)
+                                                                "Leading lowest card."))
+
+               Rule lead.heart - Weight is 60
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE LegalCards OF ?Self IS ?Legals)
+                        (EQUAL ?Hearts (CardList.CardsOfSuit ?Legals (QUOTE H)))
+                        (GEQ (LENGTH ?Hearts)
+                             1)
+                        (THE history OF ?Self IS ?Hist)
+                        (EQUAL ?HeartLosers (UNITMSG ?Hist (QUOTE Losers)
+                                                     (QUOTE H)))
+                        (Not.Null ?HeartLosers)     (* Replace with something more meaningful -
+                                                     like whether it is likely to lose based on current
+                                                     winners, etc.)
+                        )
+                   THEN (THE PlayCard OF ?Self IS (Card.MaxCard ?HeartLosers)) DO
+                        (PUT.VALUE ?Self (QUOTE LatestReason)
+                                   "Leading a heart. What the hey."))
+
+               Rule one.choice - Weight is 1000
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE LegalCards OF ?Self IS ?Legals)
+                        (EQP (LENGTH ?Legals)
+                             1))
+                   THEN (THE PlayCard OF ?Self IS (CAR ?Legals)) DO (PUT.VALUE ?Self
+                                                                              (QUOTE
+                                                                                LatestReason)
+                                                                              "One choice."))
+
+               Rule lead.single.diamond - Weight is 100
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE TrickNumber OF ?Self IS ?TrickN)
+                                                    (* Only bother losing singletons before sixth trick.
+                                                     A random choice.)
+                        (LESSP ?TrickN 6)
+                        (THE LegalCards OF ?Self IS ?Legals)
+                        (EQUAL ?Diamonds (CardList.CardsOfSuit ?Legals (QUOTE D)))
+                        (EQUAL (LENGTH ?Diamonds)
+                               1)
+                        (EQUAL ?TheDiamond (CAR ?Clubs))
+                        (THE history OF ?Self IS ?Hist)
+                        (UNITMSG ?Hist (QUOTE Equivalent?)
+                                 ?TheDiamond
+                                 (THE DiamondWinner OF ?Hist)
+                                 T))
+                   THEN (THE PlayCard OF ?Self IS ?TheDiamond) DO (PUT.VALUE ?Self (QUOTE
+                                                                                     LatestReason)
+                                                                   "Leading my singleton diamond."))
+
+               Rule lead.single.club - Weight is 90
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE LegalCards OF ?Self IS ?Legals)
+                        (THE TrickNumber OF ?Self IS ?TrickN)
+                                                    (* Only bother losing singletons before sixth trick
+                                                     A random choice.)
+                        (LESSP ?TrickN (THE LastSingletonTrick OF (THE Personality OF ?Self)))
+                        (EQUAL ?Clubs (CardList.CardsOfSuit ?Legals (QUOTE C)))
+
+=== page 6 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>HRULES.OUT;2        5-May-86 22:53:16                    Page 6
+
+                        (EQUAL (LENGTH ?Clubs)
+                               1)
+                        (EQUAL ?TheClub (CAR ?Clubs))
+                        (THE history OF ?Self IS ?Hist)
+                        (UNITMSG ?Hist (QUOTE Equivalent?)
+                                 ?TheClub
+                                 (THE ClubWinner OF ?Hist)
+                                 T))
+                   THEN (THE PlayCard OF ?Self IS ?TheClub) DO (PUT.VALUE ?Self (QUOTE
+                                                                                  LatestReason)
+                                                                "Leading my singleton club."))
+
+               Rule lead.queen.hunt - Weight is 80
+               (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                        (THE LegalCards OF ?Self IS ?Legals)
+                        (THE MaggieStatus OF ?Self IS NotPlayed)
+                                                    (* Only go on a queen hunt if maggie not yet played.)
+                        (EQUAL ?Spades (CardList.CardsOfSuit ?Legals (QUOTE S)))
+                        (Not.Null ?Spades)
+                        (EQUAL ?Mag (Card.Create (QUOTE Q)
+                                                 (QUOTE S)))
+                        (Card.Lower? (Card.MaxCard ?Spades)
+                                     ?Mag))
+                   THEN (THE PlayCard OF ?Self IS (UNITMSG (THE history OF ?Self)
+                                                          (QUOTE HighestEquivalent)
+                                                          (Card.MinCard ?Spades)))
+                        DO
+                        (PUT.VALUE ?Self (QUOTE LatestReason)
+                                   "Looking for the maggie."))
+
+     Rule Class follow.play
+          Rule safe.play.QS - Weight is 110
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                   (THE LegalCards OF ?Self IS ?Legals)
+                   (THE CurrentTrick OF ?Self IS ?Trick)
+                   (EQUAL ?LeadSuit (Trick.LeadSuit ?Trick))
+                   (EQUAL ?LowerCards (CardList.LowerCards ?Legals (Card.MaxCard
+                                                                     (Trick.Cards ?Trick)
+                                                                     ?LeadSuit)
+                                                           ?LeadSuit))
+                   (Not.Null ?LowerCards)
+                   (EQUAL ?Mag (Card.Create (QUOTE Q)
+                                            (QUOTE S)))
+                   (CardList.Member ?Mag ?LowerCards))
+             THEN (THE PlayCard OF ?Self IS ?Mag) DO (PUT.VALUE ?Self (QUOTE LatestReason)
+                                   "Min - looks like someone's munching the maggie."))
+
+          Rule follow.not.QS - Weight is 80
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                   (THE LegalCards OF ?Self IS ?Legals)
+                   (THE CurrentTrick OF ?Self IS ?Trick)
+                   (EQUAL ?Mag (Card.Create (QUOTE Q)
+                                            (QUOTE S)))
+                   (EQUAL (Card.MinCard ?Legals)
+                          ?Mag))
+             THEN (THE PlayCard OF ?Self IS (UNITMSG (THE history OF ?Self)
+                                                    (QUOTE LowestEquivalent)
+                                                    (Card.MaxCard ?Legals)
+                                                    (CardList.RemoveCard ?Legals ?Mag)))
+                  DO
+                  (PUT.VALUE ?Self (QUOTE LatestReason)
+                             "Playing something other than the QS."))
+
+          Rule follow.lowest.non.s - Weight is 60
+          (IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+                   (THE LegalCards OF ?Self IS ?Legals)
+                   (THE MaggieLocation OF ?Self IS InHand)
+                   (EQUAL ?NonSpades (CardList.EliminateSuit ?Legals (QUOTE S)))
+                   (EQUAL ?NonWinnerNonSpades (INTERSECTION ?NonSpades
+                                                           (UNITMSG (THE history OF ?Self)
+                                                                    (QUOTE NonWinners)
+                                                                    NIL ?Legals)))

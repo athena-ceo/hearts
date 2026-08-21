@@ -1,0 +1,467 @@
+=== page 8 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25       5-May-86 02:15:08                      Page 8
+
+
+      (GET.VALUE Player (QUOTE PlayCard])
+
+(EP.NonWinners
+  [LAMBDA (self suit cardlist)                          (* rao "28-Apr-86 14:30")
+    (if suit
+        then (for card in (if cardlist
+                              then (CardList.CardsOfSuit cardlist suit)
+                              else (Hand.CardsInSuit (GET.VALUE (GET.VALUE self (QUOTE Player))
+                                                                (QUOTE Hand))
+                                                     suit))
+                 collect card unless (UNITMSG self (QUOTE Equivalent?)
+                                              card
+                                              (UNITMSG self (QUOTE GetWinner)
+                                                       suit)))
+      else (for card in (OR cardlist (Hand.Cards (GET.VALUE (GET.VALUE self (QUOTE Player))
+                                                            (QUOTE Hand]
+                 collect card unless (UNITMSG self (QUOTE Equivalent?)
+                                              card
+                                              (UNITMSG self (QUOTE GetWinner)
+                                                       (Card.Suit card])
+
+(EP.NumberWithPoints
+  [LAMBDA (Self)                                        (* hed "30-Apr-86 05:09")
+    (for slot in (QUOTE (MyPoints LeftPoints RightPoints AcrossPoints))
+       count (GREATERP (GET.VALUE Self slot)
+                       1])
+
+(EP.PassIn
+  [LAMBDA (self PassIn)                                 (* hed " 1-May-86 05:46")
+    (LET [(Hand (GET.VALUE self (QUOTE Hand)))
+          (HWin (GET.VALUE self (QUOTE HandWindow]
+
+        (* * Stash away pass in info for opponent modeling)
+
+
+      (PUT.VALUE (QUOTE (expert.players expert))
+                 (QUOTE CurrentPlayer)
+                 self)
+      (PUT.VALUE self (QUOTE PassInCards)
+                 PassIn)
+      (PUT.VALUE self (QUOTE PassInFrom)
+                 (UNITMSG self (QUOTE GetOpponent)
+                          (SELECTQ (GET.VALUE self (QUOTE PassDir))
+                              ((QUOTE Left)
+                                (QUOTE Right))
+                              ((QUOTE Across)
+                                (QUOTE Across))
+                              ((QUOTE Right)
+                                (QUOTE Left))
+                              NIL)))
+
+        (* * Bookkeeping for internal use. Bookkeeping is one of the very few English words with three double letters in a
+        row.)
+
+
+      (for Card in PassIn do (Hand.AddCard Hand Card))
+      (if (CardList.Member (CP.Maggie)
+                           (Hand.CardsInSuit Hand (QUOTE S)))
+          then (PUT.VALUE self (QUOTE MaggieLocation)
+                          (QUOTE InHand))
+        else (PUT.VALUE self (QUOTE MaggieLocation)
+                        (QUOTE Elsewhere)))
+      [if HWin
+          then (Open.RemakeWindow HWin Hand)
+               (Open.Print HWin (CONCAT "Receiving; " (for pi in PassIn collect (Card.PrintCard
+                                                                                 pi]
+      #| ?? "Receiving;" — punctuation after Receiving reads as semicolon; cf. "Passing: " on page 11 |#
+
+        (* * Guess at passer's strategy based on pass)
+
+
+      (PUT.VALUE self (QUOTE CurrentOpponent)
+                 (GET.VALUE self (QUOTE PassInFrom)))
+      (QUERY (LIST (QUOTE THE)
+                   (QUOTE CERTAINTY)
+
+=== page 9 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>HRULES.OUT;2       5-May-86 22:53:16                    Page 8
+
+
+                                              have played before you.)
+                    (EQUAL ?HighestSpade (CardList.MaxCard ?Legals))
+                    (Card.Higher? ?HighestSpade ?Mag))
+              THEN (THE PlayCard OF ?Self IS ?HighestSpade) DO (PUT.VALUE ?Self
+                                                                        (QUOTE
+                                                                          LatestReason)
+
+                                                              "Playing last; avoiding QS."))
+
+Rule follow.highest.below.QS - Weight is 70
+(IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+         (THE LegalCards OF ?Self IS ?Legals)
+         (THE CurrentTrick OF ?Self IS ?Trick)
+         (THE MaggieStatus OF ?Self IS NotPlayed)
+         (EQP (Trick.Points ?Trick)
+              0)
+         (EQUAL ?HighestLowSpade (CardList.MaxCard (CardList.LowerCards ?Legals
+                                                                        ?Mag)))
+         (Not.Null ?HighestLowSpade))
+    THEN (THE PlayCard OF ?Self IS ?HighestLowSpade) DO (PUT.VALUE ?Self
+                                                                 (QUOTE
+                                                                   LatestReason)
+
+                                              "Playing below QS on a safe trick."))
+
+Rule third.plays.hi.c.or.d - Weight is 65
+(IF [AND (THE CurrentPlayer OF expert.players IS ?Self)
+         (THE LegalCards OF ?Self IS ?Legals)
+         (THE CurrentTrick OF ?Self IS ?Trick)
+         (EQP (LENGTH (Trick.Cards ?Trick))
+              2)                                        (* In other words, you are the third player because 2
+                                                        have played before you.)
+         (EQUAL 0 (Trick.Points ?Trick))
+         (EQUAL ?LeadSuit (Trick.LeadSuit ?Trick))
+         (OR (EQUAL ?LeadSuit (QUOTE C))
+             (EQUAL ?LeadSuit (QUOTE D))
+             (AND (EQUAL ?LeadSuit (QUOTE S))
+                  (OR (THE MaggieStatus OF ?Self IS Played)
+                      (AND (THE MaggieStatus OF ?Self IS NotPlayed)
+                           (Card.Lower? (Card.MaxCard ?Legals)
+                                        (Card.Create (QUOTE Q)
+                                                     (QUOTE S]
+    THEN (THE PlayCard OF ?Self IS (UNITMSG (THE history OF ?Self)
+                                            (QUOTE LowestEquivalent)
+                                            (Card.MaxCard ?Legals)
+                                            ?Legals))
+         DO
+         (PUT.VALUE ?Self (QUOTE LatestReason)
+                    "No harm to play high in third position."))
+
+Rule safe.play - Weight is 70
+(IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+         (THE LegalCards OF ?Self IS ?Legals)
+         (THE CurrentTrick OF ?Self IS ?Trick)
+         (EQUAL ?LeadSuit (Trick.LeadSuit ?Trick))
+         (EQUAL ?LowerCards (CardList.LowerCards ?Legals (Card.MaxCard
+                                                          (Trick.Cards ?Trick)
+                                                          ?LeadSuit)
+                                                 ?LeadSuit))
+         (Not.Null ?LowerCards))
+    THEN (THE PlayCard OF ?Self IS (UNITMSG (THE history OF ?Self)
+                                            (QUOTE LowestEquivalent)
+                                            (Card.MaxCard ?LowerCards)
+                                            ?LowerCards))
+         DO
+         (PUT.VALUE ?Self (QUOTE LatestReason)
+                    "Normal play - highest under highest played."))
+
+Rule one.choice - Weight is 1000
+(IF (AND (THE CurrentPlayer OF expert.players IS ?Self)
+         (THE LegalCards OF ?Self IS ?Legals)
+         (EQP (LENGTH ?Legals)
+              1))
+    THEN (THE PlayCard OF ?Self IS (CAR ?Legals)) DO (PUT.VALUE ?Self
+
+=== page 10 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25       5-May-86 02:15:08                      Page 9
+
+
+                  (QUOTE THAT)
+                  (QUOTE THE)
+                  (QUOTE Strategy)
+                  (QUOTE OF)
+                  (UNIT.NAME (GET.VALUE self (QUOTE PassInFrom)))
+                  (QUOTE IS)
+                  (QUOTE ?Strat)
+                  (QUOTE IS)
+                  (QUOTE ?Cert)
+                  (QUOTE :UPDATE))
+             (QUOTE ALL)
+             (QUOTE opponent.passin.evaluation))
+
+        (* * Refigure strategy based on pass)
+
+
+      (REMOVE.ALL.LOCAL.VALUES self (QUOTE NewStrategy))
+      (QUERY (LIST (QUOTE THE)
+                   (QUOTE NewStrategy)
+                   (QUOTE OF)
+                   (UNIT.NAME self)
+                   (QUOTE IS)
+                   (QUOTE ?Strat))
+             1
+             (QUOTE passin.evaluation))
+      (PUT.VALUE self (QUOTE Strategy)
+                 (GET.VALUE self (QUOTE NewStrategy)))
+      (if HWin
+          then (Open.Print HWin (CONCAT "New strategy is: " (UNIT.NAME (GET.VALUE self (QUOTE
+                                                                                        Strategy])
+
+(EP.PassOut
+  [LAMBDA (self PassDir)                                (* hed " 3-May-86 13:14")
+    (LET ((Hand (GET.VALUE self (QUOTE Hand)))
+          (HWin (GET.VALUE self (QUOTE HandWindow)))
+          OldProofFlag PCard PassCards)
+
+        (* * Make this player the current player. For use in rules.)
+
+
+      (PUT.VALUE (QUOTE (expert.players expert))
+                 (QUOTE CurrentPlayer)
+                 self)
+
+        (* * Initial evaluation. Choose a pre-pass, tentative strategy.)
+
+
+      (REMOVE.ALL.LOCAL.VALUES self (QUOTE Strategy))
+      (QUERY (LIST (QUOTE THE)
+                   (QUOTE Strategy)
+                   (QUOTE OF)
+                   (UNIT.NAME self)
+                   (QUOTE IS)
+                   (QUOTE ?Strat))
+             1
+             (QUOTE initial.evaluation))
+      [if HWin
+          then (Open.Print HWin (CONCAT "My strategy is " (UNIT.NAME (GET.VALUE self (QUOTE Strategy]
+
+        (* * Initialize passing slots)
+
+
+      (PUT.VALUE self (QUOTE NumberOfPassCards)
+                 0)
+      (PUT.VALUE self (QUOTE PassDir)
+                 PassDir)
+      (REMOVE.ALL.LOCAL.VALUES self (QUOTE PassCards))
+
+        (* * Based on the strategy, compute the pass)
+
+
+      (SETQ OldProofFlag *PROOF.CONSISTENCY.CHECKING*)
+      (GLOBAL.FLAG.SET (QUOTE *PROOF.CONSISTENCY.CHECKING*)
+                       NIL)
+
+=== page 11 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25       5-May-86 02:15:08                      Page 10
+
+
+      (if PassDir
+          then (SETQ PassCards (UNITMSG (GET.VALUE self (QUOTE Strategy))
+                                        (QUOTE PassOut)
+                                        self PassDir))
+               (ADD.VALUES (UNITMSG self (QUOTE GetOpponent)
+                                    PassDir)
+                           (QUOTE HandCards)
+                           PassCards)                   (* Obviously, the opponent getting these cards will now
+                                                        have them in its hand.)
+               (if HWin
+                   then (Open.Print HWin "Passing: " T)
+                        (for card in PassCards do (Open.Print HWin (CONCAT (Card.PrintCard card)
+                                                                           " ")
+                                                             T))
+                        (Open.Print HWin " ")
+                        (Open.RemakeWindow HWin Hand)))
+      (GLOBAL.FLAG.SET (QUOTE *PROOF.CONSISTENCY.CHECKING*)
+                       OldProofFlag)
+      PassCards])
+
+(EP.Play
+  [LAMBDA (self Trick HeartsBroken? FirstTrick?)        (* hed " 4-May-86 22:53")
+    (LET ((Hand (GET.VALUE self (QUOTE Hand)))
+          (LeadCard (CAR (Trick.Cards Trick)))
+          (HWin (GET.VALUE self (QUOTE HandWindow)))
+          Legals PlayCard PlayMode LatestReason)
+
+        (* * Make this player the current player. For use by rules.)
+
+
+      (PUT.VALUE (QUOTE (expert.players expert))
+                 (QUOTE CurrentPlayer)
+                 self)
+
+        (* * Initialize slots used by rules)
+
+
+      (REMOVE.ALL.LOCAL.VALUES self (QUOTE PlayCard))
+      (SETQ Legals (H.GetLegals Hand Trick HeartsBroken? FirstTrick?))
+      (PUT.VALUE self (QUOTE LegalCards)
+                 Legals)
+      [PUT.VALUE self (QUOTE PlayMode)
+                 (SETQ PlayMode (if LeadCard
+                                    then (if (EQUAL (fetch Suit of LeadCard)
+                                                    (fetch Suit of (CAR Legals)))
+                                             then (QUOTE FollowSuit)
+                                           else (QUOTE Dump))
+                                  else (QUOTE Lead]
+      (PUT.VALUE self (QUOTE CurrentTrick)
+                 Trick)
+      [PUT.VALUE self (QUOTE TrickNumber)
+                 (ADD1 (GET.VALUE self (QUOTE TrickNumber]
+
+        (* * Compute the card to be played, based on the strategy (determined in EP.Trick last time around). Then delete
+        it.)
+
+
+      (Hand.RemoveCard Hand (SETQ PlayCard (UNITMSG (GET.VALUE self (QUOTE Strategy))
+                                                    (QUOTE Play)
+                                                    self Trick HeartsBroken? FirstTrick?)))
+      (SETQ LatestReason (GET.VALUE self (QUOTE LatestReason)))
+      (if HWin
+          then (if FirstTrick?
+                   then (Open.Print HWin "Playing : " T))
+               (Open.Print HWin (CONCAT (SELECTQ PlayMode
+                                            ((QUOTE FollowSuit)
+                                              "f")
+                                            ((QUOTE Dump)
+                                              "d")
+                                            ((QUOTE Lead)
+                                              "l")
+                                            NIL)
+                                        (Card.PrintCard PlayCard)
+                                        " " LatestReason)
+
+=== page 12 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25       5-May-86 02:15:08                      Page 11
+
+
+                                        T)
+                    (Open.RemakeWindow HWin Hand))
+      (ADD.VALUE (GET.VALUE self (QUOTE history))
+                 (QUOTE Reasons)
+                 (LIST (Card.Print PlayCard)
+                       LatestReason)
+                 NIL NIL T)
+      PlayCard])
+
+(EP.PrintLastGameReasons
+  [LAMBDA (self)                                        (* hed " 5-May-86 00:46")
+    (for hist in (UNIT.CHILDREN self (QUOTE MEMBER)) do (UNITMSG hist (QUOTE PrintReasons)))
+    (CLOSEALL])
+
+(EP.PrintReasons
+  [LAMBDA (self filename)                               (* hed " 5-May-86 00:51")
+    (LET [(Stream (if (NULL filename)
+                      then (OPENSTREAM (CONCAT (SUBSTRING (UNIT.NAME (GET.VALUE self (QUOTE Player)))
+                                                         1 6)
+                                              ".OUT")
+                                      (QUOTE OUTPUT))
+                    elseif (STREAMP filename)
+                      then filename
+                    else (OPENSTREAM filename (QUOTE OUTPUT]
+      (printout Stream .FONT (QUOTE (TIMESROMAN 12 BOLD))
+                .CENTER 0 "Reasoning for game of player " (UNIT.NAME (GET.VALUE self (QUOTE Player)))
+                T T)
+      (printout Stream .FONT BOLDFONT "Play" .TAB 10 "Reason" .FONT DEFAULTFONT T)
+      (for reason in (GET.VALUES self (QUOTE Reasons)) do (printout Stream (CAR reason)
+                                                                   .TAB 10 (CADR reason)
+                                                                   T])
+
+(EP.Results
+  [LAMBDA NIL                                           (* rao "17-Apr-86 11:25")
+
+        (* * (Presently no storing of results))
+
+
+    NIL])
+
+(EP.ShootPass
+  [LAMBDA (self Player PassDir)                         (* rao "28-Apr-86 22:13")
+    (do [PROGN (ASSERT.UNKNOWN (QUOTE (More Cards Selected)))
+               (QUERY (QUOTE (More Cards Selected))
+                      1
+                      (GET.VALUE self (QUOTE PassOutRuleClass]
+        repeatuntil (EQP (GET.VALUE Player (QUOTE NumberOfPassCards))
+                         3))
+    (GET.VALUES Player (QUOTE PassCards])
+
+(EP.ShootPlay
+  [LAMBDA (self Player Trick HeartsBroken? FirstTrick?) (* hed " 4-May-86 17:43")
+    (LET [(PlayMode (GET.VALUE Player (QUOTE PlayMode)))
+      (REMOVE.ALL.LOCAL.VALUES self (QUOTE WeakestSuit))
+      (QUERY (LIST (QUOTE THE)
+                   (QUOTE PlayCard)
+                   (QUOTE OF)
+                   (UNIT.NAME Player)
+                   (QUOTE IS)
+                   (QUOTE ?Card))
+             1
+             (SELECTQ PlayMode
+                     ((QUOTE FollowSuit)
+                       (QUOTE (shoot.follow expert)))
+                     ((QUOTE Dump)
+                       (QUOTE (shoot.dump expert)))
+                     ((QUOTE Lead)
+                       (QUOTE (shoot.lead expert)))
+                     NIL))
+      (GET.VALUE Player (QUOTE PlayCard])
+
+(EP.SuitsWithCards
+  [LAMBDA (self)                                        (* hed " 4-May-86 16:11")
+    (LET [(Hand (GET.VALUE (GET.VALUE self (QUOTE Player))
+
+=== page 13 ===
+{MITFS1-E40:SLOAN SCHOOL:MASSINSTTECH}<RAMANA RAO>EXPERT.;25       5-May-86 02:15:08                      Page 12
+
+
+                                (QUOTE Hand]
+      (for suit in SuitValues collect suit when (Not.Null (Hand.CardsInSuit Hand suit])
+
+(EP.Test
+  [LAMBDA NIL                                           (* rao "20-Apr-86 23:43")
+    (UNITMSG (fetch Object of (UNITMSG (QUOTE (expert.players expert))
+                                       (QUOTE Create)))
+             (QUOTE GiveHand)
+             (Hand.Create (HP.ChooseSomeCards 13 (HP.MakeDeck])
+
+(EP.Trick
+  [LAMBDA (self Trick)                                  (* hed "30-Apr-86 20:54")
+
+        (* * Figure out important info from trick)
+
+
+      (if (CardList.Member (CP.Maggie)
+                           (Trick.Cards Trick))
+          then (PUT.VALUE self (QUOTE MaggieStatus)
+                          (QUOTE Played))
+               (PUT.VALUE self (QUOTE MaggieLocation)
+                          (QUOTE Elsewhere)))
+      (UNITMSG (GET.VALUE self (QUOTE history))
+               (QUOTE ComputeStats)
+               Trick)
+
+        (* * Each opponent's model should update itself. This includes: tracking relevent stats and estimating strategy
+        (and anything else we put in).)
+
+
+      (PUT.VALUE (QUOTE (expert.players expert))
+                 (QUOTE CurrentPlayer)
+                 self)
+      (for OpSlot in (QUOTE (LeftPlayer RightPlayer AcrossPlayer)) bind CurOp
+         do (SETQ CurOp (GET.VALUE self OpSlot))
+            (PUT.VALUE self (QUOTE CurrentOpponent)
+                       CurOp)
+            (UNITMSG CurOp (QUOTE UpdateModel)
+                     Trick))
+
+        (* * Compute new strategy)
+
+
+      (REMOVE.ALL.LOCAL.VALUES self (QUOTE NewStrategy))
+      (QUERY (LIST (QUOTE THE)
+                   (QUOTE NewStrategy)
+                   (QUOTE OF)
+                   (UNIT.NAME self)
+                   (QUOTE IS)
+                   (QUOTE ?Strat))
+             1
+             (QUOTE trick.evaluation))
+      (PUT.VALUE self (QUOTE Strategy)
+                 (GET.VALUE self (QUOTE NewStrategy]
+
+(KillExperts
+  [LAMBDA NIL                                           (* hed "30-Apr-86 05:46")
+    (for x in (UNIT.ALLCHILDREN (QUOTE expert.players)
+                                (QUOTE MEMBER))
+       do (for subunitslot in (QUOTE (history LeftPlayer RightPlayer AcrossPlayer))
+             do (UNITDELETE (GET.VALUE x subunitslot)))
+          (UNITDELETE x))
+    (REMOVE.ALL.LOCAL.VALUES (QUOTE expert.players)
+                             (QUOTE CurrentPlayer])
+)
+(PUTPROPS EXPERT COPYRIGHT ("Harley Davis and Ramana Rao" 1986))
+STOP
