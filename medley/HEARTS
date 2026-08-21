@@ -1380,7 +1380,7 @@
   [LAMBDA (HumanName)                                            (* hed " 4-May-86 22:17")
     (LET* ([HumanName (OR HumanName (SETQ HumanName (TTYIN "Enter your name: " NIL NIL
                                                            (QUOTE (STRING NORAISE]
-           (Win (CREATEW (GETBOXREGION 300 245 NIL NIL NIL (CONCAT "Position for your interface window, "
+           (Win (CREATEW (GETBOXREGION 300 300 NIL NIL NIL (CONCAT "Position for your interface window, "
                                                                    HumanName))
                          (CONCAT "Hearts Window for " HumanName)))
            HeartsMenu DS)

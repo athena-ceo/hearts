@@ -46,6 +46,7 @@ image-as-source-of-truth**, and why a scanned listing isn't a complete program.
 |---|---|---|
 | U1 | **fixed** | Card-table `S:/T:` (score/tricks) smeared — `CT.PrintStats` redrew without erasing, so changing-width digits overlapped (bogus "T: 31"). Now clears each field with a `WHITESHADE` fill first. |
 | U2 | **open** | The outer `(bind … do (Hearts …))` game loop calls `CT.Open` each game, stacking a **new card-table window per game** (and thought windows per Conservative). Cosmetic/resource leak; harmless but messy. Consider reusing one card table, or `⌃E` to stop after a game. |
+| U3 | **fixed (build)** | Human hand window was created 245px tall (`GETBOXREGION 300 245`), but the option menu (Play/Pass/Score/LegalCards) is `ATTACHWINDOW`'d to its `TOP`. Card rows are pinned to the window *bottom* (Clubs top row at y=176–221, only ~24px from the top edge), so the attached menu hid the Clubs label and card bodies. Grew the window to 300px — extra height lands above the top row, giving Clubs ~79px of clearance. Scoped to `HP.CreateWindow` (Open/Dealer windows use the same box but have no attached top menu). |
 
 ## Fixed transcription (OCR) errors — historical, resolved
 

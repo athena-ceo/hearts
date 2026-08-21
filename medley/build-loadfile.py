@@ -124,6 +124,17 @@ def build(text):
     #     system PROMPTPRINT and Interlisp is case-sensitive, so DWIM prompts at runtime.
     #     Original 1986 inconsistency (kept in the faithful transcription); correct it here.
     text = text.replace("PromptPrint", "PROMPTPRINT")
+    # 2i. Revival FIX (display): the human hand window was 245px tall, but the option
+    #     menu (Play/Pass/Score/LegalCards) is ATTACHWINDOW'd to its TOP, and the top
+    #     card row (Clubs, y=176..221) sat only ~24px from the top edge -- so the menu
+    #     hid the Clubs label + card bodies. Card rows are pinned to the window BOTTOM,
+    #     so growing the height adds space at the TOP, right where the menu needs it.
+    #     245 -> 300 gives the Clubs row ~79px of clearance. Scoped to HP.CreateWindow
+    #     via its unique prompt string (Open/Dealer windows use the same 300 245 box but
+    #     have no attached top menu). Original 1986 layout; corrected here. See BUGS.md U3.
+    text = text.replace(
+        '(GETBOXREGION 300 245 NIL NIL NIL (CONCAT "Position for your interface window, "',
+        '(GETBOXREGION 300 300 NIL NIL NIL (CONCAT "Position for your interface window, "')
     # 3. arrow -> underscore
     text = text.replace("←", "_")
     # collapse runs of >2 blank lines left by stripping
