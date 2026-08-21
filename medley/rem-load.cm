@@ -1,0 +1,4 @@
+(PROGN (SETQ HPROBE (OPENSTREAM "{DSK}/Users/harley/Development/hearts/medley/probe.log" (QUOTE OUTPUT) (QUOTE NEW)))
+       (PRIN1 "REM.CM-EXECUTED" HPROBE) (TERPRI HPROBE)
+       (CLOSEF HPROBE)
+       (LOGOUT T))

@@ -115,7 +115,7 @@
                                                   NIL T 3000]
        do (SETQ HNETPlayers (NCONC HNETPlayers New))
           (SETQ PlayerNum (IPLUS PlayerNum (LENGTH New)))
-          (SETQ CT.All (NCONC1 CT.All (fetch HNP.Host of (CAR New]
+          [SETQ CT.All (NCONC1 CT.All (fetch HNP.Host of (CAR New]
        finally (RETURN (for P in HNETPlayers collect (create Player
                                                           Name ←(fetch HNP.Name of P)
                                                           Type ←(QUOTE Net)

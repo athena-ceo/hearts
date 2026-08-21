@@ -177,7 +177,7 @@
                                         MENUFONT ←(QUOTE (GACHA 10 (QUOTE BOLD]
                  (if val
                      then (SETQ vals (NCONC1 vals val))
-                   else (RETURN vals)))
+                   else (RETURN vals))
               finally (RETURN vals)))
     [WINDOWPROP Win (QUOTE Open?)
            (MENU (create MENU
@@ -202,7 +202,7 @@
         then (ADD.PROCESS (LIST (QUOTE LHearts)
                                 (KWOTE (WINDOWPROP Win (QUOTE Config)))
                                 (WINDOWPROP Win (QUOTE Open?))
-                                (WINDOWPROP Win (QUOTE ManualDeal?])])
+                                (WINDOWPROP Win (QUOTE ManualDeal?])
 
 (H.QueueNPs
   [LAMBDA (Win)                                              (* hed "5-May-86 01:38")

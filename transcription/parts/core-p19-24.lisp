@@ -179,7 +179,7 @@
     (PROG [(Ready? (WINDOWPROP HWin (QUOTE Ready?)))
            (SelectedCards (WINDOWPROP HWin (QUOTE SelectedCards)))
            (HeartsMenu (WINDOWPROP HWin (QUOTE HeartsMenu)))
-           (Hand (WINDOWPROP HWin (QUOTE Hand)))
+           (Hand (WINDOWPROP HWin (QUOTE Hand]
           (if Pass
               then (PROMPTPRINT (CONCAT "Pass to the " Pass))
                    [HP.WaitForReady HWin (CONCAT "Please choose and pass 3 cards, "
@@ -346,7 +346,7 @@
       (SETQ Pass? (EQUAL (WINDOWPROP HWin (QUOTE PassOrPlay))
                          (QUOTE Pass)))
       (SELECTQ Type
-               ((QUOTE Pass)
+               [(QUOTE Pass)
                 (PROMPTPRINT "Pass noted.")
                 (if (AND Pass? (EQP (LENGTH (WINDOWPROP HWin (QUOTE SelectedCards)))
                                     3))

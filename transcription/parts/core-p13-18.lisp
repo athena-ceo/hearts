@@ -328,7 +328,7 @@
                                    then (SETQ PCards
                                           (APPEND PCards
                                                   (for k from PLen to 12
-                                                     collect (LET ((NewCard (CAR (FNTH CardsLeft
+                                                     collect (LET [(NewCard (CAR (FNTH CardsLeft
                                                                                        (RAND 1 (FLENGTH
                                                                                                  CardsLeft]
                                                                    (SETQ CardsLeft

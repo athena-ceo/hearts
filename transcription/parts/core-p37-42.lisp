@@ -232,7 +232,7 @@
   [LAMBDA (Hand Card)                                      (* rao "21-Apr-86 01:57")
 
 ;; ==== page 41 ====
-    (LET* ((Suit (fetch Suit of Card))
+    (LET* [(Suit (fetch Suit of Card))
            (NewCards (for c in (Hand.CardsInSuit Hand Suit) collect c unless (EQUAL c Card]
       (Hand.SetSuit Hand Suit NewCards)
       Card])

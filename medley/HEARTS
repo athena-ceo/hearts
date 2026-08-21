@@ -1,11 +1,5 @@
-;; -*- Mode: Lisp; Package: Interlisp -*-
-;; HEARTS core system — InterLisp-D, Xerox Dandelion, 1986.
-;; Harley Davis and Ramana Rao.  Transcribed from ../original/hearts-core.pdf.
-;; See TRANSCRIPTION-NOTES.md for conventions.
-;; Assembled from parts/core-p*.lisp in page order.
 
-;; ==== page 1 ====
-(FILECREATED " 5-May-86 02:06:24" {MITFS1-E40:SLOAN% SCHOOL:MASSINSTTECH}<RAMANA% RAO>HEART #| ?? line truncated at right margin of page |#
+(FILECREATED " 5-May-86 02:06:24" {MITFS1-E40:SLOAN% SCHOOL:MASSINSTTECH}<RAMANA% RAO>HEART 
 
       changes to:  (FNS H.QueueNPs CLOWN.Create CLOWN.GiveHand HNET.Hello HNET.GoodBye Game.PrintOut
                         Hearts LHearts H.PlayGame H.Shuffle H.Deal CP.Follow Deal.SetScore
@@ -19,7 +13,6 @@
                    (VARS ConservativeNames HEARTSCOMS HPMapping HIconBM HShadowBM)
       previous date: "25-Apr-86 13:46:47"
 {MITFS1-E40:SLOAN% SCHOOL:MASSINSTTECH}<RAMANA% RAO>HEARTS.;54)
-
 
 (* Copyright (c) 1986 by Harley Davis and Ramana Rao. All rights reserved.)
 
@@ -78,7 +71,6 @@
         (VARS CardValues SuitValues Game.OverScore (Player.Array (ARRAY 4)))
         (FNS Game.Update Game.Winner Game.PrintOut)
 
-;; ==== page 2 ====
         (FNS PlayerLoc PlayerNum Player?.Record Player?.Number PlayerNum.Increment PlayerNum.Plus
                 PlayerNum.Difference)
         (FNS Deal.SetScore)
@@ -114,7 +106,7 @@
 (H.IconMenu
   [LAMBDA (Win)                                              (* rao "4-May-86 23:50")
     (MENU (create MENU
-                ITEMS ←[QUOTE (["Play Game" (ADD.PROCESS (LIST (QUOTE LHearts)
+                ITEMS _[QUOTE (["Play Game" (ADD.PROCESS (LIST (QUOTE LHearts)
                                                                (KWOTE (WINDOWPROP Win (QUOTE Config)
                                                                              ))
                                                                (WINDOWPROP Win (QUOTE Open?))
@@ -124,12 +116,12 @@
                               ["Print Last Game"
                                 (Game.PrintOut H.LastGame
                                        (MENU (create MENU
-                                                    ITEMS ←[QUOTE
+                                                    ITEMS _[QUOTE
                                                               (("Terminal" T)
                                                                 ("File HGAME.OUT"
                                                                   (OPENSTREAM (QUOTE HGAME.OUT)
                                                                          (QUOTE APPEND]
-                                                    TITLE ← "Print Game To..."]
+                                                    TITLE _ "Print Game To..."]
                               ("List Rules" (PROGN (ListRules (QUOTE HRULES.OUT))
                                                    (CLOSEALL)))
                               ("Kill Experts" (KillExperts))
@@ -144,8 +136,8 @@
                                                                            (QUOTE
                                                                             ManualDeal?))
                                                                     ":" T]
-                TITLE ← "Let's play Hearts!"
-                MENUFONT ←(QUOTE (HELVETICA 10 (QUOTE BRR])
+                TITLE _ "Let's play Hearts!"
+                MENUFONT _(QUOTE (HELVETICA 10 (QUOTE BRR])
 
 (H.MakeIcon
   [LAMBDA NIL                                                (* hed "4-May-86 14:58")
@@ -153,7 +145,6 @@
            (QUOTE BUTTONEVENTFN)
            (FUNCTION H.IconMenu])
 
-;; ==== page 3 ====
 (H.MakePlayer
   [LAMBDA (Type Open?)                                       (* rao "4-May-86 22:48")
     (SELECTQ Type
@@ -174,37 +165,37 @@
     (WINDOWPROP Win (QUOTE Config)
            (bind val vals for i from 1 to 4
               do [SETQ val (MENU (create MENU
-                                        ITEMS ←(QUOTE (("Expert Player" (QUOTE EP))
+                                        ITEMS _(QUOTE (("Expert Player" (QUOTE EP))
                                                         ("Conservative Player" (QUOTE CP))
                                                         ("Human Player" (QUOTE HP))
                                                         ("Clown (Blah)" (QUOTE CLOWN))
                                                         ("Get Rest from Net" NIL)))
-                                        TITLE ←(CONCAT "Type of player " i)
-                                        MENUFONT ←(QUOTE (GACHA 10 (QUOTE BOLD]
+                                        TITLE _(CONCAT "Type of player " i)
+                                        MENUFONT _(QUOTE (GACHA 10 (QUOTE BOLD]
                  (if val
                      then (SETQ vals (NCONC1 vals val))
                    else (RETURN vals))
               finally (RETURN vals)))
     [WINDOWPROP Win (QUOTE Open?)
            (MENU (create MENU
-                        ITEMS ←(QUOTE (("Yes" T)
+                        ITEMS _(QUOTE (("Yes" T)
                                         ("No" NIL)))
-                        TITLE ← "Play Open Hand?"
-                        MENUCOLUMNS ← 2
-                        MENUFONT ←(QUOTE (GACHA 10 (QUOTE BOLD]
+                        TITLE _ "Play Open Hand?"
+                        MENUCOLUMNS _ 2
+                        MENUFONT _(QUOTE (GACHA 10 (QUOTE BOLD]
     [WINDOWPROP Win (QUOTE ManualDeal?)
            (MENU (create MENU
-                        ITEMS ←(QUOTE (("Yes" T)
+                        ITEMS _(QUOTE (("Yes" T)
                                         ("No" NIL)))
-                        TITLE ← "Deal Manually?"
-                        MENUCOLUMNS ← 2
-                        MENUFONT ←(QUOTE (GACHA 10 (QUOTE BOLD]
+                        TITLE _ "Deal Manually?"
+                        MENUCOLUMNS _ 2
+                        MENUFONT _(QUOTE (GACHA 10 (QUOTE BOLD]
     (if [MENU (create MENU
-                     ITEMS ←(QUOTE (("Yes" T)
+                     ITEMS _(QUOTE (("Yes" T)
                                      ("No" NIL)))
-                     TITLE ← "Play Now?"
-                     MENUCOLUMNS ← 2
-                     MENUFONT ←(QUOTE (GACHA 10 (QUOTE BOLD]
+                     TITLE _ "Play Now?"
+                     MENUCOLUMNS _ 2
+                     MENUFONT _(QUOTE (GACHA 10 (QUOTE BOLD]
         then (ADD.PROCESS (LIST (QUOTE LHearts)
                                 (KWOTE (WINDOWPROP Win (QUOTE Config)))
                                 (WINDOWPROP Win (QUOTE Open?))
@@ -212,16 +203,16 @@
 
 (H.QueueNPs
   [LAMBDA (Win)                                              (* hed "5-May-86 01:38")
-    (bind [Open? ←(WINDOWPROP Win (QUOTE Open?)
+    (bind [Open? _(WINDOWPROP Win (QUOTE Open?)
                         (MENU (create MENU
-                                     ITEMS ←(QUOTE (("Yes" T)
+                                     ITEMS _(QUOTE (("Yes" T)
                                                      ("No" NIL)))
-                                     TITLE ← "Play Open Hand?"
-                                     MENUCOLUMNS ← 2
-                                     MENUFONT ←(QUOTE (GACHA 10 (QUOTE BOLD]
+                                     TITLE _ "Play Open Hand?"
+                                     MENUCOLUMNS _ 2
+                                     MENUFONT _(QUOTE (GACHA 10 (QUOTE BOLD]
           val vals for i from 1
-       do [val ←(MENU (create MENU
-                             ITEMS ←(QUOTE (("Expert Player" (UNITMSG (QUOTE expert.players)
+       do [val _(MENU (create MENU
+                             ITEMS _(QUOTE (("Expert Player" (UNITMSG (QUOTE expert.players)
                                                                     (QUOTE Create)
                                                                     Open?))
                                              ("Conservative Player" (CP.Create Open?))
@@ -229,9 +220,8 @@
                                              ("Clown (Blah)" (CLOWN.Create))
                                              ("STOP" NIL)))
 
-;; ==== page 4 ====
-                                     TITLE ←(CONCAT "Type of player " i)
-                                     MENUFONT ←(QUOTE (GACHA 10 (QUOTE BOLD]
+                                     TITLE _(CONCAT "Type of player " i)
+                                     MENUFONT _(QUOTE (GACHA 10 (QUOTE BOLD]
           (if val
               then (SETQ vals (NCONC1 vals val))
             else (RETURN (NetHearts vals])
@@ -241,7 +231,7 @@
 (LHearts
   [LAMBDA (Config Open? ManualDeal?)                         (* rao "4-May-86 23:15")
     (LET [(Config (OR Config (QUOTE (EP EP EP EP]
-         (bind (Players ←(for XP in Config collect (H.MakePlayer XP Open?)))
+         (bind (Players _(for XP in Config collect (H.MakePlayer XP Open?)))
             do (Hearts Players Open? ManualDeal?)
                (SETQ H.GameList (NCONC1 H.GameList H.LastGame])
 
@@ -272,7 +262,6 @@
 
 (RPAQ? H.GameList )
 
-;; ==== page 5 ====
 (* * HOUSE Routines and Data Structures)
 
 (DEFINEQ
@@ -287,12 +276,11 @@
 
         (* * Game Administration)
 
-
     (LET ((Deck (Card.CreateDeck))
           (Pass (QUOTE Left))
           (Game (create Game
-                       Players ← Players
-                       Score ←(LIST 0 0 0 0)))
+                       Players _ Players
+                       Score _(LIST 0 0 0 0)))
           (LeadCard (Card.Create 2 (QUOTE C)))
           OriginalHands)
          (SETQ H.LastGame Game)
@@ -304,7 +292,6 @@
 
                (* * Next Deal)
 
-
                (SETQ Deck (Card.CreateDeck))
                (H.Shuffle Deck ManualDeal?)
                (SETQ Deal (H.Deal Players Pass Deck))
@@ -312,17 +299,16 @@
 
                (* * Play Deal)
 
-
                (replace Tricks of Deal
-                  with (bind [Lead ←(for i from 1 to 4 Hand in OriginalHands
+                  with (bind [Lead _(for i from 1 to 4 Hand in OriginalHands
                                        thereis (CardList.Member LeadCard (Hand.Cards Hand]
-                             (HeartsBroken? ← NIL)
+                             (HeartsBroken? _ NIL)
                              LastCard for TrickNum from 1 to 13
                           collect (SETQ Trick (create Trick
-                                                     Cards ← NIL
-                                                     LeadPlayerNum ← Lead))
+                                                     Cards _ NIL
+                                                     LeadPlayerNum _ Lead))
                                                             (* Play Trick)
-                                  (bind (PlayerNum ← Lead)
+                                  (bind (PlayerNum _ Lead)
                                         Player
                                      do (SETQ Player (ELT Player.Array PlayerNum))
                                         [Trick.Play Trick (SETQ LastCard (H.Apply Player (QUOTE Play)
@@ -343,12 +329,10 @@
 
                (* * Update Variables)
 
-
                (Game.Update Game Deal)
                (for Player in Players do (H.Apply Player (QUOTE Results)
                                                (fetch Score of Game)))
 
-;; ==== page 6 ====
                (SETQ Pass (CDR (FASSOC Pass (QUOTE ((Left . Across)
                                                      (Across . Right)
                                                      (Right)
@@ -374,11 +358,10 @@
 
         (* * comment)
 
-
     (LET ((Deal (create Deal
-                       D.Score ←(LIST 0 0 0 0)
-                       D.CumScore ←(LIST 0 0 0 0)
-                       PassDir ← Pass)))
+                       D.Score _(LIST 0 0 0 0)
+                       D.CumScore _(LIST 0 0 0 0)
+                       PassDir _ Pass)))
          (replace D.RealHands of Deal
             with (bind Hand for PlayerNum from 1 to 4 as Player in Players
                     collect                             (* First player gets first 13 cards of deck, etc.)
@@ -416,14 +399,12 @@
 
         (* * comment)
 
-
     (LET ((Player (ARG Args 1))
           (Op (ARG Args 2))
           (OpArgs (for i from 3 to Args collect (ARG Args i)))
           RetVal Fcn)
          (SETQ RetVal (SELECTQ (fetch Type of Player)
                           ((QUOTE Lisp)
-;; ==== page 7 ====
                               [SETQ Fcn (CDR (FASSOC Op (fetch Mapping of Player]
                               (if Fcn
                                   then (APPLY Fcn (CONS (fetch Object of Player)
@@ -480,7 +461,6 @@
 
 (RPAQQ H.PlayerMustOps (GiveHand PassOut PassIn Play))
 
-;; ==== page 8 ====
 (* * Hearts Network Handler)
 
 [DECLARE: EVAL@COMPILE
@@ -493,7 +473,6 @@
   [LAMBDA (Player Op OpArgs)                                   (* rao "15-Apr-86 17:38")
 
          (* * comment)
-
 
     (LET ((Player (Player?.Record Player))
           RetVal Fcn)
@@ -533,7 +512,7 @@
 
 (HNET.Hello
   [LAMBDA (StartNumber)                                        (* hed " 5-May-86 01:59")
-    (bind HNETPlayers New (PlayerNum ← StartNumber)
+    (bind HNETPlayers New (PlayerNum _ StartNumber)
        while [AND (ILESSP PlayerNum 5)
                   (SETQ New (CAR (NLSETQ (REMOTEVAL (LIST (FUNCTION HNET.DoIWantToPlay?)
                                                          (KWOTE PlayerNum))
@@ -542,9 +521,9 @@
           (SETQ PlayerNum (IPLUS PlayerNum (LENGTH New)))
           [SETQ CT.All (NCONC1 CT.All (fetch HNP.Host of (CAR New]
        finally (RETURN (for P in HNETPlayers collect (create Player
-                                                          Name ←(fetch HNP.Name of P)
-                                                          Type ←(QUOTE Net)
-                                                          Object ← P])
+                                                          Name _(fetch HNP.Name of P)
+                                                          Type _(QUOTE Net)
+                                                          Object _ P])
 
 (HNET.HelloAgain
   [LAMBDA (Players)                                            (* rao "15-Apr-86 20:49")
@@ -556,7 +535,6 @@
   [LAMBDA (Players)                                            (* rao "15-Apr-86 20:50")
     (SETQ HNET.CardTable (CT.Open Players HNET.CTReg])
 
-;; ==== page 9 ====
 (HNET.GoodBye
   [LAMBDA NIL                                                  (* hed " 5-May-86 01:39")
     (for Host in CT.All unless (WINDOWP Host) do (NLSETQ (REMOTEVAL (LIST (QUOTE SETQ)
@@ -575,8 +553,8 @@
                       (SETQ HNET.MyPlayers (NCONC1 HNET.MyPlayers Player))
                       (SETQ H.WaitingToPlay (REMOVE Player H.WaitingToPlay))
                       (create HN.Player
-                          HNP.Name ←(fetch Name of Player)
-                          HNP.Host ← HNET.Address])
+                          HNP.Name _(fetch Name of Player)
+                          HNP.Host _ HNET.Address])
 )
 
 (RPAQQ HNET.CTReg (475 390 450 400))
@@ -589,7 +567,6 @@
 
 (RPAQQ HNET.ResponseOps (PassOut Play))
 
-;; ==== page 10 ====
 (* * CardTable Routines and Data Structures)
 
 (DEFINEQ
@@ -641,7 +618,6 @@
 
          (* * Layout All Positions)
 
-
       (SETQ CT.X1 (DIFFERENCE (QUOTIENT CTWidth 2)
                              (QUOTIENT (STRINGWIDTH Name1 (QUOTE (TIMESROMAN 12 BOLD)))
                                     2)))
@@ -658,14 +634,12 @@
 
          (* * Card Positions)
 
-
       (SETQ CT.LeftX (DIFFERENCE (QUOTIENT CTWidth 2)
                                 (TIMES 2 CardWidth)))
       (SETQ CT.MidX (DIFFERENCE (QUOTIENT CTWidth 2)
                                (QUOTIENT CardWidth 2)))
       (SETQ CT.RightX (PLUS (QUOTIENT CTWidth 2)
 
-;; ==== page 11 ====
                                   CardWidth))
       (SETQ CT.TopY (PLUS (QUOTIENT CTHeight 2)
                          CardHeight))
@@ -675,7 +649,6 @@
                                   (TIMES 2 CardHeight)))
 
          (* * Print names of players in window)
-
 
       (DSPFONT (QUOTE (TIMESROMAN 12 BOLD))
              DS)
@@ -698,7 +671,6 @@
       (CT.PrintStats Win)
 
          (* * Return the window)
-
 
       Win])
 
@@ -741,9 +713,7 @@
 (CT.PrintStats
   [LAMBDA (Win)                                                (* rao "14-Apr-86 18:52")
 
-;; ==== page 12 ====
          (* * Prints score and number of tricks for each player.)
-
 
     (PROG [(DS (WINDOWPROP Win (QUOTE DSP)))
            (Tricks (WINDOWPROP Win (QUOTE Tricks)))
@@ -784,7 +754,6 @@
 
          (* * Only called on first time)
 
-
                      (SETQ TrickStats (WINDOWPROP Win (QUOTE Tricks)))
                      (SETQ WinNum (fetch Winner of Trick))
                      [WINDOWPROP Win (QUOTE Tricks)
@@ -816,7 +785,6 @@
                      (InvertRegion Win WinReg)
                      (DSPFILL (CREATEREGION CT.MidX CT.TopY CardWidth CardHeight)
                             WHITESHADE
-;; ==== page 13 ====
                                     (QUOTE REPLACE)
                                     DS)
                         (DSPFILL (CREATEREGION CT.RightX CT.MidY CardWidth CardHeight)
@@ -841,7 +809,7 @@
 (InvertRegion
   [LAMBDA (Win Reg)                                            (* rao "11-Apr-86 17:58")
     (ACTIVEREGIONS/DEFAULTHIGHLIGHTFN Win (create ACTIVEREGION
-                                                  REGION ← Reg])
+                                                  REGION _ Reg])
 )
 
 (RPAQ CT.TrickMonitor (CREATE.MONITORLOCK (QUOTE CT.Trick)))
@@ -854,9 +822,7 @@
 
 (RPAQQ CTHeight 400)
 
-;; ==== page 14 ====
 (* * Open Hand Utilities)
-
 
 (RPAQQ OpenSelectShade 10260)
 
@@ -877,7 +843,6 @@
 
           (* * Print names of suits in window)
 
-
           (DSPFONT (QUOTE (TIMESROMAN 12 BOLD))
                    DS)
           (for suit in (QUOTE (Clubs: Diamonds: Hearts: Spades:)) as i from 0 to 3
@@ -887,13 +852,11 @@
 
           (* * Add Text Window)
 
-
           (GETPROMPTWINDOW Win 5 (QUOTE (HELVETICA 8)))
           [SETQ OWinHeight (PLUS 245 (fetch HEIGHT of (WINDOWPROP (GETPROMPTWINDOW Win)
                                                                   (QUOTE REGION]
 
           (* * Add appropriate window properties)
-
 
           (for Prop in (QUOTE (CardMap Hand SelectedCards)) do (WINDOWPROP Win Prop NIL))
           (WINDOWPROP Win (QUOTE Name)
@@ -906,7 +869,6 @@
                       TextWin)
 
           (* * Return the window)
-
 
           (RETURN Win])
 
@@ -930,7 +892,6 @@
     (if SameLine?
         then (printout (WINDOWPROP (GETPROMPTWINDOW Win)
 
-;; ==== page 15 ====
                                    (QUOTE DSP))
                 Text)
       else (printout (WINDOWPROP (GETPROMPTWINDOW Win)
@@ -961,8 +922,8 @@
                                                     (SET CountVar (ADD1 (EVAL CountVar)))
                                                     (SETQ CardBM (Card.CreateBM C))
                                                     (SETQ NewAR (create ACTIVEREGION
-                                                                        REGION ← CReg
-                                                                        DATA ←(LIST C CardBM)))
+                                                                        REGION _ CReg
+                                                                        DATA _(LIST C CardBM)))
                                                     [SETQ CardMap
                                                       (APPEND CardMap (LIST (LIST C CardBM CReg NewAR]
                                                     NewAR)))    (* (SETACTIVEREGIONS HWin ARList))
@@ -987,14 +948,12 @@
 
           (* * Print names of suits in window)
 
-
           (for suit in (QUOTE (Clubs: Diamonds: Hearts: Spades:)) as i from 0 to 3
              do (MOVETO 2 (DIFFERENCE 176 (TIMES i 50))
                         DS)
                 (printout DS suit))
 
           (* * Display Card Map)
-
 
           [for CardEntry in CardMap do (LET ((Card (CAR CardEntry))
                                              (CardBM (CADR CardEntry))
@@ -1006,7 +965,6 @@
                                                 then (Open.MarkSelected Win CardReg]
           (RETURN Win])
 
-;; ==== page 16 ====
 (Open.Reshape
   [LAMBDA (HWin Width)                                         (* rao "23-Apr-86 10:36")
     (LET [(OldReg (WINDOWPROP HWin (QUOTE REGION]
@@ -1021,7 +979,6 @@
           SuitLabelOffset])
 )
 
-;; ==== page 17 ====
 (* * Dealing functions)
 
 (DEFINEQ
@@ -1033,15 +990,14 @@
            (Cards (for i from 1 to 52 collect (ELT Deck i)))
            HeartsMenu DS)
           [SETQ HeartsMenu (create MENU
-                                   ITEMS ←(for x in (QUOTE (Player1 Player2 Player3 Player4 Done))
+                                   ITEMS _(for x in (QUOTE (Player1 Player2 Player3 Player4 Done))
                                              collect (LIST x Win))
-                                   WHENSELECTEDFN ←(FUNCTION Dealer.Menuer)
-                                   MENUROWS ← 1
-                                   MENUFONT ←(QUOTE (GACHA 10 BOLD]
+                                   WHENSELECTEDFN _(FUNCTION Dealer.Menuer)
+                                   MENUROWS _ 1
+                                   MENUFONT _(QUOTE (GACHA 10 BOLD]
           (SETQ DS (WINDOWPROP Win (QUOTE DSP)))
 
           (* * Print names of suits in window)
-
 
           (DSPFONT (QUOTE (TIMESROMAN 12 BOLD))
                    DS)
@@ -1051,7 +1007,6 @@
                 (printout DS suit))
 
           (* * Add appropriate window properties)
-
 
           (for Prop in (QUOTE (CardMap SelectedCards NotReady)) do (WINDOWPROP Win Prop NIL))
           (WINDOWPROP Win (QUOTE HeartsMenu)
@@ -1071,18 +1026,15 @@
 
           (* * Attach the option menu)
 
-
           (ATTACHWINDOW (MENUWINDOW HeartsMenu)
                         Win
                         (QUOTE TOP))
 
           (* * Put the cards in the window)
 
-
           (Dealer.Remake Win Cards)
 
           (* * Return the window)
-
 
           (RETURN Win])
 
@@ -1097,7 +1049,6 @@
              ((QUOTE Player1)
                (LET [(PCards (APPEND (WINDOWPROP Win (QUOTE SelectedCards))
 
-;; ==== page 18 ====
                                      (ELT Cards 1]
                     (SETA Cards 1 (if (GREATERP (FLENGTH PCards)
                                                 13)
@@ -1170,15 +1121,12 @@
 
           (* * Print names of suits in window)
 
-
           (for suit in (QUOTE (Clubs: Diamonds: Hearts: Spades:)) as i from 0 to 3
-;; ==== page 19 ====
               do (MOVETO 2 (DIFFERENCE 176 (TIMES i 50))
                         DS)
                  (printout DS suit))
 
           (* * Display Card Map)
-
 
           [for CardEntry in CardMap do (LET ((Card (CAR CardEntry))
                                              (CardBM (CADR CardEntry))
@@ -1222,13 +1170,13 @@
                                                     (SET CountVar (ADD1 (EVAL CountVar)))
                                                     (SETQ CardBM (Card.CreateBM C))
                                                     (SETQ NewAR (create ACTIVEREGION
-                                                                        REGION ← CReg
-                                                                        HELPSTRING ←(CONCAT
+                                                                        REGION _ CReg
+                                                                        HELPSTRING _(CONCAT
                                                                           "Selects "
                                                                           (Card.PrintCard C))
-                                                                        DOWNFN ← NIL
-                                                                        UPFN ←(FUNCTION Dealer.Select)
-                                                                        DATA ←(LIST C CardBM)))
+                                                                        DOWNFN _ NIL
+                                                                        UPFN _(FUNCTION Dealer.Select)
+                                                                        DATA _(LIST C CardBM)))
                                                [SETQ CardMap
                                                   (APPEND CardMap (LIST (LIST C CardBM CReg NewAR]
                                                NewAR)))
@@ -1248,7 +1196,6 @@
            (SelectedCards (WINDOWPROP HWin (QUOTE SelectedCards)))
            MaxSelected NumSelected)
 
-;; ==== page 20 ====
           (if (FMEMB Card SelectedCards)
               then (Dealer.UnSelect HWin Card)
                    (RETURN))
@@ -1284,9 +1231,7 @@
       (Dealer.Remake HWin (WINDOWPROP HWin (QUOTE CardSet])
 )
 
-;; ==== page 21 ====
 (* * Human Player Interface)
-
 
 (RPAQQ CY 160)
 
@@ -1314,10 +1259,10 @@
   [LAMBDA (Name)
     (LET [((Name (OR Name (TTYIN "Enter player's name: " NIL NIL (QUOTE (STRING NORAISE]
           (create Player
-                  Name ← Name
-                  Type ←(QUOTE Lisp)
-                  Object ←(HP.CreateWindow Name)
-                  Mapping ← HPMapping])
+                  Name _ Name
+                  Type _(QUOTE Lisp)
+                  Object _(HP.CreateWindow Name)
+                  Mapping _ HPMapping])
 
 (HP.GiveHand
   [LAMBDA (HWin Hand)                                            (* rao "11-Apr-86 00:02")
@@ -1349,7 +1294,6 @@
           (* * Waits for Ready? to be true, indicating the human has chosen his cards. Returns the three cards and removes
           them from the human.)
 
-
     (PROG [(Ready? (WINDOWPROP HWin (QUOTE Ready?)))
            (SelectedCards (WINDOWPROP HWin (QUOTE SelectedCards)))
            (HeartsMenu (WINDOWPROP HWin (QUOTE HeartsMenu)))
@@ -1360,7 +1304,6 @@
                                                  (WINDOWPROP HWin (QUOTE Name]
                    (SETQ SelectedCards (WINDOWPROP HWin (QUOTE SelectedCards)))
 
-;; ==== page 22 ====
                    (for C in SelectedCards do (Hand.RemoveCard Hand C))
                    (HP.RemakeHand HWin Hand)
                    (WINDOWPROP HWin (QUOTE SelectedCards)
@@ -1369,7 +1312,6 @@
                    (for Card in SelectedCards do (HP.Unselect HWin Card)))
 
           (* * Cards ready to be passed back.)
-
 
           (WINDOWPROP HWin (QUOTE PassOrPlay)
                       (QUOTE Play))
@@ -1416,7 +1358,6 @@
 
           (* * Adds Card to Hand and to the display)
 
-
     (LET [(Hand (WINDOWPROP HWin (QUOTE Hand]
       (Hand.AddCard (WINDOWPROP HWin (QUOTE Hand))
                     Card)
@@ -1435,7 +1376,6 @@
                                  (SETQ Res (APPEND Res (LIST nc]
       Res])
 
-;; ==== page 23 ====
 (HP.CreateWindow
   [LAMBDA (HumanName)                                            (* hed " 4-May-86 22:17")
     (LET* ([HumanName (OR HumanName (SETQ HumanName (TTYIN "Enter your name: " NIL NIL
@@ -1445,15 +1385,14 @@
                          (CONCAT "Hearts Window for " HumanName)))
            HeartsMenu DS)
       [SETQ HeartsMenu (create MENU
-                               ITEMS ←(for x in (QUOTE (Play Pass Score LegalCards))
+                               ITEMS _(for x in (QUOTE (Play Pass Score LegalCards))
                                          collect (LIST x Win))
-                               WHENSELECTEDFN ←(FUNCTION HP.Menuer)
-                               MENUROWS ← 1
-                               MENUFONT ←(QUOTE (GACHA 10 BOLD]
+                               WHENSELECTEDFN _(FUNCTION HP.Menuer)
+                               MENUROWS _ 1
+                               MENUFONT _(QUOTE (GACHA 10 BOLD]
       (SETQ DS (WINDOWPROP Win (QUOTE DSP)))
 
           (* * Print names of suits in window)
-
 
       (DSPFONT (QUOTE (TIMESROMAN 12 BOLD))
                DS)
@@ -1463,7 +1402,6 @@
             (printout DS suit))
 
           (* * Add appropriate window properties)
-
 
       (for Prop in (QUOTE (CardMap Hand SelectedCards PassOrPlay Ready?))
          do (WINDOWPROP Win Prop NIL))
@@ -1478,13 +1416,11 @@
 
           (* * Attach the option menu)
 
-
       (ATTACHWINDOW (MENUWINDOW HeartsMenu)
                     Win
                     (QUOTE TOP))
 
           (* * Return the window)
-
 
       Win])
 
@@ -1511,7 +1447,6 @@
             CardWidth CardHeight (QUOTE INPUT)
             (QUOTE REPLACE])
 
-;; ==== page 24 ====
 (HP.Menuer
   [LAMBDA (Item Menu MouseKey)                                   (* rao "14-Apr-86 16:29")
     (LET ((HWin (CADR Item))
@@ -1585,7 +1520,6 @@
           (WINDOWPROP HWin (QUOTE Hand)
                       Hand)
           (SETQ ARList (for C in Cards collect (LET ((Suit (fetch Suit of C))
-;; ==== page 25 ====
                           NewAR CReg CountVar CardBM)
                          (SETQ CountVar (PACK* (QUOTE N)
                                                Suit))
@@ -1597,13 +1531,13 @@
                          (SET CountVar (ADD1 (EVAL CountVar)))
                          (SETQ CardBM (Card.CreateBM C))
                          (SETQ NewAR (create ACTIVEREGION
-                                            REGION ← CReg
-                                            HELPSTRING ←(CONCAT
+                                            REGION _ CReg
+                                            HELPSTRING _(CONCAT
                                              "Selects "
                                              (Card.PrintCard C))
-                                            DOWNFN ← NIL
-                                            UPFN ←(FUNCTION HP.Select)
-                                            DATA ←(LIST C CardBM)))
+                                            DOWNFN _ NIL
+                                            UPFN _(FUNCTION HP.Select)
+                                            DATA _(LIST C CardBM)))
                     [SETQ CardMap
                        (APPEND CardMap (LIST (LIST C CardBM CReg NewAR]
                     NewAR)))
@@ -1631,14 +1565,12 @@
 
           (* * Print names of suits in window)
 
-
           (for suit in (QUOTE (Clubs: Diamonds: Hearts: Spades:)) as i from 0 to 3
              do (MOVETO 2 (DIFFERENCE 176 (TIMES i 50))
                         DS)
                 (printout DS suit))
 
           (* * Display Card Map)
-
 
           [for CardEntry in CardMap do (LET ((Card (CAR CardEntry))
                                              (CardBM (CADR CardEntry))
@@ -1660,7 +1592,6 @@
                                        (fetch HEIGHT of OldReg]
       (REDISPLAYW HWin])
 
-;; ==== page 26 ====
 (HP.Select
   [LAMBDA (HWin CReg Data)                                (* rao "11-Apr-86 13:00")
     (PROG ((Card (CAR Data))
@@ -1712,7 +1643,6 @@
 
     (* * Waits for Ready? to be true, indicating the human has chosen his cards.)
 
-
     (PROG [(Ready? (WINDOWPROP HWin (QUOTE Ready?]
           (while (NOT Ready?) as i from 1
              do (if (EQP i 10)
@@ -1726,7 +1656,6 @@
                  (Hand.Create (HP.ChooseSomeCards 13 (HP.MakeDeck])
 )
 
-;; ==== page 27 ====
 (* * Conservative Player)
 
 [DECLARE: EVAL@COMPILE
@@ -1768,17 +1697,17 @@
                       (FUNCTION SCROLLBYREPAINTFN))
                (DSPSCROLL T (WINDOWPROP ThoughtWindow (QUOTE DSP]
       (SETQ NewPlayer (create Player
-                             Name ← PlayerName
-                             Type ←(QUOTE Lisp)
-                             Object ←[create CP
-                                       Name ← PlayerName
-                                       ThoughtWindow ← ThoughtWindow
-                                       CP.OpenHand? ← OpenHand?
-                                       CP.HandWindow ←(if OpenHand?
+                             Name _ PlayerName
+                             Type _(QUOTE Lisp)
+                             Object _[create CP
+                                       Name _ PlayerName
+                                       ThoughtWindow _ ThoughtWindow
+                                       CP.OpenHand? _ OpenHand?
+                                       CP.HandWindow _(if OpenHand?
                                                           then (Open.CreateWindow
                                                                  PlayerName
                                                                  (QUOTE CP]
-                             Mapping ← CPMapping))
+                             Mapping _ CPMapping))
       NewPlayer])
 
 (CP.Follow
@@ -1798,7 +1727,6 @@
 
           (* Lead the highest card under the highest played so far in the lead suit unless there aren't any, in which case play the lowest in the suit)
 
-;; ==== page 28 ====
                (SETQ PlayCard (if (SETQ LowerLeadSuitCards (for card in LeadSuitCards collect card
                                                                 unless (Card.Higher? card
                                                                                      HighestLeadInSuit)))
@@ -1869,7 +1797,6 @@
       (if (Card.Higher? HighestSpade (Card.Create (QUOTE J)
                                              (QUOTE S)))
 
-;; ==== page 29 ====
           then HighestSpade])
 
 (CP.Lead
@@ -1920,8 +1847,8 @@
 (CP.Maggie
   [LAMBDA NIL                                             (* rao "12-Apr-86 14:59")
     (OR Maggie (SETQ Maggie (create Card
-                                   Suit ←(QUOTE S)
-                                   Value ←(QUOTE Q])
+                                   Suit _(QUOTE S)
+                                   Value _(QUOTE Q])
 
 (CP.PassIn
   [LAMBDA (self PassIn)                                   (* rao "23-Apr-86 00:06")
@@ -1943,7 +1870,6 @@
                     collect (LET* [(PassCard (OR (CP.HasMaggie? self)
                                              (if (Card.Higher? [SETQ HighestSpade
 
-;; ==== page 30 ====
                                                                 (Card.MaxCard
                                                                   (Hand.CardsInSuit
                                                                     Hand
@@ -2007,7 +1933,7 @@
 (CP.TestPass
   [LAMBDA (self)                                          (* rao "22-Apr-86 21:35")
     (for c in (Hand.Cards (fetch Hand of self)) do (printout T (Card.PrintCard c)
-                                                            ,,))   #| ?? two printout separators; render as ",," (commas); could be ".." |#
+                                                            ,,))   
     (printout T T)
     (for c in (CP.PassOut self T) do (printout T (Card.PrintCard c)
                                              ,,])
@@ -2017,7 +1943,6 @@
     (if (OR ThinkFlag? (fetch CP.OpenHand? of self))
         then (LET [(self (ARG Args 1))
                    (PrintItems (for i from 2 to Args collect (LET ((thing (ARG Args i)))
-;; ==== page 31 ====
                                                   (if (EQ thing T)
                                                       then thing
                                                     else (KWOTE thing]
@@ -2044,11 +1969,9 @@
 
           (* * (Presently no storing of results))
 
-
     NIL])
 )
 
-;; ==== page 32 ====
 (* * House Clown)
 
 [DECLARE: EVAL@COMPILE
@@ -2064,10 +1987,10 @@
 (CLOWN.Create
   [LAMBDA (PlayerNumber)                                   (* hed " 5-May-86 01:14")
     (create Player
-            Name ←[GENSYM (CAR (FNTH ClownNames (RAND 1 (FLENGTH ClownNames]
-            Type ←(QUOTE Lisp)
-            Object ←(create Clown)
-            Mapping ←(QUOTE ((GiveHand . CLOWN.GiveHand)
+            Name _[GENSYM (CAR (FNTH ClownNames (RAND 1 (FLENGTH ClownNames]
+            Type _(QUOTE Lisp)
+            Object _(create Clown)
+            Mapping _(QUOTE ((GiveHand . CLOWN.GiveHand)
                              (PassOut . CLOWN.PassOut)
                              (PassIn . CLOWN.PassIn)
                              (Play . CLOWN.Play])
@@ -2079,7 +2002,7 @@
 (CLOWN.PassOut
   [LAMBDA (Clown Pass)                                     (* rao "17-Apr-86 12:07")
     (if Pass
-        then (bind (Hand ←(fetch Clown.Hand of Clown))
+        then (bind (Hand _(fetch Clown.Hand of Clown))
                    Card for i from 1 to 3
               collect [SETQ Card (CAR (NTH (Hand.Cards Hand)
                                            (RAND 1 (DIFFERENCE 14 i]
@@ -2088,13 +2011,12 @@
 
 (CLOWN.PassIn
   [LAMBDA (Clown PassIn)                                   (* rao "17-Apr-86 12:07")
-    (bind (Hand ←(fetch Clown.Hand of Clown)) for Card in PassIn do (Hand.AddCard Hand Card])
+    (bind (Hand _(fetch Clown.Hand of Clown)) for Card in PassIn do (Hand.AddCard Hand Card])
 
 (CLOWN.Play
   [LAMBDA (Clown Trick HeartsBroken?)                      (* rao "17-Apr-86 12:07")
 
           (* * Picks Random Card from all Legal Plays)
-
 
     (LET* [(Possibles (H.GetLegals (fetch Clown.Hand of Clown)
                                    Trick HeartsBroken?))
@@ -2104,7 +2026,6 @@
       Card])
 )
 
-;; ==== page 33 ====
 (* * DATA Structures)
 
 [DECLARE: EVAL@COMPILE
@@ -2144,7 +2065,7 @@
 (Game.Winner
   [LAMBDA (Game)                                           (* rao "15-Apr-86 14:49")
     (if (for col in (fetch Score of Game) thereis (IGREATERP col Game.OverScore))
-        then (bind (best ←(PLUS Game.OverScore 26))
+        then (bind (best _(PLUS Game.OverScore 26))
                    Winners for i from 1 to 4 as col in (fetch Score of Game)
               do (if (NOT (IGREATERP col best))
                      then (SETQ best col)
@@ -2156,7 +2077,6 @@
   [LAMBDA (Game File)                                      (* hed " 5-May-86 02:05")
 
           (* * comment)
-
 
     (LET [(File (if (STREAMP File)
                     then File
@@ -2180,7 +2100,6 @@
                       40 "C" -2 (for c in (fetch C of H3) collect (fetch Value of c))
                       T)
 
-;; ==== page 34 ====
             (printout File "D" -2 (for c in (fetch D of H2) collect (fetch Value of c))
                       40 "D" -2 (for c in (fetch D of H3) collect (fetch Value of c))
                       T)
@@ -2256,7 +2175,6 @@
         then Player
       else (fetch Number of Player])
 
-;; ==== page 35 ====
 (PlayerNum.Increment
   [LAMBDA (Num)                                            (* rao "15-Apr-86 13:53")
     (IPLUS (IREMAINDER Num 4)
@@ -2280,7 +2198,7 @@
 
 (Deal.SetScore
   [LAMBDA (Deal)                                           (* rao "29-Apr-86 00:49")
-    (bind (Scores ←(ARRAY 4 (QUOTE FIXP))) for Trick in (fetch Tricks of Deal)
+    (bind (Scores _(ARRAY 4 (QUOTE FIXP))) for Trick in (fetch Tricks of Deal)
        do (add (ELT Scores (fetch Winner of Trick))
                (Trick.Points Trick))
        finally (replace D.Score of Deal with (for i from 1 to 4
@@ -2290,7 +2208,6 @@
                                                             else Score])
 )
 
-;; ==== page 36 ====
 (* * Card Functions)
 
 (DEFINEQ
@@ -2306,8 +2223,8 @@
     (if (AND (FMEMB Suit SuitValues)
              (FMEMB Value CardValues))
         then (create Card
-                     Suit ← Suit
-                     Value ← Value)
+                     Suit _ Suit
+                     Value _ Value)
       else (ERROR (CONCAT "Illegal card suit: " Suit " or value: " Value "!")
                   NIL T])
 
@@ -2345,8 +2262,8 @@
 
 (Card.CreateDeck
   [LAMBDA NIL                                              (* rao " 8-Apr-86 15:56")
-    (bind (I ← 0)
-          (Deck ←(ARRAY 52)) for Suit in SuitValues do (for Card in CardValues
+    (bind (I _ 0)
+          (Deck _(ARRAY 52)) for Suit in SuitValues do (for Card in CardValues
                                                           do (SETA Deck (add I 1)
                                                                    (Card.Create Card Suit)))
        finally (RETURN Deck])
@@ -2365,7 +2282,6 @@
            (fetch Value of Card2])
 
 (Card.Higher?
-;; ==== page 37 ====
   [LAMBDA (Card1 Card2)                                    (* rao "22-Apr-86 22:15")
     (LET ((CV1 (fetch Value of Card1))
           (CV2 (fetch Value of Card2)))
@@ -2414,7 +2330,7 @@
                             3)
                           NIL)
                  13)
-          (bind (Val ←(fetch Value of Card)) for i from 1 as cv in CardValues
+          (bind (Val _(fetch Value of Card)) for i from 1 as cv in CardValues
              thereis (EQUAL cv Val) finally (RETURN i])
 
 (Card.Print
@@ -2441,7 +2357,6 @@
 
 (CardList.LowerCards
 
-;; ==== page 38 ====
   [LAMBDA (CardList Card InSuit)                           (* rao "21-Apr-86 18:26")
     (for C in (CardList.CardsOfSuit CardList InSuit) collect C when (Card.Lower? C Card])
 
@@ -2517,12 +2432,10 @@
 
 (RPAQQ CardHeight 45)
 
-;; ==== page 39 ====
 (RPAQQ CardWidth 30)
 
 (RPAQ? Card.BMCache (ARRAY 52))
 
-;; ==== page 40 ====
 (* * Hand Functions)
 
 (DEFINEQ
@@ -2554,11 +2467,11 @@
 (Hand.Create
   [LAMBDA (CardList Player)                                (* rao "15-Apr-86 15:03")
     (create Hand
-            C ←(CardList.CardsOfSuit CardList (QUOTE C))
-            D ←(CardList.CardsOfSuit CardList (QUOTE D))
-            H ←(CardList.CardsOfSuit CardList (QUOTE H))
-            S ←(CardList.CardsOfSuit CardList (QUOTE S))
-            Owner ←(fetch Number of Player])
+            C _(CardList.CardsOfSuit CardList (QUOTE C))
+            D _(CardList.CardsOfSuit CardList (QUOTE D))
+            H _(CardList.CardsOfSuit CardList (QUOTE H))
+            S _(CardList.CardsOfSuit CardList (QUOTE S))
+            Owner _(fetch Number of Player])
 
 (Hand.Doubleton?
   [LAMBDA (Hand Suit)                                      (* rao "12-Apr-86 15:47")
@@ -2598,7 +2511,6 @@
 (Hand.RemoveCard
   [LAMBDA (Hand Card)                                      (* rao "21-Apr-86 01:57")
 
-;; ==== page 41 ====
     (LET* [(Suit (fetch Suit of Card))
            (NewCards (for c in (Hand.CardsInSuit Hand Suit) collect c unless (EQUAL c Card]
       (Hand.SetSuit Hand Suit NewCards)
@@ -2640,7 +2552,6 @@
          0])
 )
 
-;; ==== page 42 ====
 (* * Trick Functions)
 
 (DEFINEQ
@@ -2662,15 +2573,14 @@
 
         (* * comment)
 
-
-    (LET [(Order (SELECTC (fetch LeadPlayerNum of Trick)  #| ?? SELECTC — glyph reads C not Q, keys are unquoted numbers |#
+    (LET [(Order (SELECTC (fetch LeadPlayerNum of Trick)  
                           (1 NIL)
                           (2 (QUOTE (4 1 2 3)))
                           (3 (QUOTE (3 4 1 2)))
                           (4 (QUOTE (2 3 4 1)))
                           (SHOULDNT]
       (if Order
-          then (bind (Cards ←(fetch Cards of Trick)) for i in Order collect (CAR (NTH Cards i)))
+          then (bind (Cards _(fetch Cards of Trick)) for i in Order collect (CAR (NTH Cards i)))
         else (fetch Cards of Trick])
 
 (Trick.Play
@@ -2715,8 +2625,6 @@
                    else When])
 
 (Trick.WhoPlayed
-;; ==== page 43 ====
-;; (continuation of Trick.PlayerByCard's LAMBDA, begun on page 42)
   [LAMBDA (Card Trick)                                     (* hed " 2-May-86 16:18")
     (for i from (Trick.Leader Trick) as c in (Trick.Cards Trick)
         do (SETQ i (ADD1 i))
@@ -2736,7 +2644,6 @@
                     Trick])
 )
 
-;; ==== page 44 ====
 (* * Random Cruff)
 
 (DEFINEQ
@@ -2746,237 +2653,29 @@
     (NOT (NULL Thing])
 )
 
-#| ?? BEGIN best-effort bitmap transcription -------------------------------------
-   The six READBITMAP literals below (CardOutline, {Clubs,Diamonds,Hearts,Spades}Bits,
-   HIconBM, HShadowBM) are packed bitmap strings. At scan resolution the individual
-   glyphs are ambiguous (O vs 0 vs @, I vs L, etc.), so per-character fidelity is NOT
-   guaranteed here. These are decorative (card outline, suit pips, the app icon/shadow)
-   and READBITMAP is tolerant, so this loads — but the exact pixels must be re-verified
-   by rendering in Medley (Phase 2). Declared (width height) dims are trusted. |#
+(RPAQ CardOutline (BITMAPCREATE 30 45))   
 
-(RPAQ CardOutline (READBITMAP))
-(30 45
-"GOOOOOOH"
-"OOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"OOOOOOOL"
-"GOOOOOOH")   #| ?? CardOutline row-count reconstructed to match declared height 45 |#
+(RPAQ ClubsBits (BITMAPCREATE 11 11))
 
-(RPAQ ClubsBits (READBITMAP))
-(11 11
-"@DO@"
-"@N@@"
-"AO@@"
-"@N@@"
-"BDH@"
-"GEL@"
-"OON@"
-"GEL@"
-"BDH@"
-"@N@@"
-"COH@")
+(RPAQ DiamondsBits (BITMAPCREATE 11 11))
 
-(RPAQ DiamondsBits (READBITMAP))
-(11 11
-"JDJ@"
-;; ==== page 45 ====
-"DND@"
-"IKB@"
-"CEH@"
-"FJL@"
-"MEF@"
-"FJL@"
-"CEH@"
-"IKB@"
-"DND@"
-"JDJ@")
+(RPAQ HeartsBits (BITMAPCREATE 11 11))
 
-(RPAQ HeartsBits (READBITMAP))
-(11 11
-"HDB@"
-"CAH@"
-"GKL@"
-"FNL@"
-"EED@"
-"FJL@"
-"CEH@"
-"IKB@"
-"DND@"
-"JDJ@"
-"EAD@")
+(RPAQ SpadesBits (BITMAPCREATE 11 11))
 
-(RPAQ SpadesBits (READBITMAP))
-(11 11
-"@D@@"
-"@N@@"
-"AO@@"
-"COH@"
-"GOL@"
-"GOL@"
-"GOL@"
-"COH@"
-"@D@@"
-"AO@@"
-"COH@")
+(RPAQ HIconBM (BITMAPCREATE 50 50))
 
-(RPAQ HIconBM (READBITMAP))
-(50 50
-"@@AO@@@@CN@@@@@@"
-"@@OOL@@@OOL@@@@@"
-"@ANJO@@CMEN@@@@@"
-"@CEEGL@OJJK@@@@@"
-"@FJJJOCMEEEH@@@@"
-"@MEEEGOJJJL@@@@@"
-"AJJJJJMEEEEF@@@@"
-"COOOOOOOOOO@@@@@"
-"COOOOOOOOOO@@@@@"
-"F@@@@@@@@@AH@@@@"
-"GOOOOOOOOOOH@@@@"
-"F@@@@@@@@@AH@@@@"
-"L@IKNGCLOIL@L@@@"
-"L@IJFIJFBBF@L@@@"
-"L@IJ@IJFCB@@L@@@"
-"L@OKHOKLCAL@L@@@"
-"L@IJ@IJLC@F@L@@@"
-"L@IJFIJFCBF@L@@@"
-"L@IKNIJFCAL@L@@@"
-"L@@@@@@@@@@L@@@@"
-"OOOOOOOOOOOL@@@"
-"F@@@@@@@@@AH@@@"
-"GOOOOOOOOOOH@@@"
-"GOOOOOOOOOOH@@@"
-"CEEEEEEEEEE@@@@"
-"CJJJJJJJJJK@@@@"
-"AMEEEEEEEEF@@@@"
-"AJJJJJJJJJN@@@@"
-"@MEEEEEEEED@@@@"
-"@FJJJJJJJJL@@@@"
-"@CEEEEEEEEH@@@@"
-"@AJJJJJJJK@@@@@"
-"@@MEEEEEEEF@@@@"
-;; ==== page 46 ====
-"@@FJJJJJJL@@@@@"
-"@@CEEEEEEH@@@@@"
-"@@AJJJJJK@@@@@@"
-"@@@MEEEEF@@@@@@"
-"@@@FJJJJL@@@@@@"
-"@@@CEEEEH@@@@@@"
-"@@@AJJJK@@@@@@@"
-"@@@@MEEEF@@@@@@"
-"@@@@FJJJL@@@@@@"
-"@@@@CEEEH@@@@@@"
-"@@@@AJJK@@@@@@@"
-"@@@@@MEF@@@@@@@"
-"@@@@@FJL@@@@@@@"
-"@@@@@CEH@@@@@@@"
-"@@@@@AK@@@@@@@@"
-"@@@@@N@@@@@@@@@"
-"@@@@@D@@@@@@@@@")
+(RPAQ HShadowBM (BITMAPCREATE 50 50))
 
-(RPAQ HShadowBM (READBITMAP))
-(50 50
-"@@AO@@@@CN@@@@@@"
-"@@OOL@@@OOL@@@@@"
-"@AOOO@@COON@@@@@"
-"@CQOOL@OOOO@@@@@"   #| ?? '@CQOOL...' — Q uncertain |#
-"@GOOOOCOOOH@@@@"
-"@OOOOOOOOOL@@@@"
-"AOOOOOOOOON@@@@"
-"COOOOOOOOOO@@@@@"
-"COOOOOOOOOO@@@@@"
-"GOOOOOOOOOOH@@@"
-"GOOOOOOOOOOH@@@"
-"GOOOOOOOOOOH@@@"
-"OOOOOOOOOOOL@@@"
-"OOOOOOOOOOOL@@@"
-"OOOOOOOOOOOL@@@"
-"OOOOOOOOOOOL@@@"
-"OOOOOOOOOOOL@@@"
-"OOOOOOOOOOOL@@@"
-"OOOOOOOOOOOL@@@"
-"OOOOOOOOOOOL@@@"
-"GOOOOOOOOOOH@@@"
-"GOOOOOOOOOOH@@@"
-"GOOOOOOOOOOH@@@"
-"COOOOOOOOOO@@@@@"
-"COOOOOOOOOO@@@@@"
-"COOOOOOOOOON@@@@"
-"AOOOOOOOOON@@@@"
-"@OOOOOOOOOL@@@@"
-"@GOOOOOOOOH@@@@"
-"@COOOOOOOH@@@@"
-"@AOOOOOOO@@@@@"
-"@@OOOOOON@@@@@"
-"@@GOOOOOL@@@@@"
-"@@COOOOOH@@@@@"
-"@@AOOOOO@@@@@@"
-"@@@OOOON@@@@@@"
-"@@@GOOOL@@@@@@"
-"@@@COOOH@@@@@@"
-"@@@AOOO@@@@@@@"
-"@@@@OON@@@@@@@"
-"@@@@GOL@@@@@@@"
-"@@@@COH@@@@@@@"
-"@@@@AO@@@@@@@@"
-"@@@@@ON@@@@@@@"
-"@@@@@GOL@@@@@@"   #| ?? some HShadowBM rows uncertain; re-verify in Medley |#
-"@@@@@COH@@@@@@"
-"@@@@@AO@@@@@@@"
-"@@@@@N@@@@@@@@"
-"@@@@@D@@@@@@@@")
-#| ?? END best-effort bitmap transcription ------------------------------------- |#
-
-(FILESLOAD {LISP:}<LispLibrary>INTERMEZZO>EVALSERVER.DCOM
-           {LISP:}<LispUsers>INTERMEZZO>ACTIVEREGIONS.DCOM)
+(* neutralized EVALSERVER and ACTIVEREGIONS FILESLOAD)
 (DECLARE: DONTEVAL@LOAD DOEVAL@COMPILE DONTCOPY COMPILERVARS
 
-;; ==== page 47 ====
 (ADDTOVAR NLAMA )
 
 (ADDTOVAR NLAML )
 
 (ADDTOVAR LAMA CP.Think H.Apply)
 )
-(H.MakeIcon)
+(* neutralized H.MakeIcon icon call)
 (PUTPROPS HEARTS COPYRIGHT ("Harley Davis and Ramana Rao" 1986))
 STOP
