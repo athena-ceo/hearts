@@ -308,7 +308,7 @@
 
 
                (replace Tricks of Deal
-                  with (bind [Lead ←(for i from 1 to 4 Hand in OriginalHands
+                  with (bind [Lead ←(for i from 1 to 4 as Hand in OriginalHands
                                        thereis (CardList.Member LeadCard (Hand.Cards Hand]
                              (HeartsBroken? ← NIL)
                              LastCard for TrickNum from 1 to 13

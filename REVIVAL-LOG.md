@@ -123,6 +123,28 @@ char is enough to make `READBITMAP` compute a nonsense dimension and fault.
   each bitmap to eyeball whether it actually looks like a ♣/♦/♥/♠ before trusting it. The four
   11×11 suit pips are small and very recoverable; the 50×50 desktop icon is lower priority.
 
+## Challenge 7 — It loads, it runs… and hits a ghost: a reference to a lost definition
+
+First attempt to actually *play* — `(LHearts '(CLOWN CLOWN CLOWN CLOWN))` — got past loading and
+into execution, then stopped with `ClownNames is an unbound variable`. `CLOWN.Create` picks a
+random clown name from a variable `ClownNames`… that **the recovered source never defines**, and
+that isn't in the file's COMS either (whereas the exactly-parallel `ConservativeNames` *is* both
+defined via `RPAQQ` and listed in the COMS). So in 1986 `ClownNames` lived somewhere else — a
+different file, or just the running image — and never made it into this listing. Forty years
+later it's a dangling reference to a definition that no longer exists.
+
+- **Lesson:** a scanned listing is not necessarily a *complete program*. A residential Lisp image
+  accumulates state (variables, patches, ad-hoc definitions) that a file dump doesn't capture.
+  Expect dangling references to things that were "just defined in the environment," and expect to
+  reconstruct them. The COMS (the File Manager's table of contents) is your oracle for what a file
+  *actually* carries vs. what it merely *uses*.
+- **What worked:** treat it like the bitmap/FILESLOAD stubs — keep the faithful transcription
+  pure, and inject the missing definition as a documented *revival patch* in `build-loadfile.py`.
+  The original clown names are lost, so they were re-invented (in the whimsical spirit of the
+  surviving `ConservativeNames`: BoringBart, PredictablePete, TheFork, LiplessWonder, …).
+- Also seen here: a DWIM "possible non-terminating iterative statement" warning on `LHearts` —
+  that's the game system's outer loop that deals a fresh game when the last one ends, not a bug.
+
 ## Still ahead (known, not yet hit)
 
 - **KEE is gone.** IntelliCorp's KEE was proprietary and never open-sourced; the expert player's

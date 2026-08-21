@@ -46,6 +46,14 @@ def build(text):
     text = re.sub(r'(?m)^\(H\.MakeIcon\)$',
                   '(* neutralized H.MakeIcon icon call)',
                   text)
+    # 2d. Revival patch: supply ClownNames. CLOWN.Create picks a random clown name from
+    #     the variable ClownNames, but the recovered source never defines it and it is not
+    #     in the file's COMS (unlike the parallel ConservativeNames) — the 1986 definition
+    #     lived elsewhere and is lost. Inject an invented list so Clown players can be made.
+    #     (Original clown names unknown; these are in the spirit of the ConservativeNames.)
+    patch = ("(* revival patch: ClownNames was undefined in the recovered source; names invented)\n"
+             "(RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))\n")
+    text = text.replace("(PUTPROPS HEARTS COPYRIGHT", patch + "(PUTPROPS HEARTS COPYRIGHT", 1)
     # 3. arrow -> underscore
     text = text.replace("←", "_")
     # collapse runs of >2 blank lines left by stripping

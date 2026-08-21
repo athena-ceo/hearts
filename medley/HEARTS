@@ -300,7 +300,7 @@
                (* * Play Deal)
 
                (replace Tricks of Deal
-                  with (bind [Lead _(for i from 1 to 4 Hand in OriginalHands
+                  with (bind [Lead _(for i from 1 to 4 as Hand in OriginalHands
                                        thereis (CardList.Member LeadCard (Hand.Cards Hand]
                              (HeartsBroken? _ NIL)
                              LastCard for TrickNum from 1 to 13
@@ -2771,5 +2771,7 @@
 (ADDTOVAR LAMA CP.Think H.Apply)
 )
 (* neutralized H.MakeIcon icon call)
+(* revival patch: ClownNames was undefined in the recovered source; names invented)
+(RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))
 (PUTPROPS HEARTS COPYRIGHT ("Harley Davis and Ramana Rao" 1986))
 STOP
