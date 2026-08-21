@@ -53,12 +53,16 @@ Most of the rest will be written by coding harnesses.   For coding harnesses who
 *This section was added by Claude Code (Anthropic's coding agent / "coding harness"), working with Harley Davis, per the request above that harnesses document what they create.*
 
 ```
+ARCHITECTURE.md  Language-neutral spec of the system (the shared contract for all ports).
 original/        The scanned source PDFs (the starting assets).
 transcription/   Text/source recovered from the scans.
   hearts-core.lisp        InterLisp-D core (Administrator, Clown, Conservative, Human, UI, net).
   kee-expert-player.txt   Expert Player — mostly Interlisp EP.* source (+ a spliced rules page).
   kee-expert-rules.txt    Expert Player — the KEE production rules (the spec to reimplement).
+  docs/                   The prose documents, transcribed to Markdown
+                          (overview.md, harley-report.md, ramana-report.md).
   parts/                  Per-page-range transcription chunks (pre-assembly).
+  tools/                  interlisp-balance.py — rough paren/super-bracket checker.
   TRANSCRIPTION-NOTES.md  Conventions (fidelity-first; `←` = ASCII `_` for Medley).
 medley/          Phase 2 — running the core on the Medley Interlisp emulator (interlisp.org).
   MEDLEY-SETUP-NOTES.md   Install/loading notes, and what breaks (networking, KEE).
@@ -66,8 +70,16 @@ modern-lisp/     Phase 3 — a modern Common Lisp port (planned).
 python/          Phase 4 — a Python port for distribution (planned).
 ```
 
-**Status (2026-08):** Phase 0 — the six scanned documents have been transcribed back to text.
-The core listing is faithful InterLisp-D; the Expert Player turned out to be largely plain
-Interlisp (`EP.*`) plus a set of KEE rules. **KEE itself is proprietary and unavailable in
-Medley**, so the expert player's rules will be reimplemented rather than loaded. Next up:
-assemble/verify the core and attempt a load in Medley (see `medley/MEDLEY-SETUP-NOTES.md`).
+**Status (2026-08):**
+- **Phase 0 (transcription) — done.** All six scanned documents are back in text: the InterLisp-D
+  core (`transcription/hearts-core.lisp`, assembled + balance-checked), the expert player and its
+  KEE rules, and the three prose documents (`transcription/docs/`). The Expert Player turned out to
+  be largely plain Interlisp (`EP.*`) plus a set of KEE rules; **KEE itself is proprietary and
+  unavailable in Medley**, but the core couples to it at only 4 seams, so Clown/Conservative/Human
+  run without it and the expert's rules can be reimplemented later.
+- **Phase 1 (architecture spec) — done.** See `ARCHITECTURE.md` — the language-neutral contract
+  (six-message protocol, dispatch, data model, game loop, expert design, networking) that every
+  port builds against.
+- **Next: Phase 2** — attempt the first load of `hearts-core.lisp` in Medley (after the `←`→`_`
+  conversion + annotation strip), then bring up Administrator + Clown headless. See
+  `medley/MEDLEY-SETUP-NOTES.md`.
