@@ -84,7 +84,7 @@ to define. Six functions were affected, in two flavors:
 - **Nasty property: the errors *mask each other*.** In a whole-file bracket count, one function's
   extra-close cancels another's missing-close, so the file "nets to zero" while being deeply
   broken. Fixing one error makes the next one appear.
-- **What worked:** an InterLisp-aware bracket linter (`transcription/tools/`) that models
+- **What worked:** an InterLisp-aware bracket linter (`tools/`) that models
   super-bracket semantics and — crucially — checks **each top-level form independently** so errors
   can't hide behind each other. It localizes the broken function and the exact line; then a
   **high-resolution crop of the original scan** (`pdftoppm -r 300` + a tight PIL crop) settles

@@ -54,6 +54,7 @@ Most of the rest will be written by coding harnesses.   For coding harnesses who
 
 ```
 ARCHITECTURE.md  Language-neutral spec of the system (the shared contract for all ports).
+REVIVAL-LOG.md   Field log of the challenges faced reviving this (for the next reviver).
 original/        The scanned source PDFs (the starting assets).
 transcription/   Text/source recovered from the scans.
   hearts-core.lisp        InterLisp-D core (Administrator, Clown, Conservative, Human, UI, net).
@@ -62,9 +63,13 @@ transcription/   Text/source recovered from the scans.
   docs/                   The prose documents, transcribed to Markdown
                           (overview.md, harley-report.md, ramana-report.md).
   parts/                  Per-page-range transcription chunks (pre-assembly).
-  tools/                  interlisp-balance.py — rough paren/super-bracket checker.
   TRANSCRIPTION-NOTES.md  Conventions (fidelity-first; `←` = ASCII `_` for Medley).
+tools/           Reusable InterLisp-D revival utilities (not HEARTS-specific):
+  interlisp-lint.py       Super-bracket-aware linter; checks each top-level form separately.
+  interlisp-balance.py    Whole-file bracket balance checker (build sanity check).
+  readbitmap-decode.py    Decode/validate/render an Interlisp READBITMAP bitmap to PNG.
 medley/          Phase 2 — running the core on the Medley Interlisp emulator (interlisp.org).
+  build-loadfile.py       Builds the Medley-loadable HEARTS from the master transcription.
   MEDLEY-SETUP-NOTES.md   Install/loading notes, and what breaks (networking, KEE).
 modern-lisp/     Phase 3 — a modern Common Lisp port (planned).
 python/          Phase 4 — a Python port for distribution (planned).

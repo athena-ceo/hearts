@@ -36,7 +36,7 @@ Transcription done by parallel subagents (one per page-range), one page (core 43
 flagged for visual re-verification in Medley.
 
 ## Balance / structure check
-`tools/interlisp-balance.py hearts-core.lisp` — a rough Interlisp-aware paren/bracket checker
+`../tools/interlisp-balance.py hearts-core.lisp` — a rough Interlisp-aware paren/bracket checker
 (super-bracket `]` semantics, `%` escape, strings, comments). The core nets to zero open
 groups; round parens are net-open (closed by `]` super-brackets) and there are 4 net-extra
 `]` — all legitimate "close-to-top" brackets at definition/`DEFINEQ` ends, verified by eye.

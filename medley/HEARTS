@@ -2653,15 +2653,109 @@
     (NOT (NULL Thing])
 )
 
-(RPAQ CardOutline (BITMAPCREATE 30 45))   
+(RPAQ CardOutline (READBITMAP))
+(30 45
+"GOOOOOOH"
+"OOOOOOOL"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"OOOOOOOL"
+"GOOOOOOH")
 
-(RPAQ ClubsBits (BITMAPCREATE 11 11))
+(RPAQ ClubsBits (READBITMAP))
+(11 11
+"@D@@"
+"@N@@"
+"AO@@"
+"@N@@"
+"BDH@"
+"GEL@"
+"OON@"
+"GEL@"
+"BDH@"
+"@N@@"
+"COH@")
 
-(RPAQ DiamondsBits (BITMAPCREATE 11 11))
+(RPAQ DiamondsBits (READBITMAP))
+(11 11
+"JDJ@"
+"DND@"
+"IKB@"
+"CEH@"
+"FJL@"
+"MEF@"
+"FJL@"
+"CEH@"
+"IKB@"
+"DND@"
+"JDJ@")
 
-(RPAQ HeartsBits (BITMAPCREATE 11 11))
+(RPAQ HeartsBits (READBITMAP))
+(11 11
+"HDB@"
+"CAH@"
+"GKL@"
+"FNL@"
+"EED@"
+"FJL@"
+"CEH@"
+"IKB@"
+"DND@"
+"JDJ@"
+"EAD@")
 
-(RPAQ SpadesBits (BITMAPCREATE 11 11))
+(RPAQ SpadesBits (READBITMAP))
+(11 11
+"@D@@"
+"@N@@"
+"AO@@"
+"COH@"
+"GOL@"
+"GOL@"
+"GOL@"
+"COH@"
+"@D@@"
+"AO@@"
+"COH@")
 
 (RPAQ HIconBM (BITMAPCREATE 50 50))
 

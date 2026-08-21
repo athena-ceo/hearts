@@ -29,65 +29,69 @@
     (NOT (NULL Thing])
 )
 
-#| ?? BEGIN best-effort bitmap transcription -------------------------------------
-   The six READBITMAP literals below (CardOutline, {Clubs,Diamonds,Hearts,Spades}Bits,
-   HIconBM, HShadowBM) are packed bitmap strings. At scan resolution the individual
-   glyphs are ambiguous (O vs 0 vs @, I vs L, etc.), so per-character fidelity is NOT
-   guaranteed here. These are decorative (card outline, suit pips, the app icon/shadow)
-   and READBITMAP is tolerant, so this loads — but the exact pixels must be re-verified
-   by rendering in Medley (Phase 2). Declared (width height) dims are trusted. |#
+#| BITMAP transcription note ----------------------------------------------------
+   READBITMAP packing: each char is a 4-bit nibble (@=0 .. O=15, letters only),
+   MSB-first, each scanline padded to a 16-bit word (so W=11 -> 4 chars/row,
+   W=30 -> 8). The five CARD bitmaps below — CardOutline and the four suit pips —
+   have been VERIFIED by decoding and rendering (tools/readbitmap-decode.py): a
+   hollow rounded card border, a solid ♣ and ♠ (black suits), and a dithered ♦
+   and ♥ (the 1986 monochrome-display convention for red suits). Corrected two OCR
+   slips found this way: ClubsBits row 0 @DO@->@D@@, and CardOutline's hollow sides
+   L@@@@@@L (not the solid LOOOOOOL first transcribed).
+   The two 50x50 icons (HIconBM, HShadowBM) remain BEST-EFFORT and are still stubbed
+   by build-loadfile.py; they are only the desktop app icon, not card-critical. |#
 
 (RPAQ CardOutline (READBITMAP))
 (30 45
 "GOOOOOOH"
 "OOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
-"LOOOOOOL"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
+"L@@@@@@L"
 "OOOOOOOL"
-"GOOOOOOH")   #| ?? CardOutline row-count reconstructed to match declared height 45 |#
+"GOOOOOOH")
 
 (RPAQ ClubsBits (READBITMAP))
 (11 11
-"@DO@"
+"@D@@"
 "@N@@"
 "AO@@"
 "@N@@"
@@ -242,7 +246,7 @@
 "@@@@COH@@@@@@@"
 "@@@@AO@@@@@@@@"
 "@@@@@ON@@@@@@@"
-"@@@@@GOL@@@@@@"   #| ?? some HShadowBM rows uncertain; re-verify in Medley |#
+"@@@@@GOL@@@@@@"
 "@@@@@COH@@@@@@"
 "@@@@@AO@@@@@@@"
 "@@@@@N@@@@@@@@"

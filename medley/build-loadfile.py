@@ -23,14 +23,15 @@ def build(text):
     # 1. drop pure ;; annotation lines
     lines = [ln for ln in text.split("\n") if not re.match(r"\s*;;", ln)]
     text = "\n".join(lines)
-    # 2b. Stub the decorative READBITMAP literals with blank BITMAPCREATEs of the same
-    #     size. The packed-bitmap strings were transcribed best-effort (see the master's
-    #     caveat) and one trips READBITMAP ("Invalid argument"); they are only artwork
-    #     (card outline, suit pips, app icon) and not needed to run the core. Replace
-    #     each  (RPAQ NAME (READBITMAP)) (W H "row"...)  with  (RPAQ NAME (BITMAPCREATE W H)).
-    #     TODO: re-transcribe the bitmaps accurately to restore the real card-table art.
+    # 2b. Stub ONLY the two 50x50 icon bitmaps (HIconBM, HShadowBM) with blank
+    #     BITMAPCREATEs of the same size — those are still best-effort and only the
+    #     desktop app icon (which H.MakeIcon, also neutralized below, would draw).
+    #     The five CARD bitmaps (CardOutline + the four suit pips) have been verified
+    #     (tools/readbitmap-decode.py) and are kept as real READBITMAP data so the card
+    #     table draws legible suits. Replace each stubbed
+    #     (RPAQ NAME (READBITMAP)) (W H "row"...)  with  (RPAQ NAME (BITMAPCREATE W H)).
     text = re.sub(
-        r'\(RPAQ (\w+) \(READBITMAP\)\)\s*\((\d+)\s+(\d+)(?:\s*"[^"]*")+\s*\)',
+        r'\(RPAQ (HIconBM|HShadowBM) \(READBITMAP\)\)\s*\((\d+)\s+(\d+)(?:\s*"[^"]*")+\s*\)',
         r'(RPAQ \1 (BITMAPCREATE \2 \3))',
         text)
     # 2c. Neutralize end-of-file forms that depend on things Medley no longer has:
