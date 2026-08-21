@@ -2773,24 +2773,80 @@
 (* neutralized H.MakeIcon icon call)
 (* revival patch: ClownNames was undefined in the recovered source; names invented)
 (RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))
-(* revival patch: ACTIVEREGIONS LispUsers library is not in Medley; stub it (no-op UI))
-(RECORD ACTIVEREGION (REGION DATA HELPSTRING SELECTFN HIGHLIGHTFN))
+(* revival: our ACTIVEREGIONS reimplementation -- medley/activeregions.lisp)
+(RECORD ACTIVEREGION (REGION DATA HELPSTRING UPFN DOWNFN HIGHLIGHTFN))
+
 (DEFINEQ
-(ACTIVEREGIONS/DEFAULTHIGHLIGHTFN (LAMBDA (Win AR) NIL))
-(ACTIVEREGIONS/DOLOWLIGHT (LAMBDA (Win Reg) NIL))
-(SETACTIVEREGIONS (LAMBDA (Win ARList) NIL))
-(GETPICKREGION (LAMBDA (Win) NIL))
+
+(ACTIVEREGIONS/DEFAULTHIGHLIGHTFN
+  (LAMBDA (Win AR)
+    (COND (AR (INVERTREGION (fetch (ACTIVEREGION REGION) of AR)
+                            (WINDOWPROP Win (QUOTE DSP)))))))
+
+(ACTIVEREGIONS/DOLOWLIGHT
+  (LAMBDA (Win AR)
+    (COND (AR (INVERTREGION (fetch (ACTIVEREGION REGION) of AR)
+                            (WINDOWPROP Win (QUOTE DSP)))))))
+
+(GETPICKREGION
+  (LAMBDA (Win)
+    (WINDOWPROP Win (QUOTE PickRegion))))
+
+(SETACTIVEREGIONS
+  (LAMBDA (Win ARList)
+    (WINDOWPROP Win (QUOTE ActiveRegions) ARList)
+    (WINDOWPROP Win (QUOTE BUTTONEVENTFN) (FUNCTION \AR.BUTTONEVENTFN))
+    ARList))
+
+(\AR.REGIONUNDER
+  (LAMBDA (Win X Y)
+    (for AR in (WINDOWPROP Win (QUOTE ActiveRegions))
+       thereis (AND (INSIDEP (fetch (ACTIVEREGION REGION) of AR) X Y) AR))))
+
+(\AR.BUTTONEVENTFN
+  (LAMBDA (Win)
+    (TOTOPW Win)
+    (PROG ((AR (\AR.REGIONUNDER Win (LASTMOUSEX Win) (LASTMOUSEY Win))))
+      (COND (AR
+             (WINDOWPROP Win (QUOTE PickRegion) AR)
+             (ACTIVEREGIONS/DEFAULTHIGHLIGHTFN Win AR)
+             [while (NOT (MOUSESTATE UP)) do (BLOCK]
+             (ACTIVEREGIONS/DOLOWLIGHT Win AR)
+             (COND ((fetch (ACTIVEREGION UPFN) of AR)
+                    (APPLY* (fetch (ACTIVEREGION UPFN) of AR)
+                           Win
+                           (fetch (ACTIVEREGION REGION) of AR)
+                           (fetch (ACTIVEREGION DATA) of AR)))))))))
+
 )
-(* revival FIX of an original 1986 bug: CLOWN.Play (and HP.Play) call H.GetLegals
-   without the FirstTrick? arg the trick loop provides, so the 2-of-clubs opening
-   lead was never enforced for those players. Redefine CLOWN.Play to forward it.
-   The faithful transcription keeps the original bug; see REVIVAL-LOG.md.)
+(* revival FIX -- CLOWN.Play dropped the FirstTrick? arg so the 2-of-clubs opening lead was never enforced; forward it. Original bug kept faithful in the transcription -- see BUGS.md)
 (DEFINEQ
 (CLOWN.Play (LAMBDA (Clown Trick HeartsBroken? FirstTrick?)
     (LET* ((Possibles (H.GetLegals (fetch Clown.Hand of Clown) Trick HeartsBroken? FirstTrick?))
            (Card (CAR (NTH Possibles (RAND 1 (LENGTH Possibles))))))
       (Hand.RemoveCard (fetch Clown.Hand of Clown) Card)
       Card)))
+)
+(* revival FIX -- CT.PrintStats redrew score/tricks without erasing so digits smeared; clear each field with WHITESHADE before drawing)
+(DEFINEQ
+(CT.PrintStats (LAMBDA (Win)
+    (PROG ((DS (WINDOWPROP Win (QUOTE DSP)))
+           (Tricks (WINDOWPROP Win (QUOTE Tricks)))
+           (Score (WINDOWPROP Win (QUOTE Score))))
+      (DSPFONT (QUOTE (GACHA 10 BOLD)) DS)
+      (DSPFILL (CREATEREGION CT.X1 (DIFFERENCE CT.Y1 14) 96 12) WHITESHADE (QUOTE REPLACE) DS)
+      (MOVETO CT.X1 (DIFFERENCE CT.Y1 12) DS)
+      (printout DS "S: " (CAR Score) " T: " (CAR Tricks))
+      (DSPFILL (CREATEREGION CT.X2 (DIFFERENCE CT.Y2 14) 96 12) WHITESHADE (QUOTE REPLACE) DS)
+      (MOVETO CT.X2 (DIFFERENCE CT.Y2 12) DS)
+      (printout DS "S: " (CADR Score) " T: " (CADR Tricks))
+      (DSPFILL (CREATEREGION CT.X3 (PLUS CT.Y3 13) 96 12) WHITESHADE (QUOTE REPLACE) DS)
+      (MOVETO CT.X3 (PLUS CT.Y3 15) DS)
+      (printout DS "S: " (CADDR Score) " T: " (CADDR Tricks))
+      (DSPFILL (CREATEREGION CT.X4 (DIFFERENCE CT.Y4 14) 96 12) WHITESHADE (QUOTE REPLACE) DS)
+      (MOVETO CT.X4 (DIFFERENCE CT.Y4 12) DS)
+      (printout DS "S: " (CADDDR Score) " T: " (CADDDR Tricks))
+      (RETURN Win))))
 )
 (PUTPROPS HEARTS COPYRIGHT ("Harley Davis and Ramana Rao" 1986))
 STOP

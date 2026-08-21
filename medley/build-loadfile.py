@@ -51,26 +51,17 @@ def build(text):
     #     in the file's COMS (unlike the parallel ConservativeNames) — the 1986 definition
     #     lived elsewhere and is lost. Inject an invented list so Clown players can be made.
     #     (Original clown names unknown; these are in the spirit of the ConservativeNames.)
-    # 2e. Revival patch: stub the ACTIVEREGIONS LispUsers library, which is not shipped with
-    #     Medley (it came from INTERMEZZO> alongside the dead EVALSERVER we neutralized above).
-    #     It provides clickable/highlightable window regions — used to highlight the winning
-    #     trick and, for the HUMAN player, to click cards. No-op stubs let a Clown game run;
-    #     the real library (or a reimplementation) is needed for the interactive human UI.
-    patch = (
-        "(* revival patch: ClownNames was undefined in the recovered source; names invented)\n"
-        "(RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))\n"
-        "(* revival patch: ACTIVEREGIONS LispUsers library is not in Medley; stub it (no-op UI))\n"
-        "(RECORD ACTIVEREGION (REGION DATA HELPSTRING SELECTFN HIGHLIGHTFN))\n"
-        "(DEFINEQ\n"
-        "(ACTIVEREGIONS/DEFAULTHIGHLIGHTFN (LAMBDA (Win AR) NIL))\n"
-        "(ACTIVEREGIONS/DOLOWLIGHT (LAMBDA (Win Reg) NIL))\n"
-        "(SETACTIVEREGIONS (LAMBDA (Win ARList) NIL))\n"
-        "(GETPICKREGION (LAMBDA (Win) NIL))\n"
-        ")\n"
-        "(* revival FIX of an original 1986 bug: CLOWN.Play (and HP.Play) call H.GetLegals\n"
-        "   without the FirstTrick? arg the trick loop provides, so the 2-of-clubs opening\n"
-        "   lead was never enforced for those players. Redefine CLOWN.Play to forward it.\n"
-        "   The faithful transcription keeps the original bug; see REVIVAL-LOG.md.)\n"
+    # 2e. Revival: install our ACTIVEREGIONS reimplementation (medley/activeregions.lisp) —
+    #     the 1986 INTERMEZZO LispUsers library isn't in modern Medley. Ours gives the human
+    #     player clickable card regions via the window BUTTONEVENTFN. Injected here with its
+    #     ;; header comments stripped (;; isn't Interlisp reader syntax).
+    ar_src = (pathlib.Path(__file__).resolve().parent / "activeregions.lisp").read_text()
+    ar_src = "\n".join(l for l in ar_src.split("\n") if not re.match(r"\s*;;", l)).strip()
+
+    clown_fix = (
+        "(* revival FIX -- CLOWN.Play dropped the FirstTrick? arg so the 2-of-clubs opening"
+        " lead was never enforced; forward it. Original bug kept faithful in the"
+        " transcription -- see BUGS.md)\n"
         "(DEFINEQ\n"
         "(CLOWN.Play (LAMBDA (Clown Trick HeartsBroken? FirstTrick?)\n"
         "    (LET* ((Possibles (H.GetLegals (fetch Clown.Hand of Clown) Trick HeartsBroken? FirstTrick?))\n"
@@ -78,6 +69,40 @@ def build(text):
         "      (Hand.RemoveCard (fetch Clown.Hand of Clown) Card)\n"
         "      Card)))\n"
         ")\n")
+
+    # 2f. Revival FIX: CT.PrintStats redrew each player's score/tricks without erasing, so
+    #     changing digits smeared together. Clear each field with a WHITESHADE fill first.
+    ct_fix = (
+        "(* revival FIX -- CT.PrintStats redrew score/tricks without erasing so digits"
+        " smeared; clear each field with WHITESHADE before drawing)\n"
+        "(DEFINEQ\n"
+        "(CT.PrintStats (LAMBDA (Win)\n"
+        "    (PROG ((DS (WINDOWPROP Win (QUOTE DSP)))\n"
+        "           (Tricks (WINDOWPROP Win (QUOTE Tricks)))\n"
+        "           (Score (WINDOWPROP Win (QUOTE Score))))\n"
+        "      (DSPFONT (QUOTE (GACHA 10 BOLD)) DS)\n"
+        "      (DSPFILL (CREATEREGION CT.X1 (DIFFERENCE CT.Y1 14) 96 12) WHITESHADE (QUOTE REPLACE) DS)\n"
+        "      (MOVETO CT.X1 (DIFFERENCE CT.Y1 12) DS)\n"
+        "      (printout DS \"S: \" (CAR Score) \" T: \" (CAR Tricks))\n"
+        "      (DSPFILL (CREATEREGION CT.X2 (DIFFERENCE CT.Y2 14) 96 12) WHITESHADE (QUOTE REPLACE) DS)\n"
+        "      (MOVETO CT.X2 (DIFFERENCE CT.Y2 12) DS)\n"
+        "      (printout DS \"S: \" (CADR Score) \" T: \" (CADR Tricks))\n"
+        "      (DSPFILL (CREATEREGION CT.X3 (PLUS CT.Y3 13) 96 12) WHITESHADE (QUOTE REPLACE) DS)\n"
+        "      (MOVETO CT.X3 (PLUS CT.Y3 15) DS)\n"
+        "      (printout DS \"S: \" (CADDR Score) \" T: \" (CADDR Tricks))\n"
+        "      (DSPFILL (CREATEREGION CT.X4 (DIFFERENCE CT.Y4 14) 96 12) WHITESHADE (QUOTE REPLACE) DS)\n"
+        "      (MOVETO CT.X4 (DIFFERENCE CT.Y4 12) DS)\n"
+        "      (printout DS \"S: \" (CADDDR Score) \" T: \" (CADDDR Tricks))\n"
+        "      (RETURN Win))))\n"
+        ")\n")
+
+    patch = (
+        "(* revival patch: ClownNames was undefined in the recovered source; names invented)\n"
+        "(RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))\n"
+        "(* revival: our ACTIVEREGIONS reimplementation -- medley/activeregions.lisp)\n"
+        + ar_src + "\n"
+        + clown_fix
+        + ct_fix)
     text = text.replace("(PUTPROPS HEARTS COPYRIGHT", patch + "(PUTPROPS HEARTS COPYRIGHT", 1)
     # 3. arrow -> underscore
     text = text.replace("←", "_")
