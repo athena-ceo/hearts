@@ -1479,7 +1479,8 @@
                       Possibles)
                      [SETQ Possibles (H.GetLegals (WINDOWPROP HWin (QUOTE Hand))
                                                   (OR Trick (create Trick))
-                                                  (WINDOWPROP HWin (QUOTE HeartsBroken?]
+                                                  (WINDOWPROP HWin (QUOTE HeartsBroken?))
+                                                  (WINDOWPROP HWin (QUOTE FirstTrick?]
                      (if (WINDOWPROP HWin (QUOTE Legal))
                          then (for C in Possibles
                                  do (LET [[CardReg (CADDR (for c in (WINDOWPROP HWin (QUOTE CardMap))
@@ -2856,6 +2857,40 @@
             " of "
             (SELECTQ (fetch Suit of Card) (C "Clubs") (D "Diamonds") (H "Hearts") (S "Spades")
                      (fetch Suit of Card)))))
+)
+(* revival FIX -- HP.Play dropped the FirstTrick? arg so the 2-of-clubs opening lead was never enforced for the human; add it, forward to H.GetLegals, stash as a window prop. Original bug kept faithful in the transcription -- see HEARTS-BUGS.md H1)
+(DEFINEQ
+(HP.Play (LAMBDA (HWin Trick HeartsBroken? FirstTrick?)
+    (LET ((Possibles (H.GetLegals (WINDOWPROP HWin (QUOTE Hand))
+                                  Trick HeartsBroken? FirstTrick?))
+          Card)
+      (WINDOWPROP HWin (QUOTE CurrentTrick) Trick)
+      (WINDOWPROP HWin (QUOTE HeartsBroken?) HeartsBroken?)
+      (WINDOWPROP HWin (QUOTE FirstTrick?) FirstTrick?)
+      (PROMPTPRINT (CONCAT "Your turn, " (WINDOWPROP HWin (QUOTE Name))))
+      (HP.WaitForReady HWin "Please hurry. There are many impatient players here.")
+      (SETQ Card (CAR (WINDOWPROP HWin (QUOTE SelectedCards))))
+      (while (NOT (MEMBER Card Possibles))
+         do (HP.Unselect HWin Card)
+            (PROMPTPRINT "Illegal card. Try again.")
+            (WINDOWPROP HWin (QUOTE Ready?) NIL)
+            (HP.WaitForReady HWin "Please hurry. There are many impatient players here.")
+            (SETQ Card (CAR (WINDOWPROP HWin (QUOTE SelectedCards)))))
+      (if (WINDOWPROP HWin (QUOTE Legal))
+          then (DOSELECTEDITEM (WINDOWPROP HWin (QUOTE HeartsMenu))
+                               (CADDDR (fetch ITEMS of (WINDOWPROP HWin (QUOTE HeartsMenu))))))
+      (HP.Unselect HWin Card)
+      (HP.RemoveCard HWin Card)
+      (WINDOWPROP HWin (QUOTE Ready?) NIL)
+      Card)))
+)
+(* revival FIX -- H.Initialize cleared the CT.All list but left the previous game's card-table windows on screen; close them first so replays don't stack. See HEARTS-BUGS.md U2)
+(DEFINEQ
+(H.Initialize (LAMBDA NIL
+    (HNET.GoodBye)
+    (COND ((BOUNDP (QUOTE CT.All))
+           (for CT in CT.All do (COND ((WINDOWP CT) (CLOSEW CT))))))
+    (SETQ CT.All)))
 )
 (PUTPROPS HEARTS COPYRIGHT ("Harley Davis and Ramana Rao" 1986))
 STOP

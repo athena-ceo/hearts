@@ -126,6 +126,57 @@ def build(text, dist=False):
         "                     (fetch Suit of Card)))))\n"
         ")\n")
 
+    # 2j. Revival FIX (H1): HP.Play (the human's play) declared (HWin Trick HeartsBroken?),
+    #     dropping the FirstTrick? arg the trick loop passes -- (H.Apply Player 'Play Trick
+    #     HeartsBroken? (EQP TrickNum 1)) -- so the 2-of-clubs opening-lead rule was never
+    #     enforced for the human (the same original bug as CLOWN.Play). Add FirstTrick?, forward
+    #     it to H.GetLegals, and stash it as a window prop so the LegalCards menu button (patched
+    #     via text-replace below) can use it too. Redefined fully-parenthesized. See HEARTS-BUGS.md H1.
+    hp_fix = (
+        "(* revival FIX -- HP.Play dropped the FirstTrick? arg so the 2-of-clubs opening lead"
+        " was never enforced for the human; add it, forward to H.GetLegals, stash as a window"
+        " prop. Original bug kept faithful in the transcription -- see HEARTS-BUGS.md H1)\n"
+        "(DEFINEQ\n"
+        "(HP.Play (LAMBDA (HWin Trick HeartsBroken? FirstTrick?)\n"
+        "    (LET ((Possibles (H.GetLegals (WINDOWPROP HWin (QUOTE Hand))\n"
+        "                                  Trick HeartsBroken? FirstTrick?))\n"
+        "          Card)\n"
+        "      (WINDOWPROP HWin (QUOTE CurrentTrick) Trick)\n"
+        "      (WINDOWPROP HWin (QUOTE HeartsBroken?) HeartsBroken?)\n"
+        "      (WINDOWPROP HWin (QUOTE FirstTrick?) FirstTrick?)\n"
+        "      (PROMPTPRINT (CONCAT \"Your turn, \" (WINDOWPROP HWin (QUOTE Name))))\n"
+        "      (HP.WaitForReady HWin \"Please hurry. There are many impatient players here.\")\n"
+        "      (SETQ Card (CAR (WINDOWPROP HWin (QUOTE SelectedCards))))\n"
+        "      (while (NOT (MEMBER Card Possibles))\n"
+        "         do (HP.Unselect HWin Card)\n"
+        "            (PROMPTPRINT \"Illegal card. Try again.\")\n"
+        "            (WINDOWPROP HWin (QUOTE Ready?) NIL)\n"
+        "            (HP.WaitForReady HWin \"Please hurry. There are many impatient players here.\")\n"
+        "            (SETQ Card (CAR (WINDOWPROP HWin (QUOTE SelectedCards)))))\n"
+        "      (if (WINDOWPROP HWin (QUOTE Legal))\n"
+        "          then (DOSELECTEDITEM (WINDOWPROP HWin (QUOTE HeartsMenu))\n"
+        "                               (CADDDR (fetch ITEMS of (WINDOWPROP HWin (QUOTE HeartsMenu))))))\n"
+        "      (HP.Unselect HWin Card)\n"
+        "      (HP.RemoveCard HWin Card)\n"
+        "      (WINDOWPROP HWin (QUOTE Ready?) NIL)\n"
+        "      Card)))\n"
+        ")\n")
+
+    # 2k. Revival FIX (U2): H.Initialize reset the CT.All list but never CLOSED the previous
+    #     game's card-table window(s), so replaying (LHearts ...) stacked a fresh card table
+    #     over the old one. Close any still-open card tables before clearing the list. (BOUNDP
+    #     guards the very first call, when CT.All is not yet set.) See HEARTS-BUGS.md U2.
+    init_fix = (
+        "(* revival FIX -- H.Initialize cleared the CT.All list but left the previous game's"
+        " card-table windows on screen; close them first so replays don't stack. See HEARTS-BUGS.md U2)\n"
+        "(DEFINEQ\n"
+        "(H.Initialize (LAMBDA NIL\n"
+        "    (HNET.GoodBye)\n"
+        "    (COND ((BOUNDP (QUOTE CT.All))\n"
+        "           (for CT in CT.All do (COND ((WINDOWP CT) (CLOSEW CT))))))\n"
+        "    (SETQ CT.All)))\n"
+        ")\n")
+
     ar_block = ("" if dist else
                 "(* revival: our ACTIVEREGIONS reimplementation -- medley/activeregions.lisp)\n"
                 + ar_src + "\n")
@@ -135,7 +186,9 @@ def build(text, dist=False):
         + ar_block
         + clown_fix
         + ct_fix
-        + card_fix)
+        + card_fix
+        + hp_fix
+        + init_fix)
     text = text.replace("(PUTPROPS HEARTS COPYRIGHT", patch + "(PUTPROPS HEARTS COPYRIGHT", 1)
     # 2h. Case-fix: HP.Menuer calls PromptPrint (mixed case) 3x, but the function is the
     #     system PROMPTPRINT and Interlisp is case-sensitive, so DWIM prompts at runtime.
@@ -152,6 +205,14 @@ def build(text, dist=False):
     text = text.replace(
         '(GETBOXREGION 300 245 NIL NIL NIL (CONCAT "Position for your interface window, "',
         '(GETBOXREGION 300 300 NIL NIL NIL (CONCAT "Position for your interface window, "')
+    # 2l. Revival FIX (H1, cont.): the LegalCards menu button in HP.Menuer recomputed the
+    #     legal set via H.GetLegals WITHOUT FirstTrick?, so on the opening trick it would
+    #     highlight the wrong cards. Feed it the FirstTrick? window prop that HP.Play (2j)
+    #     now stashes. The `?]` superbracket form is unique to this call site.
+    text = text.replace(
+        "(WINDOWPROP HWin (QUOTE HeartsBroken?]",
+        "(WINDOWPROP HWin (QUOTE HeartsBroken?))\n"
+        "                                                  (WINDOWPROP HWin (QUOTE FirstTrick?]")
     # 3. arrow -> underscore
     text = text.replace("←", "_")
     # collapse runs of >2 blank lines left by stripping

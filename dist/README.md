@@ -15,34 +15,68 @@ proprietary and gone); see the project root for the revival story and the plan t
 | `ACTIVEREGIONS` | A standalone lispusers module: clickable/highlightable window regions, driven by the window `BUTTONEVENTFN`. A drop-in stand-in for the 1986 INTERMEZZO library of the same name, which modern Medley no longer ships. Reusable on its own. |
 | `HEARTS` | The game. `(FILESLOAD ACTIVEREGIONS)`s the above, then defines everything else. |
 
-## Load & run
+## Getting started (from scratch)
 
-1. Copy `ACTIVEREGIONS` and `HEARTS` into a directory Medley can reach (e.g. `~/il/`).
-2. In the Medley **Exec** (Interlisp package), connect to that directory and load:
+Never run Medley before? Here's the whole path from nothing to dealing a hand.
 
-   ```
-   (FILESLOAD ACTIVEREGIONS HEARTS)
-   ```
+**1. Install Medley Interlisp.** Download the prebuilt **`medley-full-macos-universal-*.zip`**
+from the [Interlisp downloads page](https://interlisp.org/) (one universal binary works on both
+Apple Silicon and Intel — no build needed). On macOS you'll also want **XQuartz** installed, and
+you must clear Gatekeeper quarantine on the VM binaries once:
 
-3. Start a game. The argument is the four seats, clockwise:
+```bash
+xattr -d com.apple.quarantine <path>/maiko/darwin.universal/lde*
+```
 
-   ```
-   (LHearts '(HP CP CP CP))     ; you (Human) vs three Conservatives
-   (LHearts '(CP CP CP CP))     ; four Conservatives play themselves
-   (LHearts '(CLOWN CLOWN CLOWN CLOWN))   ; four random-legal Clowns
-   ```
+(There's also an XQuartz-free **SDL** launch path we use on macOS; the exact framework/re-sign
+recipe is in [MEDLEY-ISSUES.md](../MEDLEY-ISSUES.md) M4 and
+[medley/MEDLEY-SETUP-NOTES.md](../medley/MEDLEY-SETUP-NOTES.md) §1.)
 
-   `HP` = Human player, `CP` = Conservative, `CLOWN` = Clown.
+**2. Launch Medley into an _Interlisp_ Exec** (not the default Common Lisp one — HEARTS is
+Interlisp):
 
-4. For the human game you'll be prompted for your name, then a **Hearts Window** opens with
-   your hand. Click a card to select it, then use the **Play** item on the window's menu.
-   Turn on the Conservatives' running commentary with `(SETQ ThinkFlag? T)` before you start.
+```bash
+cd <path-to>/medley_folder/medley
+./medley --apps --interlisp --noscroll     # shorthand: ./medley -a -e -n
+```
+
+You'll get an Exec window with the classic `_` prompt.
+
+**3. Get the two files where Medley can reach them.** Copy `ACTIVEREGIONS` and `HEARTS` (from this
+`dist/` directory) into a folder on a mounted host directory — e.g. `~/il/`. In the Exec, connect
+to that folder (`CONN`, or the File Browser), then load both:
+
+```
+(FILESLOAD ACTIVEREGIONS HEARTS)
+```
+
+(Loading details and the connect syntax are in
+[medley/MEDLEY-SETUP-NOTES.md](../medley/MEDLEY-SETUP-NOTES.md) §2.)
+
+**4. Deal a hand.** The argument is the four seats, clockwise:
+
+```
+(SETQ ThinkFlag? T)                      ; optional: let the Conservatives narrate
+(LHearts '(HP CP CP CP))                 ; you (Human) vs three Conservatives
+(LHearts '(CP CP CP CP))                 ; four Conservatives play themselves
+(LHearts '(CLOWN CLOWN CLOWN CLOWN))     ; four random-legal Clowns
+```
+
+`HP` = Human, `CP` = Conservative, `CLOWN` = Clown. You'll be prompted for your name, then your
+hand window opens.
+
+## How to play
+
+Click a card to select it, then use the window's **Play** / **Pass** menu. The full rules of the
+table — passing, legal plays, reading the scores, the thought windows — are in the
+**[user manual](../USER-MANUAL.md)**.
 
 ## Notes for macOS / SDL users
 
 Medley on macOS runs headless-ish through the SDL backend (`--maikoprog ldesdl`, no XQuartz).
 Setup gotchas we hit (framework install, an `install_name_tool` rpath fix, ad-hoc re-signing,
-and a clipboard/subprocess caveat) are written up in the project's `MEDLEY-ISSUES.md`.
+and a clipboard/subprocess caveat) are written up in the project's
+[MEDLEY-ISSUES.md](../MEDLEY-ISSUES.md).
 
 ## Provenance
 
