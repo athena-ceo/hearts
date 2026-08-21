@@ -61,7 +61,7 @@ def build(text):
     clown_fix = (
         "(* revival FIX -- CLOWN.Play dropped the FirstTrick? arg so the 2-of-clubs opening"
         " lead was never enforced; forward it. Original bug kept faithful in the"
-        " transcription -- see BUGS.md)\n"
+        " transcription -- see HEARTS-BUGS.md)\n"
         "(DEFINEQ\n"
         "(CLOWN.Play (LAMBDA (Clown Trick HeartsBroken? FirstTrick?)\n"
         "    (LET* ((Possibles (H.GetLegals (fetch Clown.Hand of Clown) Trick HeartsBroken? FirstTrick?))\n"
@@ -131,7 +131,7 @@ def build(text):
     #     so growing the height adds space at the TOP, right where the menu needs it.
     #     245 -> 300 gives the Clubs row ~79px of clearance. Scoped to HP.CreateWindow
     #     via its unique prompt string (Open/Dealer windows use the same 300 245 box but
-    #     have no attached top menu). Original 1986 layout; corrected here. See BUGS.md U3.
+    #     have no attached top menu). Original 1986 layout; corrected here. See HEARTS-BUGS.md U3.
     text = text.replace(
         '(GETBOXREGION 300 245 NIL NIL NIL (CONCAT "Position for your interface window, "',
         '(GETBOXREGION 300 300 NIL NIL NIL (CONCAT "Position for your interface window, "')
