@@ -16,6 +16,11 @@ REMCM="$HERE/rem-load.cm"
 LOG="$HERE/hearts-load.log"
 BACKEND="${1:-sdl}"
 
+# macOS clipboard (the CLIPBOARD library picks pbpaste/pbcopy vs xclip by checking
+# getenv("OSTYPE") for "darwin"); OSTYPE is a shell var that isn't exported, so export
+# it here or Medley thinks it's on Linux and the clipboard silently no-ops.
+export OSTYPE="${OSTYPE:-darwin}"
+
 rm -f "$LOG"
 [ -f "$HERE/HEARTS" ] || { echo "missing $HERE/HEARTS — run: python3 medley/build-loadfile.py"; exit 1; }
 
