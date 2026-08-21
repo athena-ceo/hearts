@@ -1,8 +1,5 @@
 ;; -*- Mode: Lisp; Package: Interlisp -*-
-;; HEARTS core system — InterLisp-D, Xerox Dandelion, 1986.
-;; Harley Davis and Ramana Rao.  Transcribed from ../original/hearts-core.pdf.
-;; See TRANSCRIPTION-NOTES.md for conventions.
-;; Assembled from parts/core-p*.lisp in page order.
+;; HEARTS core — assembled from parts.
 
 ;; ==== page 1 ====
 (FILECREATED " 5-May-86 02:06:24" {MITFS1-E40:SLOAN% SCHOOL:MASSINSTTECH}<RAMANA% RAO>HEART #| ?? line truncated at right margin of page |#
@@ -1312,7 +1309,7 @@
 
 (HP.Create
   [LAMBDA (Name)
-    (LET [((Name (OR Name (TTYIN "Enter player's name: " NIL NIL (QUOTE (STRING NORAISE]
+    (LET [(Name (OR Name (TTYIN "Enter player's name: " NIL NIL (QUOTE (STRING NORAISE]
           (create Player
                   Name ← Name
                   Type ←(QUOTE Lisp)

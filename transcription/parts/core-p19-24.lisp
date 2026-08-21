@@ -138,7 +138,7 @@
 
 (HP.Create
   [LAMBDA (Name)
-    (LET [((Name (OR Name (TTYIN "Enter player's name: " NIL NIL (QUOTE (STRING NORAISE]
+    (LET [(Name (OR Name (TTYIN "Enter player's name: " NIL NIL (QUOTE (STRING NORAISE]
           (create Player
                   Name ← Name
                   Type ←(QUOTE Lisp)

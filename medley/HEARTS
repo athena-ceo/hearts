@@ -1257,7 +1257,7 @@
 
 (HP.Create
   [LAMBDA (Name)
-    (LET [((Name (OR Name (TTYIN "Enter player's name: " NIL NIL (QUOTE (STRING NORAISE]
+    (LET [(Name (OR Name (TTYIN "Enter player's name: " NIL NIL (QUOTE (STRING NORAISE]
           (create Player
                   Name _ Name
                   Type _(QUOTE Lisp)
@@ -2780,13 +2780,13 @@
 
 (ACTIVEREGIONS/DEFAULTHIGHLIGHTFN
   (LAMBDA (Win AR)
-    (COND (AR (INVERTREGION (fetch (ACTIVEREGION REGION) of AR)
-                            (WINDOWPROP Win (QUOTE DSP)))))))
+    (COND (AR (DSPFILL (fetch (ACTIVEREGION REGION) of AR) BLACKSHADE (QUOTE INVERT)
+                       (WINDOWPROP Win (QUOTE DSP)))))))
 
 (ACTIVEREGIONS/DOLOWLIGHT
   (LAMBDA (Win AR)
-    (COND (AR (INVERTREGION (fetch (ACTIVEREGION REGION) of AR)
-                            (WINDOWPROP Win (QUOTE DSP)))))))
+    (COND (AR (DSPFILL (fetch (ACTIVEREGION REGION) of AR) BLACKSHADE (QUOTE INVERT)
+                       (WINDOWPROP Win (QUOTE DSP)))))))
 
 (GETPICKREGION
   (LAMBDA (Win)
@@ -2847,6 +2847,15 @@
       (MOVETO CT.X4 (DIFFERENCE CT.Y4 12) DS)
       (printout DS "S: " (CADDDR Score) " T: " (CADDDR Tricks))
       (RETURN Win))))
+)
+(* revival patch: Card.PrintCard is called but never defined -- only the compact Card.Print exists. Supply a readable card name for the thought windows and help strings)
+(DEFINEQ
+(Card.PrintCard (LAMBDA (Card)
+    (CONCAT (SELECTQ (fetch Value of Card) (J "Jack") (Q "Queen") (K "King") (A "Ace")
+                     (fetch Value of Card))
+            " of "
+            (SELECTQ (fetch Suit of Card) (C "Clubs") (D "Diamonds") (H "Hearts") (S "Spades")
+                     (fetch Suit of Card)))))
 )
 (PUTPROPS HEARTS COPYRIGHT ("Harley Davis and Ramana Rao" 1986))
 STOP

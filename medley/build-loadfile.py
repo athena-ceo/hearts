@@ -96,13 +96,29 @@ def build(text):
         "      (RETURN Win))))\n"
         ")\n")
 
+    # 2g. Revival patch: Card.PrintCard is called ~8x (thought windows, help strings) but
+    #     never defined — only the compact Card.Print ("KS") exists. Another lost-definition
+    #     inconsistency like ClownNames. Supply a readable card name.
+    card_fix = (
+        "(* revival patch: Card.PrintCard is called but never defined -- only the compact"
+        " Card.Print exists. Supply a readable card name for the thought windows and help strings)\n"
+        "(DEFINEQ\n"
+        "(Card.PrintCard (LAMBDA (Card)\n"
+        "    (CONCAT (SELECTQ (fetch Value of Card) (J \"Jack\") (Q \"Queen\") (K \"King\") (A \"Ace\")\n"
+        "                     (fetch Value of Card))\n"
+        "            \" of \"\n"
+        "            (SELECTQ (fetch Suit of Card) (C \"Clubs\") (D \"Diamonds\") (H \"Hearts\") (S \"Spades\")\n"
+        "                     (fetch Suit of Card)))))\n"
+        ")\n")
+
     patch = (
         "(* revival patch: ClownNames was undefined in the recovered source; names invented)\n"
         "(RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))\n"
         "(* revival: our ACTIVEREGIONS reimplementation -- medley/activeregions.lisp)\n"
         + ar_src + "\n"
         + clown_fix
-        + ct_fix)
+        + ct_fix
+        + card_fix)
     text = text.replace("(PUTPROPS HEARTS COPYRIGHT", patch + "(PUTPROPS HEARTS COPYRIGHT", 1)
     # 3. arrow -> underscore
     text = text.replace("←", "_")
