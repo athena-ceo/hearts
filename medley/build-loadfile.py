@@ -229,23 +229,25 @@ def build_activeregions():
     stripped (not Interlisp syntax); the header uses (* ... ) Interlisp comments instead.
     """
     ar_src = load_ar_src()
-    header = (
-        '(FILECREATED " 21-Aug-2026 22:00:00" ACTIVEREGIONS.;1)\n\n'
+    # Mirror the canonical minimal lispusers-file structure (cf. medley/library/CLIPBOARD):
+    # DEFINE-FILE-INFO, then FILECREATED WITH a bytecount number after the filename token
+    # (the newer file-loader compares it with IGREATERP; a missing number -> "NIL is not a
+    # NUMBER"), PRETTYCOMPRINT, RPAQQ ...COMS, a SINGLE plain (* ...) comment (no bare `_`
+    # assignment arrows, `/`, `--`, or nested parens -- those tripped the stricter reader),
+    # the record + fns, then PUTPROPS.
+    body = (
         "(PRETTYCOMPRINT ACTIVEREGIONSCOMS)\n\n"
         "(RPAQQ ACTIVEREGIONSCOMS ((RECORDS ACTIVEREGION)\n"
         "                          (FNS ACTIVEREGIONS/DEFAULTHIGHLIGHTFN ACTIVEREGIONS/DOLOWLIGHT\n"
         "                               GETPICKREGION SETACTIVEREGIONS \\AR.REGIONUNDER \\AR.BUTTONEVENTFN)))\n\n"
-        "(* * ACTIVEREGIONS -- a small reimplementation of the 1986 INTERMEZZO LispUsers library of\n"
-        "   the same name, written for the HEARTS revival (github.com/athena-ceo/hearts) because the\n"
-        "   original is not shipped with modern Medley Interlisp. It gives a window a set of\n"
-        "   clickable / highlightable rectangular regions, driven by the window BUTTONEVENTFN --\n"
-        "   the classic ACTIVEREGIONS job. Public interface:\n"
-        "     (create ACTIVEREGION REGION _ r DATA _ d UPFN _ fn HELPSTRING _ s)\n"
-        "     (SETACTIVEREGIONS win arlist)   install regions + click handler on win\n"
-        "     (GETPICKREGION win)             the ACTIVEREGION last clicked, or NIL\n"
-        "     (ACTIVEREGIONS/DEFAULTHIGHLIGHTFN win ar) / (ACTIVEREGIONS/DOLOWLIGHT win ar))\n\n")
-    footer = ('\n(PUTPROPS ACTIVEREGIONS COPYRIGHT ("Harley Davis and Ramana Rao" 2026))\n')
-    return header + ar_src + "\n" + footer
+        "(* clickable highlightable window regions, a reimplementation of the lost 1986 INTERMEZZO ACTIVEREGIONS library for the HEARTS revival)\n\n"
+        + ar_src + "\n\n"
+        '(PUTPROPS ACTIVEREGIONS COPYRIGHT ("Harley Davis and Ramana Rao" 2026))\n')
+    fileinfo = '(DEFINE-FILE-INFO PACKAGE "INTERLISP" READTABLE "INTERLISP" BASE 10)\n\n'
+    mk = lambda n: (fileinfo
+                    + '(FILECREATED " 21-Aug-2026 22:00:00" ACTIVEREGIONS.;1 %d)\n\n' % n
+                    + body)
+    return mk(len(mk(0)))  # fill the bytecount with the file's own length
 
 
 def _report(name, out):
