@@ -243,7 +243,9 @@ def build_activeregions():
         "(* clickable highlightable window regions, a reimplementation of the lost 1986 INTERMEZZO ACTIVEREGIONS library for the HEARTS revival)\n\n"
         + ar_src + "\n\n"
         '(PUTPROPS ACTIVEREGIONS COPYRIGHT ("Harley Davis and Ramana Rao" 2026))\n')
-    fileinfo = '(DEFINE-FILE-INFO PACKAGE "INTERLISP" READTABLE "INTERLISP" BASE 10)\n\n'
+    # DEFINE-FILE-INFO keys must be keywords (:PACKAGE), exactly as the real
+    # library/CLIPBOARD file writes them -- bare PACKAGE -> "Unrecognized file info key".
+    fileinfo = '(DEFINE-FILE-INFO :PACKAGE "INTERLISP" :READTABLE "INTERLISP" :BASE 10)\n\n'
     mk = lambda n: (fileinfo
                     + '(FILECREATED " 21-Aug-2026 22:00:00" ACTIVEREGIONS.;1 %d)\n\n' % n
                     + body)
