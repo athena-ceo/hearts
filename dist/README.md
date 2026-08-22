@@ -4,9 +4,11 @@ This directory is the loadable distribution of **HEARTS**, an expert-system Hear
 originally written in InterLisp-D + KEE for MIT 6.871 (spring 1986) by Harley Davis and
 Ramana Rao, brought back to life on modern [Medley Interlisp](https://interlisp.org/).
 
-Three player types work today — **Clown** (random legal), **Conservative** (rule-based AI),
-and **Human** (you, clicking cards). The KEE-based **Expert** player is not included (KEE is
-proprietary and gone); see the project root for the revival story and the plan to reimplement it.
+Three player types work today — **Clown** (random legal), **Conservative** (a single fixed
+*minimizing* strategy in Lisp — plays competently but doesn't adapt: no opponent modeling, no
+re-planning), and **Human** (you, clicking cards). The KEE-based **Expert** player is not included
+(KEE is proprietary and gone) — and it's the Expert, not the Conservative, that does the adaptive
+reasoning; see the project root for the revival story and the plan to reimplement it.
 
 ## Files
 

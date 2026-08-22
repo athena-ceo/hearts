@@ -68,8 +68,9 @@ Most of the rest will be written by coding harnesses.   For coding harnesses who
 ## Play it today (Medley, non-KEE)
 
 The three non-KEE players run end-to-end on [Medley Interlisp](https://interlisp.org/):
-**Clown** (random legal), **Conservative** (rule-based AI, with running commentary), and
-**Human** (you, clicking cards). The loadable package lives in [`dist/`](dist/):
+**Clown** (random legal), **Conservative** (a single fixed *minimizing* strategy written in
+Lisp — competent but non-adaptive: no opponent modeling, no re-planning — narrating its play),
+and **Human** (you, clicking cards). The loadable package lives in [`dist/`](dist/):
 
 ```
 (FILESLOAD ACTIVEREGIONS HEARTS)     ; load the game + its clickable-regions library

@@ -145,11 +145,144 @@ later it's a dangling reference to a definition that no longer exists.
 - Also seen here: a DWIM "possible non-terminating iterative statement" warning on `LHearts` —
   that's the game system's outer loop that deals a fresh game when the last one ends, not a bug.
 
-## Still ahead (known, not yet hit)
+## Challenge 8 — The artwork is mandatory after all: decoding READBITMAP by hand
+
+The suit bitmaps aren't decoration — a human can't read their hand without ♣/♦/♥/♠ on the cards.
+So the Challenge-6 stubs had to be replaced with the *real* recovered pips.
+
+- **What worked:** the `READBITMAP` "hardcopy" packing turned out to be decodable: each character is
+  a 4-bit nibble (`@`=0 … `O`=15, letters only — an `O`/`0` slip is fatal), each raster row padded
+  to a 16-bit word. That gives a hard validator (row length + legal charset) and, better, a way to
+  **decode and render each bitmap to a PNG and eyeball it** (`tools/readbitmap-decode.py`) before
+  trusting it. The four 11×11 suit pips came back cleanly; the card table now draws legible suits.
+- **Lesson:** for OCR'd binary blobs, build a decoder/renderer and *look* at the result — don't
+  trust the characters. The 50×50 desktop icon stays stubbed (pure decoration, low value).
+
+## Challenge 9 — A whole UI library is missing: ACTIVEREGIONS
+
+The human player picks cards by *clicking* them, via a 1986 INTERMEZZO LispUsers library called
+`ACTIVEREGIONS` (clickable/highlightable window regions). It isn't shipped with modern Medley, and
+the modern lookalikes (`REGIONMANAGER`/`AIREGIONS`/`ARMODES`) don't match the API the game calls.
+
+- **What worked:** we **wrote our own** — `medley/activeregions.lisp`: a record plus
+  `SETACTIVEREGIONS`/`GETPICKREGION`/highlight functions hung on the window's `BUTTONEVENTFN`,
+  modeled on Medley's `FREEMENU`. The human hand window's card-clicking works through it.
+- **Lesson:** a missing dependency isn't always a wall — a small, API-compatible reimplementation
+  can be less work than it looks, and becomes a reusable artifact (see Challenge 16).
+
+## Challenge 10 — The authors' own 1986 bugs, rediscovered 40 years later
+
+Actually *playing* surfaced real bugs in the original code — the kind only runtime finds:
+
+- **The 2♣ opening lead never fired for Clown or Human.** The trick loop passes a `FirstTrick?`
+  flag to each player's `Play`, but `CLOWN.Play` and `HP.Play` declared their lambdas without it
+  and dropped it on the floor (only `CP.Play` got it right) — so the "must lead the two of clubs"
+  rule silently never applied to them. A genuine 1986 bug; the co-author rediscovered his own
+  undergraduate mistake.
+- **`PromptPrint` vs `PROMPTPRINT`.** `HP.Menuer` calls `PromptPrint` (mixed case), but the actual
+  function is the system `PROMPTPRINT`. Interlisp is case-sensitive, so DWIM prompted to correct it
+  at runtime — an original inconsistency the paper preserved.
+- **What worked:** keep both faithful in the transcription; fix them as documented revival patches
+  in the build (forward `FirstTrick?`; correct the case). All logged in `HEARTS-BUGS.md`.
+
+## Challenge 11 — More ghosts from the image: `Card.PrintCard`
+
+Same species as `ClownNames` (Challenge 7): `Card.PrintCard` is called ~8× (thought windows, help
+strings) but **defined nowhere** — only the compact `Card.Print` ("KS") survives in the file. Another
+definition that lived in the 1986 image, not the listing. Supplied a readable version
+("King of Spades") as a revival patch.
+
+## Challenge 12 — Display drift: smeared scores and a shrinking hand window
+
+- **`CT.PrintStats` smeared.** It redrew each player's `S:`/`T:` without erasing first, so
+  shrinking-width digits left ghosts ("T: 31" from "T: 3" over "1"). Fix: clear each field with a
+  `WHITESHADE` fill before drawing.
+- **The hand window ate its own top row.** The `Play/Pass/Score/LegalCards` menu is `ATTACHWINDOW`'d
+  to the window's *top*, and the Clubs row sat right under it. Bumping the creation size wasn't
+  enough — the real culprit was `HP.Reshape` (run every deal), which recomputed the height from the
+  current region and **drifted a little smaller each hand** until the top row clipped again. Fix:
+  pin a stable window height in `HP.Reshape`; let only the width follow the hand.
+- **Lesson:** with a per-deal reshape in play, a one-time size fix won't hold — find the function
+  that recomputes geometry on every cycle.
+
+## Challenge 13 — The clipboard that couldn't: a helper process that never forks
+
+Tired of retyping, we tried to get the host clipboard working — and fell down a rabbit hole worth
+recording (investigated with parallel sub-agents reading the Maiko C source):
+
+- The `CLIPBOARD` library chooses `pbpaste` vs `xclip` by reading `OSTYPE` — a **non-exported** shell
+  variable, so it always guessed wrong on macOS.
+- Deeper: `(GETCLIPBOARD)` shells out via a **`unixcomm` helper process** that is forked **only by the
+  `lde` kickstarter binary**. Launching the emulator directly as `--maikoprog ldesdl` (the
+  XQuartz-free path) **skips the kickstarter**, so the helper never starts, the pipe fds stay `-1`,
+  and every subprocess call returns `NIL` (`"Failed to find UNIXCOMM file handles; no processes"`).
+- On the 2021 build the kickstarter is **X11-only**, so "working clipboard" and "no XQuartz" were
+  mutually exclusive *by construction*.
+- **What worked:** the X11 path (`lde` → `ldex` + XQuartz) forks the helper — clipboard works there.
+  (See Challenge 15.) Subprocess spawning was never a stub or a macOS gap; it just needs the helper.
+
+## Challenge 14 — SEdit wedges the whole image (SDL only)
+
+Opening the structure editor **froze the entire image** at "Select region for SEdit window."
+
+- **Root cause:** SEdit is the first thing that runs an interactive **press-hold-drag region
+  *sweep*** (`\GETREGIONTRACKWITHBOX`, a non-yielding spin), where the game only ever does discrete
+  *clicks* (`\TRACKWITHBOX`). The X11 event driver keeps the held-button state across motion and
+  kicks the scheduler on button events; the SDL driver evidently doesn't, so the sweep's terminating
+  transition never arrives and the single-threaded VM spins forever. **SDL-backend-only.**
+- **What worked:** X11. On the current build over X11, SEdit opens and the sweep completes normally.
+
+## Challenge 15 — The real fix was a current Medley (the 2021 build was the problem)
+
+Half of the above (clipboard, SEdit, keyboard) traced to running a **~4-year-old** Medley. Upgrading
+to the Aug-2026 release resolved them — but the upgrade had its own speed bumps, each a genuine
+Medley/Maiko issue (all in `MEDLEY-ISSUES.md`):
+
+- **Spaces in the install path** break the launcher and its helper scripts (unquoted `$0`-relative
+  paths): install under a space-free directory.
+- **SDL keyboard** doesn't recognize a modern Mac keyboard (`Unsupported keyboard type: 14`, ⌘
+  unmapped) — another reason X11 wins on this build.
+- **A failed `FILESLOAD` looks like it corrupts the world** ("Undefined car of form: FILESLOAD").
+  We nearly proposed an `UNWIND-PROTECT` PR — then **read the source first** and found `LOAD` already
+  rebinds `*PACKAGE*`/`*READTABLE*` in a `PROG` (unwind-safe). The real cause: an error enters a
+  **break, which *suspends* rather than unwinds** the stack, so the loader's in-progress reader
+  environment is still live while you type in the break. Unwind the break and it's fine.
+- **Lesson:** before writing a "safe version" or filing a fix, check whether the platform already
+  does the right thing. It usually does; the surprise is usually elsewhere.
+- **Result:** on current Medley over **X11**, clipboard, keyboard, and SEdit all work.
+
+## Challenge 16 — Packaging ACTIVEREGIONS as a reusable lispusers module
+
+To give the reimplemented `ACTIVEREGIONS` (Challenge 9) back to the community as a standalone
+loadable module, it needed a proper file wrapper — which fought back on the current sysout:
+
+- `DEFINE-FILE-INFO` keys must be **keywords** (`:PACKAGE`, not `PACKAGE`) → else
+  "Unrecognized file info key."
+- `FILECREATED` wants a **bytecount number** after the filename token, or a later comparison hits
+  `IGREATERP` on `NIL`.
+- A stray top-level `(* comment)` right after the `COMS` **tripped the reader** (`SYNTAXP` →
+  "NIL is not a NUMBER").
+- **What worked:** mirror a real stock library file's header exactly (we used `library/CLIPBOARD` as
+  the template) and keep the module to the essential forms. The result loads clean and is
+  `MAKEFILE`/`TCOMPL`-ready.
+
+## Milestone — the non-KEE game plays, end to end, on current Medley
+
+`(LHearts '(HP CP CP CP))` on the current Medley release over X11: a human (clicking cards through
+our ACTIVEREGIONS) plays a full game against three Conservatives — each a Lisp player running one
+fixed *minimizing* strategy (competent but non-adaptive: no opponent modeling, no re-planning),
+narrating its play in a thought window — with recovered card bitmaps, correct scoring, working host
+clipboard, working keyboard, and a structure editor that no longer wedges. Forty years after 6.871,
+the beer-driven GOFAI Hearts system runs again — everything except the KEE Expert player, which is
+the one that actually *reasons* adaptively about the game (the reason it was the interesting part).
+
+## Still ahead
 
 - **KEE is gone.** IntelliCorp's KEE was proprietary and never open-sourced; the expert player's
-  rules must be reimplemented. The good news: the core couples to KEE at only 4 `UNITMSG` seams.
+  rules must be reimplemented. The good news: the core couples to KEE at only 4 `UNITMSG` seams, and
+  the ~90 rules survive in the transcription as the spec.
 - **Networking is gone.** The Ethernet `EVALSERVER`/PUP/XNS remote-eval layer the four-machine
   game rode on is non-functional in Medley; plan is to collapse to one image with four processes.
-  (The file ends with a `FILESLOAD` of `EVALSERVER.DCOM` that will fail to load — expected.)
-- **Window geometry/fonts** are hard-coded for a 1024×808 Dandelion display and will need tuning.
+- **Modern ports (Phases 3–4):** a Common Lisp port and a Python port, per `ARCHITECTURE.md`.
+- *(Done since first written: the card artwork is recovered (Ch. 8), ACTIVEREGIONS is reimplemented
+  (Ch. 9), and the 1024×808 Dandelion window geometry has been tuned enough to play (Ch. 12).)*

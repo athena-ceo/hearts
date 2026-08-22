@@ -19,7 +19,7 @@ At the Interlisp Exec:
 (LHearts '(HP CP CP CP))      ; the four seats, clockwise
 ```
 
-Seat codes: **`HP`** = you (Human Player), **`CP`** = Conservative (rule-based AI),
+Seat codes: **`HP`** = you (Human Player), **`CP`** = Conservative (a Lisp player running one fixed *minimizing* strategy — competent but non-adaptive),
 **`CLOWN`** = Clown (plays a random legal card). `EP` (the KEE Expert) is deferred and
 unavailable. Mix them however you like, e.g. `(LHearts '(HP CP CLOWN CP))`.
 
