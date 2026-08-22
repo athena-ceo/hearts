@@ -202,6 +202,10 @@ def build(text, dist=False):
     patch = (
         "(* revival patch: ClownNames was undefined in the recovered source; names invented)\n"
         "(RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))\n"
+        "(* revival default: ship ThinkFlag? as T so the Conservatives' reasoning shows in thought"
+        " windows by default. The 1986 source defaults it NIL (kept faithful in the transcription);"
+        " loaded after that, this override wins. (SETQ ThinkFlag? NIL) to silence.)\n"
+        "(RPAQQ ThinkFlag? T)\n"
         + ar_block
         + clown_fix
         + ct_fix

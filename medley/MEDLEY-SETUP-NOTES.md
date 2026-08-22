@@ -117,8 +117,10 @@ all work. Recommended: X11.
    ```
    Widen it once you've confirmed the files load clean, e.g.:
    ```
-   (PROGN (FILESLOAD CLIPBOARD ACTIVEREGIONS HEARTS) (SETQ ThinkFlag? T))
+   (FILESLOAD CLIPBOARD ACTIVEREGIONS HEARTS)
    ```
+   (The revival build already defaults `ThinkFlag?` to `T`, so the Conservatives narrate without
+   any extra form; `(SETQ ThinkFlag? NIL)` if you'd rather they didn't.)
 
 6. **Launch** (X11; XQuartz already running from step 3):
    ```bash

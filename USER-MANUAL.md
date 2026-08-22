@@ -25,8 +25,9 @@ unavailable. Mix them however you like, e.g. `(LHearts '(HP CP CLOWN CP))`.
 
 Handy options:
 
-- `(SETQ ThinkFlag? T)` **before** starting — the Conservatives narrate their reasoning in
-  "Thoughts of …" windows. Great for watching them think (and for screenshots). `NIL` to silence.
+- `ThinkFlag?` — **on by default** in this revival build, so the Conservatives narrate their
+  reasoning in "Thoughts of …" windows (great for watching them think, and for screenshots). To
+  silence it, `(SETQ ThinkFlag? NIL)` before starting.
 - `(LHearts Config Open? ManualDeal?)` — `Open?` T deals all hands face-up (for kibitzing);
   `ManualDeal?` T lets you deal by hand. Both default off.
 
@@ -40,7 +41,7 @@ You'll be asked to type your name; a hand window titled **"Hearts Window for _yo
   player's score (points taken) and **`T:`** is tricks taken this hand. Cards played to the
   current trick appear in the middle.
 - **Prompt Window** — short messages ("Your turn, _you_", "Illegal card. Try again.", "Pass noted.").
-- **Thoughts of _name_** — a Conservative's running commentary (only when `ThinkFlag?` is `T`).
+- **Thoughts of _name_** — a Conservative's running commentary (shown while `ThinkFlag?` is `T`, the default).
 
 ## Passing (start of each hand)
 
@@ -80,6 +81,6 @@ To leave Medley entirely: `(IL:LOGOUT)` at the Exec.
 
 ## Tips
 
-- Turn on `ThinkFlag?` once and watch a `(LHearts '(CP CP CP CP))` game play itself — a good way
+- Watch a `(LHearts '(CP CP CP CP))` game play itself (thought windows on by default) — a good way
   to learn the Conservatives' style before you sit down against them.
 - The dreaded **Q♠** is worth 13 — shedding it on someone else is the whole game.

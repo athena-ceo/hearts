@@ -64,14 +64,16 @@ to that folder (`CONN`, or the File Browser), then load both:
 **4. Deal a hand.** The argument is the four seats, clockwise:
 
 ```
-(SETQ ThinkFlag? T)                      ; optional: let the Conservatives narrate
-(LHearts '(HP CP CP CP))                 ; you (Human) vs three Conservatives
-(LHearts '(CP CP CP CP))                 ; four Conservatives play themselves
-(LHearts '(CLOWN CLOWN CLOWN CLOWN))     ; four random-legal Clowns
+(LHearts '(HP CP CP CP))
+(LHearts '(CP CP CP CP))
+(LHearts '(CLOWN CLOWN CLOWN CLOWN))
 ```
 
-`HP` = Human, `CP` = Conservative, `CLOWN` = Clown. You'll be prompted for your name, then your
-hand window opens.
+`HP` = Human, `CP` = Conservative, `CLOWN` = Clown — so the first line is you vs three
+Conservatives, the second is four Conservatives playing themselves, the third is four random-legal
+Clowns. You'll be prompted for your name, then your hand window opens. The Conservatives narrate
+their reasoning in "Thoughts of …" windows **by default**; `(SETQ ThinkFlag? NIL)` before starting
+to silence them.
 
 ## How to play
 

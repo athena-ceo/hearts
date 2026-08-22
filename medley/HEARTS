@@ -2774,6 +2774,8 @@
 (* neutralized H.MakeIcon icon call)
 (* revival patch: ClownNames was undefined in the recovered source; names invented)
 (RPAQQ ClownNames (Bozo Chuckles Giggles Patches Sprinkles Coco Bubbles WackyWally Sniffles Doodles))
+(* revival default: ship ThinkFlag? as T so the Conservatives' reasoning shows in thought windows by default. The 1986 source defaults it NIL (kept faithful in the transcription); loaded after that, this override wins. (SETQ ThinkFlag? NIL) to silence.)
+(RPAQQ ThinkFlag? T)
 (* revival: our ACTIVEREGIONS reimplementation -- medley/activeregions.lisp)
 (RECORD ACTIVEREGION (REGION DATA HELPSTRING UPFN DOWNFN HIGHLIGHTFN))
 
