@@ -177,6 +177,25 @@ def build(text, dist=False):
         "    (SETQ CT.All)))\n"
         ")\n")
 
+    # 2m. Revival FIX (U3, real cause): HP.RemakeHand -> HP.Reshape runs every deal and
+    #     SHAPEWs the window to height (PLUS fontheight (fetch HEIGHT of OldReg)). That mixes
+    #     region kinds / under-compensates for the title + attached-menu overhead, so the client
+    #     shrinks a little each deal until the top (Clubs) card row is clipped under the menu --
+    #     and it silently overrode the taller creation size. Keep the dynamic WIDTH, but pin the
+    #     HEIGHT to a stable constant (320) so it never drifts. See HEARTS-BUGS.md U3.
+    reshape_fix = (
+        "(* revival FIX -- HP.Reshape recomputed height from the current region each deal and"
+        " drifted smaller until the top card row clipped; pin a stable height. See HEARTS-BUGS.md U3)\n"
+        "(DEFINEQ\n"
+        "(HP.Reshape (LAMBDA (HWin Width)\n"
+        "    (LET ((OldReg (WINDOWPROP HWin (QUOTE REGION))))\n"
+        "      (SHAPEW HWin (CREATEREGION (fetch LEFT of OldReg)\n"
+        "                                 (fetch BOTTOM of OldReg)\n"
+        "                                 (PLUS 10 Width)\n"
+        "                                 320))\n"
+        "      (REDISPLAYW HWin))))\n"
+        ")\n")
+
     ar_block = ("" if dist else
                 "(* revival: our ACTIVEREGIONS reimplementation -- medley/activeregions.lisp)\n"
                 + ar_src + "\n")
@@ -188,7 +207,8 @@ def build(text, dist=False):
         + ct_fix
         + card_fix
         + hp_fix
-        + init_fix)
+        + init_fix
+        + reshape_fix)
     text = text.replace("(PUTPROPS HEARTS COPYRIGHT", patch + "(PUTPROPS HEARTS COPYRIGHT", 1)
     # 2h. Case-fix: HP.Menuer calls PromptPrint (mixed case) 3x, but the function is the
     #     system PROMPTPRINT and Interlisp is case-sensitive, so DWIM prompts at runtime.
@@ -235,12 +255,15 @@ def build_activeregions():
     # NUMBER"), PRETTYCOMPRINT, RPAQQ ...COMS, a SINGLE plain (* ...) comment (no bare `_`
     # assignment arrows, `/`, `--`, or nested parens -- those tripped the stricter reader),
     # the record + fns, then PUTPROPS.
+    # NOTE: no top-level (* ...) banner comment here. A stray comment as the form right
+    # after the COMS tripped the file reader on the current sysout (SYNTAXP -> IGREATERP ->
+    # "NIL is not a NUMBER" while reading it). The human-readable docs live in
+    # medley/activeregions.lisp and dist/README.md instead.
     body = (
         "(PRETTYCOMPRINT ACTIVEREGIONSCOMS)\n\n"
         "(RPAQQ ACTIVEREGIONSCOMS ((RECORDS ACTIVEREGION)\n"
         "                          (FNS ACTIVEREGIONS/DEFAULTHIGHLIGHTFN ACTIVEREGIONS/DOLOWLIGHT\n"
         "                               GETPICKREGION SETACTIVEREGIONS \\AR.REGIONUNDER \\AR.BUTTONEVENTFN)))\n\n"
-        "(* clickable highlightable window regions, a reimplementation of the lost 1986 INTERMEZZO ACTIVEREGIONS library for the HEARTS revival)\n\n"
         + ar_src + "\n\n"
         '(PUTPROPS ACTIVEREGIONS COPYRIGHT ("Harley Davis and Ramana Rao" 2026))\n')
     # DEFINE-FILE-INFO keys must be keywords (:PACKAGE), exactly as the real

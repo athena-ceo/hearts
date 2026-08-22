@@ -2892,5 +2892,15 @@
            (for CT in CT.All do (COND ((WINDOWP CT) (CLOSEW CT))))))
     (SETQ CT.All)))
 )
+(* revival FIX -- HP.Reshape recomputed height from the current region each deal and drifted smaller until the top card row clipped; pin a stable height. See HEARTS-BUGS.md U3)
+(DEFINEQ
+(HP.Reshape (LAMBDA (HWin Width)
+    (LET ((OldReg (WINDOWPROP HWin (QUOTE REGION))))
+      (SHAPEW HWin (CREATEREGION (fetch LEFT of OldReg)
+                                 (fetch BOTTOM of OldReg)
+                                 (PLUS 10 Width)
+                                 320))
+      (REDISPLAYW HWin))))
+)
 (PUTPROPS HEARTS COPYRIGHT ("Harley Davis and Ramana Rao" 1986))
 STOP
