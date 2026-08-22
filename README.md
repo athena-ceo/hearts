@@ -90,6 +90,7 @@ proprietary and gone (see below).
 
 ## Documents (for the community)
 
+- **[HANDOFF.md](HANDOFF.md)** — start here: project state, how to run/rebuild, conventions, follow-ups, and the roadmap.
 - **[dist/README.md](dist/README.md)** — Getting Started (bring Medley up from scratch) + how to load the game.
 - **[USER-MANUAL.md](USER-MANUAL.md)** — brief manual for playing a hand (passing, legal plays, the windows, scoring).
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — language-neutral spec (six-message protocol, dispatch,
