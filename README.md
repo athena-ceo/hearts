@@ -67,6 +67,10 @@ Most of the rest will be written by coding harnesses.   For coding harnesses who
 
 ## Play it today (Medley, non-KEE)
 
+![A human game in progress on current Medley: the card table (center) with scores, Harley's hand
+mid-pass (top right), and three Conservative players narrating their strategy in "Thoughts of …"
+windows.](docs/hearts-game.png)
+
 The three non-KEE players run end-to-end on [Medley Interlisp](https://interlisp.org/):
 **Clown** (random legal), **Conservative** (a single fixed *minimizing* strategy written in
 Lisp — competent but non-adaptive: no opponent modeling, no re-planning — narrating its play),

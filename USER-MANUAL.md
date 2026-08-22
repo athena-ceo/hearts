@@ -35,6 +35,10 @@ You'll be asked to type your name; a hand window titled **"Hearts Window for _yo
 
 ## The windows you'll see
 
+![A game in progress: the Hearts Card Table (center) with each player's score and tricks, "Hearts
+Window for Harley" (top right) showing the hand grouped by suit with the Play/Pass/Score/LegalCards
+menu, and a "Thoughts of …" window for each Conservative narrating its play.](docs/hearts-game.png)
+
 - **Hearts Window for _you_** — your 13 cards, grouped in rows by suit (Clubs, Diamonds, Hearts,
   Spades). Along the top is a menu: **Play · Pass · Score · LegalCards**. You click cards here.
 - **Hearts Card Table** — the four seats around the table. Under each name, **`S:`** is that
