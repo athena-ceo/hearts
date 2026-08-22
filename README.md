@@ -2,15 +2,32 @@
 
 ## Introduction
 
-This project is about resurrecting a 1986 rules-based Hearts player written by Ramana Rao and Harley Davis as a part of a 1986 MIT expert systems class project.
+*This project began with a post to the Interlisp community:*
 
-My belief is that this was one of the first networked multi-player gaming systems that included AI players.
+> I have a source code printout from a 1986 expert Hearts system (yes, the card game Hearts)
+> written by Ramana Rao and myself as part of the MIT 6.871 (Expert Systems) final project. It
+> ran on Medley InterLisp-D. One of the expert system players used the Intellicorp KEE expert
+> system shell, but the core system itself is straight Lisp. There is a network server that
+> manages games to which different players can connect — some automated, some human. Interested
+> people can write new automated players to test different strategies; there were a couple out of
+> the box. There is a nice GUI for the game, showing the automated players' moves, letting human
+> players take their moves, and showing the expert reasoning behind the decisions made by the
+> automated players. We were super proud of this GOFAI system, since it leveraged both a core MIT
+> nocturnal beer-driven skill and our own weird love of AI and Xerox Lisp machines, and kicking
+> the pants off the other projects in this class.
+>
+> If I scan the source code (about 40 pages for the non-KEE part), what are the odds this could be
+> loaded on the Medley emulator? And is there any chance that KEE itself is around somewhere?
 
-The system is written in InterLisp-D for a Xerox D-Machine, and the expert system part used Intellicorp KEE.
+**Update — the answer to the first question turned out to be: yes.** The ~40 pages were scanned
+and transcribed, and the full non-KEE system — the Administrator, the game/GUI, and the Clown,
+Conservative, and Human players — now runs on modern [Medley Interlisp](https://interlisp.org/):
+you can deal and play a hand today (see **[Play it today](#play-it-today-medley-non-kee)**). The
+KEE-based Expert player remains deferred — KEE is proprietary and, as far as we've found, gone.
 
-I would like to get the system running again.   I cannot give a reason other than nostalgia.   I am also curious to see how far modern AI can be used to get GOFAI running again!
-
-I was inspired by the [InterLisp revival project](https://interlisp.org/) to start this project.   Thanks to Larry Masinter, Paolo Amoroso, Herb Jellinek, and the other dedicated old geezers for this remarkable project!
+I was inspired by the [InterLisp revival project](https://interlisp.org/) to start this project.
+Thanks to Larry Masinter, Paolo Amoroso, Herb Jellinek, and the other dedicated old geezers for
+this remarkable project!
 
 ## Starting Point
 
@@ -129,7 +146,8 @@ python/          Phase 4 — a Python port for distribution (planned).
   game on Medley via `(LHearts '(HP CP CP CP))`: cards dealt and passed, tricks scored, the human's
   hand rendered with recovered card bitmaps and cards chosen by clicking (our
   [ACTIVEREGIONS](medley/activeregions.lisp) reimplementation), Conservatives narrating in thought
-  windows. Revival patches and rediscovered original bugs are logged in
+  windows. Confirmed running on the **current Medley release (260810) over X11**, with the host
+  **clipboard working**. Revival patches and rediscovered original bugs are logged in
   [HEARTS-BUGS.md](HEARTS-BUGS.md); Medley-side gotchas in [MEDLEY-ISSUES.md](MEDLEY-ISSUES.md).
   **Remaining:** the KEE Expert player (deferred), the original Ethernet networking (deferred —
   collapse to one image), and minor window-cleanup polish.
