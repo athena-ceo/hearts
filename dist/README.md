@@ -17,6 +17,14 @@ proprietary and gone); see the project root for the revival story and the plan t
 
 ## Getting started (from scratch)
 
+> **These install/launch steps are for macOS** (Apple Silicon or Intel) — that's the platform
+> this revival was done on. The **in-Lisp steps are identical on every platform** (`FILESLOAD`,
+> `LHearts`, …); only the download/launch shell mechanics differ. Linux and Windows/WSL users:
+> grab the matching release from [interlisp.org](https://interlisp.org/) and launch per their
+> docs, then pick up at step 3. A polished macOS daily workflow (stop the XQuartz xterm, leave
+> the X server running, auto-load libraries, quit cleanly) is in
+> [medley/MEDLEY-SETUP-NOTES.md](../medley/MEDLEY-SETUP-NOTES.md) §1a.
+
 Never run Medley before? Here's the whole path from nothing to dealing a hand.
 
 **1. Install Medley Interlisp.** Download the prebuilt **`medley-full-macos-universal-*.zip`**
@@ -71,12 +79,21 @@ Click a card to select it, then use the window's **Play** / **Pass** menu. The f
 table — passing, legal plays, reading the scores, the thought windows — are in the
 **[user manual](../USER-MANUAL.md)**.
 
-## Notes for macOS / SDL users
+## Notes for macOS users (display backends)
 
-Medley on macOS runs headless-ish through the SDL backend (`--maikoprog ldesdl`, no XQuartz).
-Setup gotchas we hit (framework install, an `install_name_tool` rpath fix, ad-hoc re-signing,
-and a clipboard/subprocess caveat) are written up in the project's
-[MEDLEY-ISSUES.md](../MEDLEY-ISSUES.md).
+macOS has two display backends, with a real tradeoff:
+
+- **X11** (default `lde` → `ldex`, needs **XQuartz**) — **recommended.** Forks the `unixcomm`
+  helper (so the **host clipboard works**), has the mature keyboard map, and runs SEdit without
+  wedging. This is the full-featured path.
+- **SDL** (`--maikoprog ldesdl`) — a native macOS window with **no XQuartz**, and the mouse-driven
+  game plays fine on it. But on the current build it has **no clipboard** and an **incomplete
+  keyboard map** (⌘ unmapped), and needs an `SDL2.framework` rpath fix. Fine for playing; not for
+  editing or copy/paste.
+
+The smooth macOS/X11 daily setup is in [medley/MEDLEY-SETUP-NOTES.md](../medley/MEDLEY-SETUP-NOTES.md)
+§1a; the underlying root-causes (clipboard helper, keyboard, SDL framework) are in
+[MEDLEY-ISSUES.md](../MEDLEY-ISSUES.md) (M1–M8).
 
 ## Provenance
 

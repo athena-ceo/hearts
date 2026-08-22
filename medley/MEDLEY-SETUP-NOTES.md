@@ -69,6 +69,80 @@ there.
 
 ---
 
+## 1a. Smooth macOS / X11 daily setup (verified on the 2026 build, 260810)
+
+**Platform note:** everything in this section is **macOS-specific** (Apple Silicon or
+Intel). The in-Lisp steps (§2 onward — `FILESLOAD`, `LHearts`, etc.) are identical on
+every platform; only the install/launch/quit shell mechanics below differ per-OS. Linux
+and Windows/WSL users: see [interlisp.org](https://interlisp.org/) for their install.
+
+We hit a run of small friction points bringing HEARTS up on a current Medley; here's the
+setup that makes it painless. Backhistory and root-causes are in
+[../MEDLEY-ISSUES.md](../MEDLEY-ISSUES.md).
+
+**Display backend — use X11, not SDL, for the full experience.** The SDL backend
+(`--maikoprog ldesdl`) renders in a native macOS window with no XQuartz, and the
+mouse-driven game plays fine on it — but on the current build it has **no host clipboard**
+(the `unixcomm` helper is only forked by the X11 kickstarter — see MEDLEY-ISSUES M2) and
+an **incomplete keyboard map** (M8). The default **X11** path (`lde` → `ldex`, needs
+XQuartz) forks the helper and has the mature keyboard map, so clipboard, keys, and SEdit
+all work. Recommended: X11.
+
+1. **Install under a space-free path.** The launcher and `maiko/bin/{osversion,machinetype}`
+   don't quote paths, so a directory with a space (e.g. `~/Documents/MBP Docs/…`) fails with
+   `No such file or directory` / "cannot find the Maiko executable" (MEDLEY-ISSUES M7). Put
+   Medley somewhere like `~/medley-260810`.
+
+2. **Stop XQuartz's startup xterm** (once): XQuartz runs `/opt/X11/bin/xterm` on launch by
+   default; point that at a no-op, then restart XQuartz:
+   ```bash
+   defaults write org.xquartz.X11 app_to_run /usr/bin/true
+   ```
+
+3. **Leave the X server running.** XQuartz doesn't auto-quit when its last client exits, so
+   start it once (`open -a XQuartz`) and leave it. To have it up after every reboot, add
+   XQuartz to **System Settings → General → Login Items**.
+
+4. **Set two env vars once** (in `~/.zshrc`) so launches are turnkey:
+   ```bash
+   export OSTYPE=darwin                         # so the CLIPBOARD lib picks pbpaste (MEDLEY-ISSUES M1)
+   export LDEREMCM="$HOME/il/medley-startup.cm" # a startup command file, auto-run each launch
+   ```
+
+5. **Auto-load libraries at startup** via that command file (`--rem.cm`, run after the sysout
+   is up). Keep it to a single form (older Medley rem.cm reliably runs only the first).
+   `~/il/medley-startup.cm`:
+   ```
+   (FILESLOAD CLIPBOARD)
+   ```
+   Widen it once you've confirmed the files load clean, e.g.:
+   ```
+   (PROGN (FILESLOAD CLIPBOARD ACTIVEREGIONS HEARTS) (SETQ ThinkFlag? T))
+   ```
+
+6. **Launch** (X11; XQuartz already running from step 3):
+   ```bash
+   cd ~/medley-260810/medley && ./medley --apps --interlisp --noscroll
+   ```
+   With steps 4–5 done, this comes up with `CLIPBOARD` (and whatever else) already loaded.
+
+7. **Quit cleanly** — at the Exec:
+   ```
+   (LOGOUT)
+   ```
+   This exits Medley but leaves XQuartz running for next time. If the image is **wedged** and
+   you can't type, kill just Medley from a terminal (the X11 binary is `ldex`):
+   ```bash
+   pkill ldex
+   ```
+
+> **Careful with startup auto-loads:** if a file in the rem.cm *errors* mid-load, you land in
+> a break at startup with the loader's reader-environment still active (so `FILESLOAD` looks
+> undefined — MEDLEY-ISSUES M9). Only auto-load files you've confirmed load cleanly; recover by
+> unwinding the break to top level, or relaunch.
+
+---
+
 ## 2. Loading old source into Medley
 
 Interlisp's unit of code is the **symbolic file** managed by the **File Manager**

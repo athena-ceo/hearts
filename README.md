@@ -59,8 +59,12 @@ The three non-KEE players run end-to-end on [Medley Interlisp](https://interlisp
 (LHearts '(HP CP CP CP))             ; you vs three Conservatives
 ```
 
-See **[dist/README.md](dist/README.md)** for full load & run instructions (and macOS/SDL setup).
-The KEE-based **Expert** player is deferred — KEE is proprietary and gone (see below).
+The two `(FILESLOAD …)`/`(LHearts …)` lines are the same on any platform. See
+**[dist/README.md](dist/README.md)** for full load & run instructions; the install/launch
+mechanics there (and in [medley/MEDLEY-SETUP-NOTES.md](medley/MEDLEY-SETUP-NOTES.md)) are written
+for **macOS** — the platform this revival was done on — with pointers for Linux/Windows via
+[interlisp.org](https://interlisp.org/). The KEE-based **Expert** player is deferred — KEE is
+proprietary and gone (see below).
 
 ## Documents (for the community)
 
