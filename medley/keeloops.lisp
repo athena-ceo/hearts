@@ -43,6 +43,25 @@
 
 (DEFINEQ
 
+(KEE.HoldPages
+  (LAMBDA (Hold?)
+    (* ; "Loading LOOPS prints several screenfuls, and a full Exec window stops for a keypress.  (KEE.HoldPages NIL) turns that off for the Exec window -- via the window's own PAGEFULLFN property, which Medley calls instead of the global PAGEFULLFN -- and (KEE.HoldPages T) puts back whatever was there.  Calls nest (EXPERT wraps KEELOOPS, which wraps LOOPS); only the outermost pair acts.")
+    (LET ((W (AND (TTYDISPLAYSTREAM) (WFROMDS (TTYDISPLAYSTREAM))))
+          Depth)
+         (if W
+             then (SETQ Depth (OR (WINDOWPROP W (QUOTE KEE.PageHoldDepth)) 0))
+                  (if (NOT Hold?)
+                      then (if (ZEROP Depth)
+                               then (WINDOWPROP W (QUOTE KEE.SavedPageFullFn)
+                                           (WINDOWPROP W (QUOTE PAGEFULLFN) (QUOTE NILL))))
+                           (WINDOWPROP W (QUOTE KEE.PageHoldDepth) (ADD1 Depth))
+                    elseif (GREATERP Depth 0)
+                      then (WINDOWPROP W (QUOTE KEE.PageHoldDepth) (SUB1 Depth))
+                           (if (EQ Depth 1)
+                               then (WINDOWPROP W (QUOTE PAGEFULLFN) (WINDOWPROP W (QUOTE KEE.SavedPageFullFn)))
+                                    (WINDOWPROP W (QUOTE KEE.SavedPageFullFn) NIL))))
+         W)))
+
 (KEE.EnsureLOOPS
   (LAMBDA NIL
     (* ; "LOOPS isn't part of the Medley release; it lives at github.com/Interlisp/loops.  If it isn't loaded yet, look for a checkout: $LOOPSDIR, then loops/ beside the medley/ directory (like notecards/), then ~/loops.  LOADLOOPS expects the XCL package.")
@@ -65,6 +84,7 @@
              (GETD (QUOTE DefineClass))))))
 )
 
+(KEE.HoldPages NIL)
 (KEE.EnsureLOOPS)
 
 (RPAQ? KEE.RuleClasses NIL)
@@ -322,10 +342,12 @@
     (KEE.Send Unit Msg ArgList)))
 
 (KEE.DefHandler
-  (LAMBDA (ClassName Msg Fn)
-    (* ; "Install function Fn (whose first argument is the unit) as the handler for Msg on units of LOOPS class ClassName.  LOOPS wants method functions named Class.Selector, so we generate one that calls Fn.")
+  (LAMBDA (ClassName Msg Fn Doc)
+    (* ; "Install function Fn (whose first argument is the unit) as the handler for Msg on units of LOOPS class ClassName.  LOOPS wants method functions named Class.Selector, so we generate one that calls Fn, with Doc as its documentation string.")
     (LET ((Args (CONS (QUOTE self) (CDR (ARGLIST Fn)))))
-         (EVAL (LIST (QUOTE Method) (CONS (LIST ClassName Msg) Args) (CONS Fn Args)))
+         (EVAL (LIST (QUOTE Method) (CONS (LIST ClassName Msg) Args)
+                     (OR Doc (CONCAT "KEE message handler " Msg ": calls " Fn "."))
+                     (CONS Fn Args)))
          Msg)))
 
 (GLOBAL.FLAG.SET
@@ -720,5 +742,7 @@
     (SETQ KEE.RuleErrors NIL)
     (SETQ KEE.Fired NIL)))
 )
+
+(KEE.HoldPages T)
 
 STOP

@@ -27,7 +27,8 @@ them however you like, e.g. `(LHearts '(HP EP CP EP))`.
 The Expert needs one more file: load it with `(FILESLOAD CLIPBOARD ACTIVEREGIONS HEARTS EXPERT)`.
 It also needs **LOOPS** ([github.com/Interlisp/loops](https://github.com/Interlisp/loops)), which
 isn't part of the Medley release: clone it next to your `medley/` directory (as `loops/`, beside
-`notecards/`) and EXPERT loads it for you. An Expert thinks for a second or two per move.
+`notecards/`) and EXPERT loads it for you. On a current Mac the Experts play without a noticeable pause
+(the 1986 Dandelion took about fifteen seconds a move).
 
 Handy options:
 
@@ -89,8 +90,10 @@ The **Score** button just acknowledges ("Score noted") — read the real scores 
 ## Ending & replaying
 
 The game plays hand after hand until someone reaches the losing score; then the lowest score wins.
-To play again, just call `(LHearts …)` again — the previous card table now closes itself
-automatically (older builds stacked a new one on top; see [HEARTS-BUGS.md](HEARTS-BUGS.md) U2).
+`LHearts` then **starts another game with the same players, and keeps doing so** — it never returns
+(each finished game is saved on `H.GameList`). To stop, interrupt it: **Ctrl-E** aborts back to the
+Exec prompt (Ctrl-D resets). Each new game closes the previous card table automatically (older
+builds stacked a new one on top; see [HEARTS-BUGS.md](HEARTS-BUGS.md) U2).
 
 To leave Medley entirely: `(IL:LOGOUT)` at the Exec.
 

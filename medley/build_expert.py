@@ -357,6 +357,18 @@ def check_code(code):
     kind of bracket slip the linter can't see, e.g. EP.UpdateModel's)."""
     forms = read_all(code)
 
+    def comment_in_bindings(f, where):
+        """A (* ...) inside a LET/PROG variable list is a variable named * whose initial value
+        gets evaluated -- how three Dealer.* functions died with 'rao is unbound' (an edit-date
+        comment transcribed one line too low)."""
+        if isinstance(f, list) and f:
+            if f[0] in ("LET", "LET*", "PROG", "PROG*") and len(f) > 1 and isinstance(f[1], list):
+                for b in f[1]:
+                    assert not (isinstance(b, list) and b and b[0] == "*"), \
+                        f"{where}: comment inside a {f[0]} variable list: {emit(b)[:60]}"
+            for x in f:
+                comment_in_bindings(x, where)
+
     def walk(f, where):
         if isinstance(f, list) and f:
             if f[0] in ("LET", "LET*") and len(f) > 1:
@@ -399,6 +411,7 @@ def check_code(code):
                 assert isinstance(d, list) and len(d) == 2 and d[1][0] in ("LAMBDA", "NLAMBDA"), \
                     f"bad DEFINEQ entry {emit(d)[:80]}"
                 names.append(d[0])
+                comment_in_bindings(d[1], d[0])
                 walk(strip_comments(d[1]), d[0])
                 early_close(strip_comments(d[1]), d[0])
     return names
@@ -429,12 +442,17 @@ def build_expert(dev):
              " edit.  Needs LOOPS and HEARTS loaded.\")\n"]
     if dev:
         parts.append(lisp_src("keeloops.lisp"))
+        parts.append("(KEE.HoldPages NIL)\n")   # no page holds while EXPERT loads
     else:
-        parts.append("(FILESLOAD KEELOOPS)\n")
+        # Turn page holds off BEFORE loading KEELOOPS: by then HEARTS may already have filled
+        # the Exec window.  So the dist file carries its own copy of KEE.HoldPages.
+        kl = lisp_src("keeloops.lisp")
+        fn = kl[kl.index("(KEE.HoldPages\n"):kl.index("(KEE.EnsureLOOPS\n")].rstrip()
+        parts.append("(DEFINEQ\n" + fn + "\n)\n(KEE.HoldPages NIL)\n(FILESLOAD KEELOOPS)\n")
     parts += [kb, "\n(* \"---- The 1986 EXPERT.;25 listing (EP.* functions), with revival patches"
                   " K1-K5 --------\")\n", code,
               "\n", build_rules_block(rules), "\n",
-              "(EP.BuildKB)\n", "STOP\n"]
+              "(EP.BuildKB)\n", "(KEE.HoldPages T)\n", "STOP\n"]
     return with_header("EXPERT", "\n".join(parts)), names, rules
 
 

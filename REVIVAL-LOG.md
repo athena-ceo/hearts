@@ -349,7 +349,8 @@ play to completion — 845 Expert plays, every one legal, no rule errors, 69 dis
 including the whole strategy cycle (shoot, notice a shooter, eclipse, `eclipse.success`). The
 overview's Example 1 replays rule for rule: `shoot.test`, then `pass.all.loser.h` (J♥) and
 `pass.lowest.non.s` twice (2♦, 3♣), then `ope.min.is.normal` and `ope.low.pass` on the passer at
-CF .3 each. About two seconds a move — the 1986 Dandelion took fifteen.
+CF .3 each. On a current Mac the Experts play without a noticeable pause — the 1986 Dandelion
+took fifteen seconds a move.
 
 ## Still ahead
 

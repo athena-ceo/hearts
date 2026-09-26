@@ -59,6 +59,11 @@ wrong place that still balances, so the linter can't see it — only runtime doe
   outside the loop and read unbound (balanced, so linter-invisible; runtime-only).
 - `HP.Create` — `[((Name …` had one paren too many, nesting the `LET` binding so the *variable*
   became the list `(Name …)` → "is not a SYMBOL" at runtime (balanced; runtime-only).
+- `Dealer.Remake`, `Dealer.Select`, `Dealer.UnSelect` — each function's right-margin edit-date
+  comment `(* rao "…")` was transcribed one line low, *inside* its `PROG`/`LET` variable list,
+  where it reads as a variable named `*` initialised to `rao` → "rao is an unbound variable" the
+  moment a manual deal (`ManualDeal?` T) opens the dealing window. Found by Harley playing; the
+  build now rejects comments in variable lists (`tests/dealer.lisp` covers the window).
 
 ### Expert Player listings (`kee-expert-player.txt`, `kee-expert-rules.txt`)
 

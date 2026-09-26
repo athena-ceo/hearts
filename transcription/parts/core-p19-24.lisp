@@ -27,8 +27,8 @@
       (REDISPLAYW Win])
 
 (Dealer.Remake
-  [LAMBDA (HWin Cards)
-    (PROG ((ND 0)                                                (* rao "29-Apr-86 02:36")
+  [LAMBDA (HWin Cards)                                         (* rao "29-Apr-86 02:36")
+    (PROG ((ND 0)
            (NC 0)
            (NH 0)
            (NS 0)
@@ -69,8 +69,8 @@
           (RETURN HWin])
 
 (Dealer.Select
-  [LAMBDA (HWin CReg Data)
-    (PROG ((Card (CAR Data))                                     (* rao "29-Apr-86 02:38")
+  [LAMBDA (HWin CReg Data)                                     (* rao "29-Apr-86 02:38")
+    (PROG ((Card (CAR Data))
            (SelectedCards (WINDOWPROP HWin (QUOTE SelectedCards)))
            MaxSelected NumSelected)
 
@@ -88,8 +88,8 @@
                          Card])
 
 (Dealer.UnSelect
-  [LAMBDA (HWin Card)
-    (LET ((PickAR (GETPICKREGION HWin))                          (* rao "10-Apr-86 19:28")
+  [LAMBDA (HWin Card)                                          (* rao "10-Apr-86 19:28")
+    (LET ((PickAR (GETPICKREGION HWin))
           Creg CardBM CardData)
       (for C in (WINDOWPROP HWin (QUOTE CardMap)) do (SETQ CardData C) when (EQUAL (CAR C)
                                                                                    Card))

@@ -329,3 +329,10 @@ if __name__ == "__main__":
     # presence uniquely means the AR *definition* got inlined (dev), absence means it did not.
     assert "\\AR.BUTTONEVENTFN" not in dist_hearts, "dist HEARTS must not inline AR (FILESLOAD instead)"
     assert "\\AR.BUTTONEVENTFN" in dev, "dev HEARTS should inline AR"
+    # Structure checks shared with the Expert build: every DEFINEQ entry a real definition,
+    # LET bindings that look like bindings, no LET closed early, no comment in a variable list.
+    sys.path.insert(0, str(HERE))
+    from build_expert import check_code
+    check_code(dev)
+    check_code(dist_hearts)
+    print("structure checks: OK")
