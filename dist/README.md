@@ -4,11 +4,12 @@ This directory is the loadable distribution of **HEARTS**, an expert-system Hear
 originally written in InterLisp-D + KEE for MIT 6.871 (spring 1986) by Harley Davis and
 Ramana Rao, brought back to life on modern [Medley Interlisp](https://interlisp.org/).
 
-Three player types work today — **Clown** (random legal), **Conservative** (a single fixed
-*minimizing* strategy in Lisp — plays competently but doesn't adapt: no opponent modeling, no
-re-planning), and **Human** (you, clicking cards). The KEE-based **Expert** player is not included
-(KEE is proprietary and gone) — and it's the Expert, not the Conservative, that does the adaptive
-reasoning; see the project root for the revival story and the plan to reimplement it.
+All four player types work — **Clown** (random legal), **Conservative** (a single fixed
+*minimizing* strategy in Lisp — plays competently but doesn't adapt), **Human** (you, clicking
+cards), and the **Expert**: the 1986 KEE expert system, which chooses a strategy (minimize, shoot
+the moon, or "eclipse" a shooter), models each opponent with certainty factors, and re-plans after
+every trick. KEE itself is proprietary and gone; the Expert runs its original code and its 97
+original rules on **KEELOOPS**, a small KEE compatibility layer built on Xerox **LOOPS**.
 
 ## Files
 
@@ -16,6 +17,8 @@ reasoning; see the project root for the revival story and the plan to reimplemen
 |------|------------|
 | `ACTIVEREGIONS` | A standalone lispusers module: clickable/highlightable window regions, driven by the window `BUTTONEVENTFN`. A drop-in stand-in for the 1986 INTERMEZZO library of the same name, which modern Medley no longer ships. Reusable on its own. |
 | `HEARTS` | The game. `(FILESLOAD ACTIVEREGIONS)`s the above, then defines everything else. |
+| `KEELOOPS` | A reusable KEE compatibility layer on LOOPS: KEE units/slots/message handlers as LOOPS objects, plus `QUERY`, a backward-chaining interpreter for KEE's rule language (weights, `THE … OF … IS …` patterns, EMYCIN certainty factors). Loads LOOPS itself if it can find it. |
+| `EXPERT` | The Expert player: the reconstructed KEE knowledge base, the original 1986 `EP.*` code, and the original rules. `(FILESLOAD KEELOOPS)`s the above. Needs `HEARTS`. |
 
 ## Getting started (from scratch)
 
@@ -63,6 +66,22 @@ to that folder (`CONN`, or the File Browser), then load both:
 (Loading details and the connect syntax are in
 [medley/MEDLEY-SETUP-NOTES.md](../medley/MEDLEY-SETUP-NOTES.md) §2.)
 
+**3b. (For the Expert) get LOOPS.** It isn't in the Medley release. Clone
+[Interlisp/loops](https://github.com/Interlisp/loops) next to your `medley/` directory:
+
+```bash
+cd <path-to>/medley_folder && git clone https://github.com/Interlisp/loops
+```
+
+then copy `KEELOOPS` and `EXPERT` beside `HEARTS` and load them too:
+
+```
+(FILESLOAD ACTIVEREGIONS HEARTS EXPERT)
+```
+
+EXPERT finds and loads LOOPS on its own (or set `LOOPSDIR` to your checkout, or load LOOPS first
+yourself). Loading LOOPS prints a page of messages; that's normal.
+
 **4. Deal a hand.** The argument is the four seats, clockwise:
 
 ```
@@ -71,7 +90,7 @@ to that folder (`CONN`, or the File Browser), then load both:
 (LHearts '(CLOWN CLOWN CLOWN CLOWN))
 ```
 
-`HP` = Human, `CP` = Conservative, `CLOWN` = Clown — so the first line is you vs three
+`HP` = Human, `CP` = Conservative, `EP` = Expert, `CLOWN` = Clown (try `(LHearts '(HP EP EP CP))`) — so the first line is you vs three
 Conservatives, the second is four Conservatives playing themselves, the third is four random-legal
 Clowns. You'll be prompted for your name, then your hand window opens. The Conservatives narrate
 their reasoning in "Thoughts of …" windows **by default**; `(SETQ ThinkFlag? NIL)` before starting

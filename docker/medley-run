@@ -1,0 +1,109 @@
+#!/bin/bash
+# medley-run -- evaluate a script of Interlisp forms in a headless Medley.
+#
+#   medley-run [--loops] [--timeout SECS] [--out DIR] [--geometry WxH] SCRIPT
+#   medley-run --shell                       # debugging: a bash shell in the container
+#
+# SCRIPT is a file of Interlisp forms (Interlisp readtable). Each form is echoed to the
+# transcript with its value, or with the error it raised; errors never enter a break.
+# Helpers available to scripts (docker/harness.lisp):
+#   (HT.CHECK label form [expected])   PASS/FAIL line; counted in the summary
+#   (HT.SNAP "name")                   screenshot the virtual display -> OUT/name.png
+#   (HT.LOG x)                         write a line to the transcript
+#   (HT.AUTOPLACE)                     answer window-placement prompts automatically
+#
+# Outputs in OUT (default /hearts/out/medley):  transcript.txt, dribble.txt (everything
+# printed to the Lisp terminal), *.png, and timeout.png if the run hung.
+# Exit status: 0 all good; 1 a FAIL/ERROR line; 2 timeout / Medley never finished.
+set -u
+
+TIMEOUT=300
+OUT=/hearts/out/medley
+LOOPS=NIL
+GEOMETRY=1280x1000
+HARNESS=/usr/local/share/hearts/harness.lisp
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --loops)    LOOPS=T ;;
+    --timeout)  TIMEOUT="$2"; shift ;;
+    --out)      OUT="$2"; shift ;;
+    --geometry) GEOMETRY="$2"; shift ;;
+    --shell)    exec /bin/bash ;;
+    -h|--help)  sed -n '2,19p' "$0"; exit 0 ;;
+    -*)         echo "unknown option $1" >&2; exit 64 ;;
+    *)          break ;;
+  esac
+  shift
+done
+[ $# -eq 1 ] || { sed -n '2,19p' "$0"; exit 64; }
+SCRIPT="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+[ -f "$SCRIPT" ] || { echo "no such script: $1" >&2; exit 64; }
+
+mkdir -p "$OUT"
+OUT="$(cd "$OUT" && pwd)"
+rm -f "$OUT"/transcript.txt* "$OUT"/dribble.txt* "$OUT"/*.png "$OUT"/*.req
+WORK=$(mktemp -d)
+export TERM=dumb HOME="$WORK" HTWORKDIR="{DSK}$WORK/"
+mkdir -p "$HOME/il"
+
+# --- virtual display --------------------------------------------------------
+export DISPLAY=:99
+Xvfb :99 -screen 0 "${GEOMETRY}x24" -nolisten tcp >/dev/null 2>&1 &
+XPID=$!
+for _ in $(seq 1 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done 2>/dev/null
+
+snap() {  # snap NAME -> $OUT/NAME.png
+  xwd -root -silent | xwdtopnm 2>/dev/null | pnmtopng > "$OUT/$1.png" 2>/dev/null
+}
+
+# --- the REM.CM the (XCL) exec runs at startup.  Not -e: the Interlisp-exec option is
+#     itself delivered via REM.CM and would displace ours. ---------------------------
+# Medley honours REM.CM only when it begins with a double quote: the string is stuffed
+# into the exec's type-ahead.  So keep it a quote-free one-liner and pass the real
+# parameters through the environment (read by HT.BOOT).
+export HTHARNESS="{DSK}$HARNESS" HTSCRIPT="{DSK}$SCRIPT" HTOUT="{DSK}$OUT/" HTLOOPS="$LOOPS"
+CM="$WORK/run.cm"
+# (EXEC_INTERLISP) first -- exactly what `medley -e` types -- so everything after it runs in
+# an Interlisp exec, as HEARTS expects (header-less files like HEARTS are read in the exec's
+# environment; in an XCL exec its (* ...) comments would read as CL multiplication).
+printf '"(EXEC_INTERLISP) (LOAD (UNIX-GETENV (QUOTE HTHARNESS))) (HT.BOOT)"\n' > "$CM"
+
+MEDLEY="$MEDLEY_HOME/medley/medley"
+"$MEDLEY" -a -n -i headless -g "$GEOMETRY" -s "$GEOMETRY" -x "$HOME/il" -cm "$CM" \
+    > "$WORK/medley.log" 2>&1 &
+MPID=$!
+
+# --- supervise: service snapshot requests, watch for the end marker, time out --
+status=2
+start=$(date +%s)
+while :; do
+  for req in "$OUT"/*.req; do
+    [ -e "$req" ] || continue
+    name=$(basename "$req" .req); snap "$name"; rm -f "$req"
+  done
+  if grep -q "==HT-END==" "$OUT/transcript.txt" 2>/dev/null; then status=0; break; fi
+  if ! kill -0 $MPID 2>/dev/null; then break; fi
+  if [ $(( $(date +%s) - start )) -ge "$TIMEOUT" ]; then
+    snap timeout
+    echo "!! medley-run: timed out after ${TIMEOUT}s (screen saved as timeout.png)" >&2
+    break
+  fi
+  sleep 0.3
+done
+
+# Let LOGOUT finish, then make sure the VM is gone.
+for _ in $(seq 1 30); do kill -0 $MPID 2>/dev/null || break; sleep 0.3; done
+pkill -f ldex 2>/dev/null; kill $MPID 2>/dev/null; kill $XPID 2>/dev/null
+
+if [ -f "$OUT/transcript.txt" ]; then
+  cat "$OUT/transcript.txt"
+else
+  echo "!! no transcript -- Medley never reached the harness. Launcher log:" >&2
+  cat "$WORK/medley.log" >&2
+fi
+if [ $status -eq 0 ] && grep -qE "^(FAIL |ERROR: |READ-ERROR: )" "$OUT/transcript.txt"; then
+  status=1
+fi
+rm -rf "$WORK"
+exit $status

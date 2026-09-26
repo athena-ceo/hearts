@@ -276,11 +276,85 @@ clipboard, working keyboard, and a structure editor that no longer wedges. Forty
 the beer-driven GOFAI Hearts system runs again — everything except the KEE Expert player, which is
 the one that actually *reasons* adaptively about the game (the reason it was the interesting part).
 
+## Challenge 17 — A Medley you can script: headless Maiko in Docker
+
+Everything so far was verified by a human watching an X11 window. To bring up the Expert we needed
+to *run* Interlisp from a script and read the results back. [docker/](docker/) packages the 260810
+release (Maiko + sysouts) with Xvfb and LOOPS; `tools/medley-headless script.lisp` boots it,
+evaluates each form with errors trapped, writes a transcript, screenshots on request, and exits
+(about a second of overhead). Getting there meant learning how Medley *really* takes input:
+REM.CM is honoured only if it begins with a double quote (it is stuffed into type-ahead); `-e`
+itself works through REM.CM, so ours had to type `(EXEC_INTERLISP)` first; environment variables
+with underscores didn't survive `UNIX-GETENV`; a full exec window stops for a keypress unless
+`PAGEFULLFN` is advised (Medley's own loadups do this); and nothing may ask for a window position,
+so the harness answers `GETBOXREGION` itself. The payoff: whole games, screenshots included, in CI.
+
+## Challenge 18 — Reviewing the first Expert attempt
+
+A previous agent session had written three files (`ep-loops`, `ep-rules`, `ep-glue`) and marked
+Phase 2b "complete" — but they had never been loaded. They could not have been: an invented
+`DEFINECLASS` syntax that is neither LOOPS nor CLOS, `RPAQQ` and comments inside `DEFINEQ` (which
+*defines* them as functions), redefinitions that would have clobbered core HEARTS functions, and
+`H.MakePlayer` still calling KEE. More fundamentally, it hand-translated each rule into a pair of
+Lisp lambdas, which throws away what made them rules: backward chaining (`?Self` is bound by
+unifying the *goal* with the conclusion), side-effecting premises evaluated in order (the pass-out
+rules call `DoPass` inside their premises), and "unstructured facts" proved by other rules
+(`(Poor Spades Protection)`). We set it aside (kept in [attic/expert-first-attempt/](attic/expert-first-attempt/)).
+
+## Challenge 19 — Don't rewrite the rules; bring back enough KEE
+
+The core talks to the Expert only through `UNITMSG` — and its `H.Apply` still has the `Kee`
+branch. So instead of porting 97 rules, we re-provided the slice of KEE they use, on LOOPS:
+**KEELOOPS**. KEE units are LOOPS objects (named, so rules can say `expert.players`); slots are
+instance variables, with a `Cardinality Multiple` IV property for KEE's multi-valued slots;
+message handlers are LOOPS methods (LOOPS insists on `Class.Selector` names, so each is a
+generated wrapper around the original `EP.*` function); certainty factors live in a facet IV and
+combine by the EMYCIN rule. `QUERY` is a small backward chainer written without closures — the
+remaining goals are passed along as data, which gives backtracking through `OR` and multi-valued
+slots for free. The semantics come from the rules themselves and from the 1986 overview: rules by
+descending weight, first answer versus `ALL`, `OR` short-circuits ("only the first is evaluated"),
+an undefined function makes a premise an unstructured fact. The original code and rules then load
+straight from the transcription; the KEE knowledge-base file itself is lost, so the unit classes,
+handler wiring and personality thresholds are reconstructed — several of the thresholds from the
+examples in the 1986 write-up.
+
+The first real test was the pass: `two.d`, then `one.d`, then `highest.non.s.pick`, and — for a
+hand with thin spades — `s.prot?.1` chained to prove `(Poor Spades Protection)` before `pass.hi.s`
+fired. Handed the 2♥ 3♥ that Marcel passed Kant in the overview's Example 2, the Expert rated its
+passer as Shooting with certainty **0.44** — exactly what the paper's narrative implies.
+
+## Challenge 20 — Running code finds what proofreading misses
+
+Loading code for the first time is a proofreading pass of its own. Five agents re-checked all 31
+KEE pages against the scans and fixed ten slips; three more got past them — an unterminated
+string the build's parser tripped on, and two *balanced* slips where a single extra `)` closed a
+`LET` early, so later code ran with its variables unbound (`EP.ComputeStats`, which only a running
+game exposed, and `EP.UpdateModel`). The build now checks for exactly that. Games then turned up
+the authors' own slips — a rule reading `?Clubs` in the diamond case, `Card.Tricks` for
+`Trick.Cards`, a variable bound to a unit and then to a number, per-deal points never reset —
+each fixed as a labelled patch (HEARTS-BUGS §K). Two core bugs fell out too: `Card.MaxCard` ignoring
+its suit argument for the first card (H3), and `dist/ACTIVEREGIONS` lacking a final `STOP`, which
+made a fresh `FILESLOAD` of the game fail (H4). A soak test of back-to-back all-Expert games then caught
+two rarer ones — rules asking whether cards of *different* suits are "equivalent", and asking for
+the equivalents of a played-out suit's (non-existent) winner. Both end in the original code's
+`SHOULDNT`, which in Medley is an unconditional break (not even `NLSETQ` catches it), so the game
+simply froze — as it would have in 1986 (K7, K8). And one rule the paper says "probably should have
+fired" (`slead.non.op.void.loser`, dead in 1986 because `CardList.EliminateSuits` was undefined)
+now does; the example test replays that lead both ways.
+
+## Milestone — the Expert plays again
+
+Headless, on the 260810 release: a four-Expert game and an Expert-versus-three-Conservatives game
+play to completion — 845 Expert plays, every one legal, no rule errors, 69 distinct rules firing,
+including the whole strategy cycle (shoot, notice a shooter, eclipse, `eclipse.success`). The
+overview's Example 1 replays rule for rule: `shoot.test`, then `pass.all.loser.h` (J♥) and
+`pass.lowest.non.s` twice (2♦, 3♣), then `ope.min.is.normal` and `ope.low.pass` on the passer at
+CF .3 each. About two seconds a move — the 1986 Dandelion took fifteen.
+
 ## Still ahead
 
-- **KEE is gone.** IntelliCorp's KEE was proprietary and never open-sourced; the expert player's
-  rules must be reimplemented. The good news: the core couples to KEE at only 4 `UNITMSG` seams, and
-  the ~90 rules survive in the transcription as the spec.
+- *(Done: the KEE Expert — Challenges 17–20.)* Still to do there: play it interactively on the Mac,
+  and tune the reconstructed personality.
 - **Networking is gone.** The Ethernet `EVALSERVER`/PUP/XNS remote-eval layer the four-machine
   game rode on is non-functional in Medley; plan is to collapse to one image with four processes.
 - **Modern ports (Phases 3–4):** a Common Lisp port and a Python port, per `ARCHITECTURE.md`.

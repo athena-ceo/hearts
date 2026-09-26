@@ -1,0 +1,12 @@
+(* "The community load path: connect to a directory holding the dist files and FILESLOAD
+    them (EXPERT pulls in KEELOOPS, which loads LOOPS).  Run WITHOUT --loops.")
+(CNDIR "{DSK}/hearts/dist/")
+(HT.CHECK "FILESLOAD ACTIVEREGIONS HEARTS EXPERT on a fresh image" (NLSETQ (FILESLOAD ACTIVEREGIONS HEARTS EXPERT)))
+(HT.CHECK "KEELOOPS came in via EXPERT" (GETD (QUOTE QUERY)))
+(HT.CHECK "97 rules" (for C in KEE.RuleClasses sum (LENGTH (CDR C))) 97)
+(HT.AUTOPLACE)
+(SETQ ThinkFlag? NIL)
+(SETQ Game.OverScore 20)
+(Hearts (for X in (QUOTE (EP EP CLOWN CP)) collect (H.MakePlayer X NIL)) NIL NIL)
+(HT.CHECK "short game finished" (fetch Winners of H.LastGame))
+(HT.CHECK "no rule errors" (NULL KEE.RuleErrors))

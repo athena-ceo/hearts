@@ -1,0 +1,87 @@
+diff --git a/medley/build-loadfile.py b/medley/build-loadfile.py
+index 53186a4..a3bd0f3 100644
+--- a/medley/build-loadfile.py
++++ b/medley/build-loadfile.py
+@@ -27,6 +27,8 @@ SRC = HERE.parent / "transcription" / "hearts-core.lisp"
+ OUT = HERE / "HEARTS"
+ DIST = HERE.parent / "dist"
+ 
++EP_FILES = ["ep-loops.lisp", "ep-rules.lisp", "ep-glue.lisp"]
++
+ 
+ def load_ar_src():
+     """The ACTIVEREGIONS fns/record, ;;-comments stripped (;; isn't Interlisp syntax)."""
+@@ -34,6 +36,31 @@ def load_ar_src():
+     return "\n".join(l for l in ar_src.split("\n") if not re.match(r"\s*;;", l)).strip()
+ 
+ 
++def load_ep_src():
++    """Load and clean all three Expert Player source files.
++
++    Applies the same mechanical transforms as build():
++      - strip ;; annotation lines
++      - strip #| ... |# transcription notes
++      - convert ← to _
++    Returns a single concatenated string ready to append to the HEARTS text.
++    """
++    parts = []
++    for fname in EP_FILES:
++        raw = (HERE / fname).read_text(encoding="utf-8")
++        # strip #| ... |# blocks
++        raw = re.sub(r"#\|.*?\|#", "", raw, flags=re.DOTALL)
++        # drop ;; annotation lines
++        lines = [ln for ln in raw.split("\n") if not re.match(r"\s*;;", ln)]
++        raw = "\n".join(lines)
++        # convert assignment arrow
++        raw = raw.replace("←", "_")
++        # collapse runs of >2 blank lines
++        raw = re.sub(r"\n{3,}", "\n\n", raw)
++        parts.append(raw.strip())
++    return "\n\n".join(parts)
++
++
+ def build(text, dist=False):
+     # 2. remove #| ... |# (multi-line, non-greedy)
+     text = re.sub(r"#\|.*?\|#", "", text, flags=re.DOTALL)
+@@ -241,6 +268,15 @@ def build(text, dist=False):
+     text = text.replace("←", "_")
+     # collapse runs of >2 blank lines left by stripping
+     text = re.sub(r"\n{3,}", "\n\n", text)
++    # 4. Phase 2b: append the Expert Player LOOPS reimplementation.
++    #    ep-loops.lisp, ep-rules.lisp, ep-glue.lisp are already cleaned above
++    #    (;; stripped, ← converted) by load_ep_src().  We append them verbatim
++    #    after the main HEARTS body so the EP.* definitions are defined before
++    #    the player is instantiated.  The H.MakePlayer EP branch calls EP.Create
++    #    (defined in ep-glue.lisp) and EPMapping (also in ep-glue.lisp), so the
++    #    append order here is load-order: loops first, rules second, glue third.
++    ep_src = load_ep_src()
++    text = text + "\n\n" + ep_src + "\n"
+     return text
+ 
+ 
+@@ -279,11 +315,15 @@ def build_activeregions():
+     return mk(len(mk(0)))  # fill the bytecount with the file's own length
+ 
+ 
+-def _report(name, out):
++def _report(name, out, check_ep=True):
+     print(f"wrote {name}  ({len(out.splitlines())} lines)")
+     assert "←" not in out, f"arrow left in {name}"
+     assert "#|" not in out, f"annotation block left in {name}"
+     assert not any(re.match(r"\s*;;", ln) for ln in out.split("\n")), f";; line left in {name}"
++    if check_ep:
++        # Sanity-check that the Expert Player entry-point landed in the output
++        assert "EP.Create" in out, f"EP.Create missing from {name} — Expert Player not injected?"
++        assert "EPMapping" in out, f"EPMapping missing from {name} — Expert Player dispatch table not injected?"
+ 
+ 
+ if __name__ == "__main__":
+@@ -301,7 +341,7 @@ if __name__ == "__main__":
+     _report(DIST / "HEARTS", dist_hearts)
+     ar = build_activeregions()
+     (DIST / "ACTIVEREGIONS").write_text(ar, encoding="utf-8", newline="\n")
+-    _report(DIST / "ACTIVEREGIONS", ar)
++    _report(DIST / "ACTIVEREGIONS", ar, check_ep=False)
+     assert "FILESLOAD ACTIVEREGIONS" in dist_hearts, "dist HEARTS should FILESLOAD ACTIVEREGIONS"
+     # \AR.BUTTONEVENTFN is our lib's private handler -- HEARTS never calls it, so its
+     # presence uniquely means the AR *definition* got inlined (dev), absence means it did not.

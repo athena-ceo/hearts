@@ -1,0 +1,45 @@
+(* "Play complete games with Expert players on LOOPS/KEELOOPS.  Run with --loops.
+    Checks: every Expert play is one of its legal cards; games finish; no rule raises an
+    error; the rules actually get exercised.")
+(LOAD "{DSK}/hearts/medley/HEARTS")
+(LOAD "{DSK}/hearts/medley/EXPERT")
+(DEFINEQ
+(EPT.CheckPlay (LAMBDA (self Card)
+  (SETQ EPT.Plays (ADD1 EPT.Plays))
+  (if (NOT (CardList.Member Card (GET.VALUE self (QUOTE LegalCards))))
+      then (push EPT.Illegal (LIST (UNIT.NAME self) Card (GET.VALUE self (QUOTE LatestReason)))))
+  Card))
+(EPT.Game (LAMBDA (Config)
+  (LET ((Start (CLOCK 0)) Game)
+    (SETQ KEE.Fired NIL)
+    (Hearts (for X in Config collect (H.MakePlayer X NIL)) NIL NIL)
+    (SETQ Game H.LastGame)
+    (LIST (QUOTE deals) (LENGTH (fetch Deals of Game))
+          (QUOTE score) (fetch Score of Game)
+          (QUOTE seconds) (QUOTIENT (DIFFERENCE (CLOCK 0) Start) 1000)))))
+(EPT.RuleCounts (LAMBDA NIL
+  (LET (Counts)
+    (for R in KEE.Fired do (LET ((E (FASSOC R Counts))) (if E then (RPLACD E (ADD1 (CDR E))) else (push Counts (CONS R 1)))))
+    (SORT Counts (FUNCTION (LAMBDA (A B) (GREATERP (CDR A) (CDR B)))))))))
+)
+(HT.AUTOPLACE)
+(SETQ EPT.Illegal NIL)
+(SETQ EPT.Plays 0)
+(ADVISE (QUOTE EP.Play) (QUOTE AFTER) (QUOTE (EPT.CheckPlay self !VALUE)))
+(SETQ KEE.RuleErrors NIL)
+(SETQ G1 (EPT.Game (QUOTE (EP CP CP CP))))
+(HT.CHECK "EP vs 3 CP: game finished" (fetch Winners of H.LastGame))
+(SETQ G1RULES (EPT.RuleCounts))
+(LENGTH G1RULES)
+(SETQ G2 (EPT.Game (QUOTE (EP EP EP EP))))
+(HT.CHECK "4 EP: game finished" (fetch Winners of H.LastGame))
+(SETQ G2RULES (EPT.RuleCounts))
+(HT.SNAP "expert-game")
+(HT.CHECK "every Expert play was legal" (NULL EPT.Illegal))
+EPT.Illegal
+EPT.Plays
+(HT.CHECK "no rule errors" (NULL KEE.RuleErrors))
+(LENGTH KEE.RuleErrors)
+(for E in KEE.RuleErrors bind Seen unless (MEMBER (CAR E) Seen) collect (PROGN (push Seen (CAR E)) E))
+G1RULES
+G2RULES

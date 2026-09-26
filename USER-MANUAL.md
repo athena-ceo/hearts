@@ -20,8 +20,14 @@ At the Interlisp Exec:
 ```
 
 Seat codes: **`HP`** = you (Human Player), **`CP`** = Conservative (a Lisp player running one fixed *minimizing* strategy — competent but non-adaptive),
-**`CLOWN`** = Clown (plays a random legal card). `EP` (the KEE Expert) is deferred and
-unavailable. Mix them however you like, e.g. `(LHearts '(HP CP CLOWN CP))`.
+**`CLOWN`** = Clown (plays a random legal card), **`EP`** = Expert (the 1986 KEE expert system,
+revived on LOOPS — it picks a strategy, models its opponents, and switches strategy mid-hand). Mix
+them however you like, e.g. `(LHearts '(HP EP CP EP))`.
+
+The Expert needs one more file: load it with `(FILESLOAD CLIPBOARD ACTIVEREGIONS HEARTS EXPERT)`.
+It also needs **LOOPS** ([github.com/Interlisp/loops](https://github.com/Interlisp/loops)), which
+isn't part of the Medley release: clone it next to your `medley/` directory (as `loops/`, beside
+`notecards/`) and EXPERT loads it for you. An Expert thinks for a second or two per move.
 
 Handy options:
 
@@ -29,7 +35,12 @@ Handy options:
   reasoning in "Thoughts of …" windows (great for watching them think, and for screenshots). To
   silence it, `(SETQ ThinkFlag? NIL)` before starting.
 - `(LHearts Config Open? ManualDeal?)` — `Open?` T deals all hands face-up (for kibitzing);
-  `ManualDeal?` T lets you deal by hand. Both default off.
+  `ManualDeal?` T lets you deal by hand. Both default off. With `Open?` T each **Expert** gets a
+  window whose top line narrates its reasoning, as it did in 1986: "My strategy is Shooting",
+  the cards it passes and receives, and a reason for every play ("l2 of Hearts Leading a heart.
+  What the hey." — `l`/`f`/`d` = lead, follow, dump).
+- After a game, `(EP.PrintLastGameReasons 'histories)` writes each Expert's play-by-play reasons
+  to a file named after it; `(SETQ KEE.Trace T)` prints every rule as it fires.
 
 You'll be asked to type your name; a hand window titled **"Hearts Window for _you_"** opens.
 

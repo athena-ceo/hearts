@@ -58,15 +58,15 @@ Rule Class expert.rules
                                       (GET.VALUE ?Self (QUOTE LeftPlayer]
 
                Rule te.go.for.it - Weight is 100
-               (IF [AND (THE CurrentPlayer OF expert.players IS ?Self)
+               (IF [AND (THE CurrentPlayer OF expert.players IS ?self)
                         (OR (THE Strategy OF ?Self IS Eclipsing)
                             (THE Strategy OF ?Self IS Minimizing))
                         (THE history OF ?Self is ?Hist)
                         (EQUAL ?NumWithPoints (UNITMSG ?Hist (QUOTE NumberWithPoints)))
                         (OR (AND (EQUAL 1 ?NumWithPoints)
                                  (GREATERP (GET.VALUE ?Hist (QUOTE MyPoints))
-                                           0)))
-                        (EQUAL ?NumWithPoints 0))
+                                           0))
+                            (EQUAL ?NumWithPoints 0))
                         (EQUAL (FLENGTH (UNITMSG ?Hist (QUOTE SuitsWithCards)))
                                (FLENGTH (UNITMSG ?Hist (QUOTE WinnerSuits]
                    THEN (THE NewStrategy OF ?Self IS Shooting) DO (if (GET.VALUE ?Self (QUOTE
@@ -1006,8 +1006,8 @@ has played a winner, and you can. The height of special case, ridiculous rules t
                                                                             NIL ?Legals)
                                                                    ?WinnerSuits)
                                                                   (Card.Create (QUOTE Q)
-                                                                               (QUOTE S)))]
-                          (UNITMSG ?Self (QUOTE HeartyOpponentVoidSuits))
+                                                                               (QUOTE S)))
+                                             (UNITMSG ?Self (QUOTE HeartyOpponentVoidSuits]
                           (Not.Null ?NonWinners))
                      THEN (THE PlayCard OF ?Self IS (Card.MaxCard ?NonWinners)) DO
                           (PUT.VALUE ?Self (QUOTE LatestReason)
@@ -1113,7 +1113,7 @@ has played a winner, and you can. The height of special case, ridiculous rules t
                           (THE LegalCards OF ?Self IS ?Legals)
                           (THE CurrentTrick OF ?Self IS ?Trick)
                           [EQUAL ?LeadSuit (Card.Suit (CAR (Trick.Cards ?Trick]
-                          [EQUAL ?WinnerCard (Card.MaxCard (Trick.Cards ?Trick)
+                          (EQUAL ?WinnerCard (Card.MaxCard (Trick.Cards ?Trick)
                                                            ?LeadSuit))
                           (EQUAL ?HigherCards (CardList.HigherCards ?Legals ?WinnerCard ?LeadSuit))
                           (Not.Null ?HigherCards)

@@ -209,7 +209,7 @@ Detailed in `overview.md` §4 and `transcription/kee-expert-rules.txt`. Summary 
 - **Composite object:** an `expert.players` unit + a **History** unit (all cards played, per-suit
   high/low, equivalence classes), **three Opponent-Model** units (per opponent: are they shooting?
   which cards/voids are known?), plus **strategy** and **personality** units.
-- **Rules:** ~90 rules in ~16 classes, evaluated by KEE **RuleSystem2 backward chaining**, ordered
+- **Rules:** 97 rules in 16 classes, evaluated by KEE **RuleSystem2 backward chaining**, ordered
   by an explicit `WEIGHT` slot (not premise count). Three top-level families:
   - **Passout rules** — choose the 3 cards to pass (per strategy).
   - **Play rules** — choose a card, split into *lead / follow / dump*.
@@ -220,9 +220,11 @@ Detailed in `overview.md` §4 and `transcription/kee-expert-rules.txt`. Summary 
   suspected shooter). Re-evaluated after the deal, after the pass, and after every trick.
 
 **Revival implication (all phases):** KEE is proprietary and unavailable. The rules in
-`kee-expert-rules.txt` are the *specification* to reimplement — as a small backward-chainer with
-weighted rules + certainty factors (Phase 2/3) or an existing rules engine (Phase 3 LISA / Phase 4
-`experta`). The `EP.*` helpers are already plain Interlisp and largely portable. Crucially, the
+`kee-expert-rules.txt` are the *specification*. Phase 2b (Medley) runs them as written on
+**KEELOOPS** ([medley/keeloops.lisp](medley/keeloops.lisp)): the KEE API subset the Expert uses,
+on LOOPS objects, plus a small backward chainer with weights, unstructured facts and certainty
+factors — its header documents the rule semantics precisely, which is the contract a port's
+engine must honour (Phase 3 LISA / Phase 4 `experta`, or a port of the chainer itself). The `EP.*` helpers are already plain Interlisp and largely portable. Crucially, the
 **core couples to the Expert at only 4 `UNITMSG`/`UNITMSG*` seams** — so Clown/Conservative/Human
 run with no rules engine at all; the Expert can be added later.
 

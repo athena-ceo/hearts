@@ -237,6 +237,23 @@ def build(text, dist=False):
         "(WINDOWPROP HWin (QUOTE HeartsBroken?]",
         "(WINDOWPROP HWin (QUOTE HeartsBroken?))\n"
         "                                                  (WINDOWPROP HWin (QUOTE FirstTrick?]")
+    # 2m. Revival FIX (H3): Card.MaxCard with an InSuit argument seeded `highest` from the
+    #     FIRST card whatever its suit, so (Card.MaxCard '(KH 3S) 'S) returned the KH. Bites
+    #     CardList.HighSpades? on mixed lists (the Expert's dump.hi.s "dump my highest spade"
+    #     played a heart). Start from the first card that is in the suit. See HEARTS-BUGS.md H3.
+    maxcard_fix = (
+        "(* revival FIX H3 -- Card.MaxCard with InSuit started from the first card whatever"
+        " its suit; start from the first card IN the suit)\n"
+        "(DEFINEQ\n"
+        "(Card.MaxCard (LAMBDA (CardList InSuit)\n"
+        "    (LET ((highest NIL))\n"
+        "      (for c in CardList do (if (AND (OR (NOT InSuit) (EQUAL (fetch Suit of c) InSuit))\n"
+        "                                     (OR (NULL highest) (Card.Higher? c highest)))\n"
+        "                                then (SETQ highest c)))\n"
+        "      highest)))\n"
+        ")\n")
+    assert text.count("(PUTPROPS HEARTS COPYRIGHT") == 1
+    text = text.replace("(PUTPROPS HEARTS COPYRIGHT", maxcard_fix + "(PUTPROPS HEARTS COPYRIGHT")
     # 3. arrow -> underscore
     text = text.replace("←", "_")
     # collapse runs of >2 blank lines left by stripping
@@ -269,7 +286,12 @@ def build_activeregions():
         "                          (FNS ACTIVEREGIONS/DEFAULTHIGHLIGHTFN ACTIVEREGIONS/DOLOWLIGHT\n"
         "                               GETPICKREGION SETACTIVEREGIONS \\AR.REGIONUNDER \\AR.BUTTONEVENTFN)))\n\n"
         + ar_src + "\n\n"
-        '(PUTPROPS ACTIVEREGIONS COPYRIGHT ("Harley Davis and Ramana Rao" 2026))\n')
+        '(PUTPROPS ACTIVEREGIONS COPYRIGHT ("Harley Davis and Ramana Rao" 2026))\n'
+        # H4: every Medley source file ends with STOP. Without it LOAD's file-map path (taken
+        # because FILECREATED has a byte count) reads on to EOF and dies with "NIL is not a
+        # NUMBER" (SYNTAXP of NIL in \\LOAD-STREAM) -- so on a fresh image the first load of
+        # ACTIVEREGIONS, and of HEARTS, which FILESLOADs it, failed. See HEARTS-BUGS.md H4.
+        'STOP\n')
     # DEFINE-FILE-INFO keys must be keywords (:PACKAGE), exactly as the real
     # library/CLIPBOARD file writes them -- bare PACKAGE -> "Unrecognized file info key".
     fileinfo = '(DEFINE-FILE-INFO :PACKAGE "INTERLISP" :READTABLE "INTERLISP" :BASE 10)\n\n'

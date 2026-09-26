@@ -1,0 +1,63 @@
+(* "Replay the worked examples from the 1986 overview (transcription/docs/overview.md 4.2)
+    and check the revived Expert reasons the way the paper says it did.  Run with --loops.")
+(LOAD "{DSK}/hearts/medley/HEARTS")
+(LOAD "{DSK}/hearts/medley/EXPERT")
+(DEFINEQ
+(EPT.Cards (LAMBDA (Specs)
+  (* "((C 3 J Q K) (D 2 J) ...) -> list of cards")
+  (for S in Specs join (for V in (CDR S) collect (Card.Create V (CAR S))))))
+(EPT.Fired (LAMBDA (Thunk)
+  (SETQ KEE.Fired NIL) (EVAL Thunk) (REVERSE KEE.Fired)))
+)
+(SETQ KEE.RuleErrors NIL)
+(* "Example 1 -- Dostoevsky's dealt hand: C 3 J Q K, D 2 J Q K A, H J A, S Q A.")
+(SETQ P (H.MakePlayer (QUOTE EP) NIL))
+(SETQ U (fetch Object of P))
+(replace Number of P with 1)
+(H.Apply P (QUOTE GiveHand) (Hand.Create (EPT.Cards (QUOTE ((C 3 J Q K) (D 2 J Q K A) (H J A) (S Q A))))) 1)
+(SETQ F1 (EPT.Fired (QUOTE (SETQ PASSED (H.Apply P (QUOTE PassOut) (QUOTE Left))))))
+(HT.CHECK "Ex1: shoot.test fires -> Shooting" (AND (FMEMB (QUOTE shoot.test) F1) (EQ (GET.VALUE U (QUOTE Strategy)) (QUOTE Shooting))))
+(HT.CHECK "Ex1: pass.all.loser.h passes the JH first" (EQUAL (CAR (REVERSE PASSED)) (Card.Create (QUOTE J) (QUOTE H))))
+(HT.CHECK "Ex1: then pass.lowest.non.s twice: 2D and 3C" (AND (CardList.Member (Card.Create 2 (QUOTE D)) PASSED) (CardList.Member (Card.Create 3 (QUOTE C)) PASSED)))
+(HT.CHECK "Ex1: the rules the paper names, in its order" (for R in (QUOTE (shoot.test pass.all.loser.h pass.lowest.non.s pass.lowest.non.s)) as X in F1 always (EQ R X)))
+F1
+PASSED
+(* "PassIn: the 9 and 8 of clubs and the 8 of diamonds, from the right.")
+(SETQ F2 (EPT.Fired (QUOTE (H.Apply P (QUOTE PassIn) (EPT.Cards (QUOTE ((C 9 8) (D 8))))))))
+(HT.CHECK "Ex1: ope.min.is.normal and ope.low.pass fire on the passer" (AND (FMEMB (QUOTE ope.min.is.normal) F2) (FMEMB (QUOTE ope.low.pass) F2)))
+(HT.CHECK "Ex1: passer's CF(Minimizing) .3" (KEE.CF.Get (GET.VALUE U (QUOTE RightPlayer)) (QUOTE Strategy) (QUOTE Minimizing)) 0.3)
+(HT.CHECK "Ex1: passer's CF(Shooting) .3" (KEE.CF.Get (GET.VALUE U (QUOTE RightPlayer)) (QUOTE Strategy) (QUOTE Shooting)) 0.3)
+(HT.CHECK "Ex1: still Shooting after the pass" (GET.VALUE U (QUOTE Strategy)) (QUOTE Shooting))
+F2
+(* "Play: leading trick 2.  The paper: slead.lowest.winner.except.QS led a winner, and
+    slead.non.op.void.loser -- which 'probably should have fired' -- failed only because
+    CardList.EliminateSuits was undefined at the time.  Replay both ways.")
+(PUT.VALUE U (QUOTE TrickNumber) 1)
+(MOVD (QUOTE CardList.EliminateSuits) (QUOTE EPT.SavedES))
+(PUTD (QUOTE CardList.EliminateSuits) NIL)
+(SETQ F3 (EPT.Fired (QUOTE (SETQ LEAD (H.Apply P (QUOTE Play) (create Trick Cards _ NIL LeadPlayerNum _ 1) NIL NIL)))))
+(* "(The paper's slead.lowest.winner.except.QS fired later in that game, once hearts were broken;
+    at trick 2 this hand's only winner suit is hearts, so a different default leads here.)")
+(HT.CHECK "Ex1 as in 1986 (EliminateSuits undefined): slead.non.op.void.loser fails, play goes on" (AND F3 (NOT (FMEMB (QUOTE slead.non.op.void.loser) F3)) (NOT (Card.Equal? LEAD (CP.Maggie)))))
+LEAD
+(MOVD (QUOTE EPT.SavedES) (QUOTE CardList.EliminateSuits))
+(Hand.AddCard (GET.VALUE U (QUOTE Hand)) LEAD)
+(PUT.VALUE U (QUOTE TrickNumber) 1)
+(SETQ KEE.RuleErrors NIL)
+(SETQ F3B (EPT.Fired (QUOTE (SETQ LEAD (H.Apply P (QUOTE Play) (create Trick Cards _ NIL LeadPlayerNum _ 1) NIL NIL)))))
+(HT.CHECK "Ex1 revived (EliminateSuits supplied): the intended slead.non.op.void.loser fires" (EQUAL F3B (QUOTE (slead.non.op.void.loser))))
+LEAD
+(GET.VALUE U (QUOTE LatestReason))
+(* "Example 2 -- Kant: a shooting hand that receives the 2 and 3 of hearts gives up shooting, and suspects the passer.")
+(SETQ P2 (H.MakePlayer (QUOTE EP) NIL))
+(SETQ U2 (fetch Object of P2))
+(replace Number of P2 with 2)
+(H.Apply P2 (QUOTE GiveHand) (Hand.Create (EPT.Cards (QUOTE ((C 4 J Q K A) (D 3 K A) (H 10 K A) (S K A))))) 2)
+(H.Apply P2 (QUOTE PassOut) (QUOTE Left))
+(GET.VALUE U2 (QUOTE Strategy))
+(SETQ F4 (EPT.Fired (QUOTE (H.Apply P2 (QUOTE PassIn) (EPT.Cards (QUOTE ((H 2 3) (C 5))))))))
+(HT.CHECK "Ex2: gives up shooting after receiving 2H 3H" (GET.VALUE U2 (QUOTE Strategy)) (QUOTE Minimizing))
+(HT.CHECK "Ex2: suspects the passer (CF .44 < TriggerHappiness .5)" (KEE.CF.Get (GET.VALUE U2 (QUOTE RightPlayer)) (QUOTE Strategy) (QUOTE Shooting)) 0.44)
+F4
+(HT.CHECK "no rule errors" (NULL KEE.RuleErrors))
+KEE.RuleErrors

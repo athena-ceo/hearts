@@ -1,0 +1,6 @@
+(* "Run WITHOUT --loops: loading EXPERT must find and load LOOPS by itself.")
+(LOAD "{DSK}/hearts/medley/HEARTS")
+(LOAD "{DSK}/hearts/medley/EXPERT")
+(HT.CHECK "LOOPS was auto-loaded" (GETD (QUOTE DefineClass)))
+(HT.CHECK "connected directory restored" (NOT (STRPOS "loops" (DIRECTORYNAME T))))
+(HT.CHECK "Expert player can be made" (fetch Object of (H.MakePlayer (QUOTE EP) NIL)))

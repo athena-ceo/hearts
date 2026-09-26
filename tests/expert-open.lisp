@@ -1,0 +1,11 @@
+(* "Open-hand game with two Experts: their windows narrate strategy and play reasons.
+    Screenshots out/medley-open/*.png.  Run with --loops.")
+(LOAD "{DSK}/hearts/medley/HEARTS")
+(LOAD "{DSK}/hearts/medley/EXPERT")
+(HT.AUTOPLACE)
+(SETQ ThinkFlag? NIL)
+(SETQ Game.OverScore 25)
+(Hearts (LIST (H.MakePlayer (QUOTE EP) T) (H.MakePlayer (QUOTE CP) T) (H.MakePlayer (QUOTE EP) T) (H.MakePlayer (QUOTE CP) T)) T NIL)
+(HT.CHECK "open-hand game finished" (fetch Winners of H.LastGame))
+(HT.SNAP "expert-open")
+(HT.CHECK "no rule errors" (NULL KEE.RuleErrors))

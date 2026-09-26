@@ -4,19 +4,24 @@ Start-here orientation for anyone (a person or a coding agent) picking this proj
 summarizes **where things stand, how to run and rebuild it, the conventions that keep it sane, what's
 left, and the roadmap.** Details live in the linked docs; this file is the map.
 
-*Written by Claude Code (Anthropic coding agent) with Harley Davis, 2026-08-22.*
+*Written by Claude Code (Anthropic coding agent) with Harley Davis, 2026-08-22; Expert player
+(Phase 2b) and headless test environment added 2026-09-26.*
 
 ---
 
 ## TL;DR
 
-The **entire non-KEE HEARTS system runs, end to end, on current Medley Interlisp** — Clown,
-Conservative, and Human players; dealing, passing, trick play, scoring (moon shots included); a
-clickable hand window; and the Conservatives' thought windows. Confirmed on the **Aug-2026 Medley
-release (260810) over X11** on macOS, with working host clipboard, keyboard, and SEdit.
+The **entire HEARTS system — including the KEE Expert player — runs on current Medley
+Interlisp.** Clown, Conservative and Human players play on the Aug-2026 release (260810) over X11
+on macOS. The **Expert** (Phase 2b) runs its *original* 1986 code and all 97 *original* rules on
+**KEELOOPS**, a small KEE compatibility layer built on Xerox LOOPS; it passes, plays, models its
+opponents with certainty factors, and switches between minimizing, shooting and eclipsing. It is
+verified in the **headless Docker Medley** ([docker/](docker/)): full four-Expert and Expert-vs-
+Conservative games (every play legal, no rule errors), and a replay of the 1986 overview's worked
+examples that reproduces the paper's rule firings and certainty factors. It has not yet been
+played interactively on the Mac.
 
-What's **not** done: the **KEE Expert player** (the adaptive one — KEE is proprietary and gone) and
-the original **Ethernet networking**; both are deferred, with a plan below. Modern Common Lisp and
+What's **not** done: the original **Ethernet networking** (deferred). Modern Common Lisp and
 Python ports are future phases.
 
 See it in action: [docs/hearts-game.png](docs/hearts-game.png).
@@ -36,8 +41,9 @@ See it in action: [docs/hearts-game.png](docs/hearts-game.png).
 | Card artwork (suit pips) | ✅ recovered & rendering ([tools/readbitmap-decode.py](tools/readbitmap-decode.py)) |
 | ACTIVEREGIONS (clickable regions) | ✅ reimplemented ([medley/activeregions.lisp](medley/activeregions.lisp)) |
 | Host clipboard / keyboard / SEdit | ✅ working on **X11** (not SDL — see MEDLEY-ISSUES) |
-| Distribution package | ✅ [dist/](dist/) — `ACTIVEREGIONS` + `HEARTS` + README |
-| **KEE Expert** player | ⛔ deferred (KEE gone; ~90 rules to reimplement) |
+| Distribution package | ✅ [dist/](dist/) — `ACTIVEREGIONS` + `HEARTS` + `KEELOOPS` + `EXPERT` + README (fresh-image `FILESLOAD` fixed: HEARTS-BUGS H4) |
+| **KEE Expert** player | ✅ runs headlessly — original `EP.*` code + 97 original rules on KEELOOPS/LOOPS ([medley/keeloops.lisp](medley/keeloops.lisp), [medley/expert-kb.lisp](medley/expert-kb.lisp)); tests in [tests/](tests/). Not yet tried interactively on the Mac. |
+| Headless test Medley | ✅ [docker/](docker/) + [tools/medley-headless](tools/medley-headless) |
 | Ethernet networking | ⛔ deferred (dead PUP/XNS; collapse to one image) |
 | Modern CL / Python ports | 🔜 planned (Phases 3–4) |
 
@@ -64,6 +70,11 @@ Then, in the Interlisp Exec:
 (LHearts '(HP CP CP CP))
 ```
 
+For the **Expert**, also load `EXPERT` (after HEARTS) — it needs LOOPS, which isn't in the Medley
+release: `git clone https://github.com/Interlisp/loops ~/medley-260810/loops` once, and EXPERT loads
+it itself (or set `LOOPSDIR`). Then e.g. `(LHearts '(HP EP EP CP) T)` — `T` = open hands, so each
+Expert's window narrates its strategy and reasons.
+
 Full setup (XQuartz tuning, leave-X-running, auto-load via `rem.cm`, quit with `(LOGOUT)` /
 `pkill ldex`) is in [medley/MEDLEY-SETUP-NOTES.md](medley/MEDLEY-SETUP-NOTES.md) §1a. How to play is
 in [USER-MANUAL.md](USER-MANUAL.md); first-time-on-Medley steps are in [dist/README.md](dist/README.md).
@@ -82,7 +93,8 @@ source, then rebuild:
 ```bash
 cd ~/Development/hearts
 python3 medley/build-loadfile.py          # writes medley/HEARTS (dev) + dist/HEARTS + dist/ACTIVEREGIONS
-cp dist/HEARTS dist/ACTIVEREGIONS ~/il/    # stage where Medley loads them
+python3 medley/build_expert.py            # writes medley/EXPERT (dev) + dist/EXPERT + dist/KEELOOPS
+cp dist/HEARTS dist/ACTIVEREGIONS dist/KEELOOPS dist/EXPERT ~/il/    # stage where Medley loads them
 ```
 
 Then reload in Medley (`(FILESLOAD ACTIVEREGIONS HEARTS)`), or relaunch.
@@ -99,6 +111,29 @@ Then reload in Medley (`(FILESLOAD ACTIVEREGIONS HEARTS)`), or relaunch.
   super-bracket slips that mask each other).
 
 ---
+- **Expert:** [medley/build_expert.py](medley/build_expert.py) reads the two KEE transcriptions
+  (re-splicing the rules page that was bound into the EXPERT listing), applies revival patches
+  K0–K16, re-emits the rules as `KEE.DEFRULE` data, and checks every definition's structure
+  (including `LET`s closed too early — the class of OCR slip bracket linters can't see).
+  Hand-written sources: [medley/keeloops.lisp](medley/keeloops.lisp) (KEE on LOOPS + the rule
+  interpreter) and [medley/expert-kb.lisp](medley/expert-kb.lisp) (the reconstructed KB).
+
+## How to test (headless Medley in Docker)
+
+```bash
+tools/medley-headless --build                                   # once
+tools/medley-headless tests/smoke.lisp                          # harness self-test
+tools/medley-headless --loops tests/expert-load.lisp            # KB wiring, pass/pass-in
+tools/medley-headless --loops tests/expert-examples.lisp        # the 1986 worked examples
+tools/medley-headless --loops --timeout 1500 tests/expert-game.lisp   # two full games (~12 min)
+tests/run-all.sh                                                # everything, with a summary
+tools/medley-headless --loops --timeout 2700 tests/expert-soak.lisp  # 3 more games, rare-situation hunt
+```
+
+Scripts are Interlisp forms; `HT.CHECK` gives PASS/FAIL lines, `HT.SNAP` screenshots the virtual
+display. Output in `out/medley/`. Details and the Medley automation traps it works around:
+[docker/README.md](docker/README.md).
+
 
 ## Conventions (please keep these)
 
@@ -134,6 +169,11 @@ Then reload in Medley (`(FILESLOAD ACTIVEREGIONS HEARTS)`), or relaunch.
   `H.MakeIcon` desktop icon back.
 
 ---
+- **Play the Expert on the Mac.** Clone LOOPS beside Medley, load EXPERT, and play
+  `(LHearts '(HP EP EP EP) T)`; watch the narration. Only the headless runs have been done.
+- **Tune the reconstructed personality** ([medley/expert-kb.lisp](medley/expert-kb.lisp)) —
+  four values are from the 1986 overview, TriggerHappiness is inferred, the rest are guesses.
+
 
 ## Roadmap
 
@@ -141,13 +181,13 @@ Then reload in Medley (`(FILESLOAD ACTIVEREGIONS HEARTS)`), or relaunch.
 - **Phase 1 — Architecture spec.** ✅ Done ([ARCHITECTURE.md](ARCHITECTURE.md)).
 - **Phase 2 — Medley revival (non-KEE).** ✅ **Done** — Clown, Conservative, Human all play on
   current Medley/X11.
-- **Phase 2b — The KEE Expert player.** The interesting one: it's the player that *adaptively
-  reasons* about the game (models opponents, re-plans) — unlike the fixed-strategy Conservative. KEE
-  itself is gone, but the spec survives: the ~90 production rules in
-  [transcription/kee-expert-rules.txt](transcription/kee-expert-rules.txt) and the Interlisp `EP.*`
-  glue in [transcription/kee-expert-player.txt](transcription/kee-expert-player.txt). The core couples
-  to it at only **4 `UNITMSG` seams** (see ARCHITECTURE §8), so it can be reimplemented as plain Lisp
-  (or a small rules engine) behind those seams without touching the rest.
+- **Phase 2b — The KEE Expert player.** ✅ **Runs** (headless-verified; interactive Mac play still
+  to do). KEE is gone, so instead of re-writing the rules we re-provided the part of KEE they use:
+  **KEELOOPS** maps KEE units/slots/message handlers onto LOOPS objects and interprets the KEE rule
+  language (backward chaining by weight, `THE … OF … IS …` patterns, unstructured facts, EMYCIN
+  certainty factors). The original `EP.*` code and all 97 rules run from the transcription; the lost
+  KB (unit classes, handler wiring, personality thresholds) is reconstructed from the code and the
+  1986 overview. See REVIVAL-LOG Challenges 17–20 and HEARTS-BUGS section K.
 - **Phase 2c — Networking.** The original 4-machine Ethernet design (`EVALSERVER`/PUP/XNS) is dead.
   Plan: collapse to a single image running four processes (Medley multiprocessing already backs the
   in-image multiplayer that works today), or a modern socket transport — optional, and mostly
@@ -171,9 +211,13 @@ USER-MANUAL.md       How to play a hand
 docs/hearts-game.png Screenshot of a game in progress
 original/            The scanned source PDFs (starting assets)
 transcription/       Faithful text recovered from the scans (+ parts/, docs/, KEE files)
-tools/               interlisp-lint.py, interlisp-balance.py, readbitmap-decode.py
-medley/              build-loadfile.py, activeregions.lisp, HEARTS (dev build), MEDLEY-SETUP-NOTES.md
-dist/                Community distribution: ACTIVEREGIONS, HEARTS, README.md
+tools/               interlisp-lint.py, interlisp-balance.py, readbitmap-decode.py, medley-headless
+medley/              build-loadfile.py, activeregions.lisp, HEARTS (dev build), MEDLEY-SETUP-NOTES.md,
+                     build_expert.py, keeloops.lisp, expert-kb.lisp, EXPERT (dev build)
+dist/                Community distribution: ACTIVEREGIONS, HEARTS, KEELOOPS, EXPERT, README.md
+docker/              Headless Medley (Maiko + Xvfb + LOOPS) for scripted tests
+tests/               Headless test scripts (tools/medley-headless ...)
+attic/               Superseded work kept for the record (the first Expert attempt)
 modern-lisp/         Phase 3 (planned)
 python/              Phase 4 (planned)
 ```

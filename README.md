@@ -22,8 +22,13 @@
 **Update — the answer to the first question turned out to be: yes.** The ~40 pages were scanned
 and transcribed, and the full non-KEE system — the Administrator, the game/GUI, and the Clown,
 Conservative, and Human players — now runs on modern [Medley Interlisp](https://interlisp.org/):
-you can deal and play a hand today (see **[Play it today](#play-it-today-medley-non-kee)**). The
-KEE-based Expert player remains deferred — KEE is proprietary and, as far as we've found, gone.
+you can deal and play a hand today (see **[Play it today](#play-it-today)**).
+
+**And the second question:** KEE itself seems to be gone — but the Expert player is back anyway.
+Rather than rewrite its rules, we rebuilt the slice of KEE they use on top of Xerox **LOOPS**
+(which *has* survived), so the original 1986 Expert code and all 97 original rules run unchanged:
+it chooses to minimize or shoot the moon, models each opponent with certainty factors, and turns to
+"eclipsing" when it thinks someone else is shooting.
 
 I was inspired by the [InterLisp revival project](https://interlisp.org/) to start this project.
 Thanks to Larry Masinter, Paolo Amoroso, Herb Jellinek, and the other dedicated old geezers for
@@ -65,28 +70,31 @@ Most of the rest will be written by coding harnesses.   For coding harnesses who
 
 ---
 
-## Play it today (Medley, non-KEE)
+## Play it today
 
 ![A human game in progress on current Medley: the card table (center) with scores, Harley's hand
 mid-pass (top right), and three Conservative players narrating their strategy in "Thoughts of …"
 windows.](docs/hearts-game.png)
 
-The three non-KEE players run end-to-end on [Medley Interlisp](https://interlisp.org/):
-**Clown** (random legal), **Conservative** (a single fixed *minimizing* strategy written in
-Lisp — competent but non-adaptive: no opponent modeling, no re-planning — narrating its play),
-and **Human** (you, clicking cards). The loadable package lives in [`dist/`](dist/):
+All four player types run on [Medley Interlisp](https://interlisp.org/): **Clown** (random
+legal), **Conservative** (a single fixed *minimizing* strategy written in Lisp — competent but
+non-adaptive — narrating its play), **Human** (you, clicking cards), and the **Expert** (the 1986
+KEE expert system, on LOOPS). The loadable package lives in [`dist/`](dist/):
 
 ```
 (FILESLOAD ACTIVEREGIONS HEARTS)     ; load the game + its clickable-regions library
 (LHearts '(HP CP CP CP))             ; you vs three Conservatives
+
+(FILESLOAD EXPERT)                   ; the Expert (needs LOOPS -- see dist/README.md)
+(LHearts '(HP EP EP CP) T)           ; T = open hands: the Experts narrate their reasoning
 ```
 
 The two `(FILESLOAD …)`/`(LHearts …)` lines are the same on any platform. See
 **[dist/README.md](dist/README.md)** for full load & run instructions; the install/launch
 mechanics there (and in [medley/MEDLEY-SETUP-NOTES.md](medley/MEDLEY-SETUP-NOTES.md)) are written
 for **macOS** — the platform this revival was done on — with pointers for Linux/Windows via
-[interlisp.org](https://interlisp.org/). The KEE-based **Expert** player is deferred — KEE is
-proprietary and gone (see below).
+[interlisp.org](https://interlisp.org/). The Expert needs [LOOPS](https://github.com/Interlisp/loops),
+which is a separate download from the Medley release.
 
 ## Documents (for the community)
 
@@ -117,11 +125,13 @@ original/        The scanned source PDFs (the starting assets).
 transcription/   Text/source recovered from the scans.
   hearts-core.lisp        InterLisp-D core (Administrator, Clown, Conservative, Human, UI, net).
   kee-expert-player.txt   Expert Player — mostly Interlisp EP.* source (+ a spliced rules page).
-  kee-expert-rules.txt    Expert Player — the KEE production rules (the spec to reimplement).
+  kee-expert-rules.txt    Expert Player — the KEE production rules (run as-is by KEELOOPS).
   docs/                   The prose documents, transcribed to Markdown
                           (overview.md, harley-report.md, ramana-report.md).
   parts/                  Per-page-range transcription chunks (pre-assembly).
   TRANSCRIPTION-NOTES.md  Conventions (fidelity-first; `←` = ASCII `_` for Medley).
+docker/          Headless Medley (Maiko + Xvfb + LOOPS) for scripted tests; see docker/README.md.
+tests/           Headless test scripts, run with tools/medley-headless.
 tools/           Reusable InterLisp-D revival utilities (not HEARTS-specific):
   interlisp-lint.py       Super-bracket-aware linter; checks each top-level form separately.
   interlisp-balance.py    Whole-file bracket balance checker (build sanity check).
@@ -129,6 +139,9 @@ tools/           Reusable InterLisp-D revival utilities (not HEARTS-specific):
 medley/          Phase 2 — running the core on the Medley Interlisp emulator (interlisp.org).
   build-loadfile.py       Builds the loadable HEARTS (dev + dist) from the master transcription.
   activeregions.lisp      Our reimplementation of the lost 1986 ACTIVEREGIONS library.
+  keeloops.lisp           KEE compatibility layer on LOOPS + a KEE rule interpreter (reusable).
+  expert-kb.lisp          The Expert's lost KEE knowledge base, reconstructed.
+  build_expert.py         Builds EXPERT (and KEELOOPS) from the KEE transcriptions.
   HEARTS                  Generated self-contained dev build (played from ~/il).
   MEDLEY-SETUP-NOTES.md   Install/loading notes, and what breaks (networking, KEE).
 dist/            The community distribution — load these two files in Medley:
@@ -155,6 +168,8 @@ python/          Phase 4 — a Python port for distribution (planned).
   windows. Confirmed running on the **current Medley release (260810) over X11**, with the host
   **clipboard working**. Revival patches and rediscovered original bugs are logged in
   [HEARTS-BUGS.md](HEARTS-BUGS.md); Medley-side gotchas in [MEDLEY-ISSUES.md](MEDLEY-ISSUES.md).
-  **Remaining:** the KEE Expert player (deferred), the original Ethernet networking (deferred —
-  collapse to one image), and minor window-cleanup polish.
+  **Phase 2b — the KEE Expert — runs** (headless-verified): its original code and 97 original rules
+  on KEELOOPS, a KEE compatibility layer on LOOPS ([REVIVAL-LOG.md](REVIVAL-LOG.md) Challenges
+  17–20). **Remaining:** interactive play of the Expert on the Mac, the original Ethernet
+  networking (deferred — collapse to one image), and minor window-cleanup polish.
 - **Phases 3–4 (modern Lisp / Python ports) — planned.**

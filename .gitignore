@@ -2,3 +2,5 @@
 medley/.install/
 medley/*.log
 medley/*.png
+out/
+__pycache__/

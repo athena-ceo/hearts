@@ -1,0 +1,19 @@
+#!/bin/bash
+# Host-side wrapper for the headless Medley container (docker/).
+#
+#   tools/medley-headless [--build] [medley-run options] SCRIPT
+#
+# Mounts this repo at /hearts, so SCRIPT (and anything it LOADs) is addressed by its
+# repo-relative path, e.g.  tools/medley-headless --loops tests/ep-smoke.lisp
+# Results land in out/medley/ (transcript.txt, dribble.txt, *.png).
+set -eu
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+IMAGE=hearts-medley
+if [ "${1:-}" = "--build" ]; then
+  shift
+  docker build -t "$IMAGE" "$ROOT/docker"
+  [ $# -gt 0 ] || exit 0
+fi
+docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -t "$IMAGE" "$ROOT/docker"
+TTY=(); [ -t 0 ] && TTY=(-it)
+exec docker run --rm ${TTY[@]+"${TTY[@]}"} -v "$ROOT:/hearts" -w /hearts "$IMAGE" "$@"

@@ -2858,5 +2858,14 @@
                                  320))
       (REDISPLAYW HWin))))
 )
+(* revival FIX H3 -- Card.MaxCard with InSuit started from the first card whatever its suit; start from the first card IN the suit)
+(DEFINEQ
+(Card.MaxCard (LAMBDA (CardList InSuit)
+    (LET ((highest NIL))
+      (for c in CardList do (if (AND (OR (NOT InSuit) (EQUAL (fetch Suit of c) InSuit))
+                                     (OR (NULL highest) (Card.Higher? c highest)))
+                                then (SETQ highest c)))
+      highest)))
+)
 (PUTPROPS HEARTS COPYRIGHT ("Harley Davis and Ramana Rao" 1986))
 STOP

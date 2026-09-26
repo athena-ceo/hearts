@@ -25,7 +25,7 @@
              EP.HeartyOpponentVoidSuits EP.HighestEquivalent EP.LastCardPlayed EP.Losers
              EP.LowestEquivalent EP.OpInit EP.UpdateModel EP.WinnerSuit? EP.WinnerSuits EP.Winners
              EP.FewestWinners EP.GetLoser EP.GetOpponent EP.GetWinner EP.GiveHand EP.Init EP.MinPass
-             EP.MinPlay EP.NonWinners EP.NumbrWithPoints EP.PassIn EP.PassOut EP.Play
+             EP.MinPlay EP.NonWinners EP.NumberWithPoints EP.PassIn EP.PassOut EP.Play
              EP.PrintLastGameReasons EP.PrintReasons EP.Results EP.ShootPass EP.ShootPlay
              EP.SuitsWithCards EP.Test EP.Trick KillExperts)))
 
@@ -74,7 +74,7 @@
                                        (QUOTE ClubsPlayed))
                                      NIL)
                           Card))
-      (UNITMSG self (QUOTE ComputeWinnersAndLosers)))
+      (UNITMSG self (QUOTE ComputeWinnersAndLosers))
 
           (* * Scoring)
 
@@ -109,7 +109,7 @@
             (PUT.VALUE self LoserSlot (Card.MinCard CardsLeft])
 
 (EP.Create
-  [LAMBDA (self Open?)                                          (* hed "4-May-86 16:38")
+  [LAMBDA (self Open?)                                          (* hed " 4-May-86 16:38")
     (LET ([PlayerName (GENSYM (CAR (FNTH ExpertNames (RAND 1 (FLENGTH ExpertNames]
           PlayerUnit HistUnit NewPlayer)
 
@@ -124,7 +124,7 @@
 
       (if Open?
           then (PUT.VALUE PlayerUnit (QUOTE HandWindow)
-                          (Open.CreateWindow PlayerName "%"expert%""")))
+                          (Open.CreateWindow PlayerName "%"expert%"")))
 
           (* * Create and set up history unit.)
 
@@ -173,10 +173,10 @@
 
 (EP.DoPass
   [LAMBDA (Self PCards)                                         (* hed "30-Apr-86 20:59")
-    (LET* ((CurrentPassCards (GET.VALUE Self (QUOTE PassCards)))
-           [NewNPC (PLUS (FLENGTH PCards))
-                   (GET.VALUE Self (QUOTE NumberOfPassCards)]
-           (PCards (for PC in PCards collect PC unless (CardList.Member PC CurrentPassCards)))
+    (LET* [(CurrentPassCards (GET.VALUE Self (QUOTE PassCards)))
+           [NewNPC (PLUS (FLENGTH PCards)
+                         (GET.VALUE Self (QUOTE NumberOfPassCards]
+           (PCards (for PC in PCards collect PC unless (CardList.Member PC CurrentPassCards]
       (if (OR (NULL PCards)
               (GREATERP NewNPC 3))
           then NIL
@@ -234,7 +234,7 @@
       else (SHOULDNT (CONCAT "EP.Equivalent: Cards " Card1 " and " Card2 " not of same suit."])
 
 (EP.EquivalentCards
-  [LAMBDA (Self Card LimitingCards)                             (* hed "3-May-86 15.06")
+  [LAMBDA (Self Card LimitingCards)                             (* hed " 3-May-86 15:06")
     (for c in (OR LimitingCards (Hand.CardsInSuit (GET.VALUE (GET.VALUE Self (QUOTE Player))
 
 
@@ -281,7 +281,7 @@
     (CAR (GET.VALUES self (QUOTE PlayedCards])
 
 (EP.Losers
-  [LAMBDA (self suit cardlist)                                  (* hed "3-May-86 13:49")
+  [LAMBDA (self suit cardlist)                                  (* hed " 3-May-86 13:49")
     (if suit
         then (for card in (if cardlist
                               then (CardList.CardsOfSuit cardlist suit)
@@ -315,7 +315,7 @@
 
 (EP.UpdateModel
   [LAMBDA (Self Trick)                                          (* hed "30-Apr-86 20:25")
-    (LET ((MyNumber (GET.VALUE Self (QUOTE PlayerNum))))
+    (LET ((MyNumber (GET.VALUE Self (QUOTE PlayerNum)))
 
 
 === page 5 ===
@@ -372,9 +372,9 @@
                             suit))
           (CardsLeft (CardList.CardsOfSuit (GET.VALUES self (QUOTE CardsLeft))
                                            suit))
-          (HandCards (Hand.CardsInSuit (GET.VALUE self (QUOTE Player))
-                                       (QUOTE Hand))
-                                 suit)))
+          (HandCards (Hand.CardsInSuit (GET.VALUE (GET.VALUE self (QUOTE Player))
+                                                  (QUOTE Hand))
+                                       suit)))
       (OR (EQP 0 (FLENGTH (UNITMSG self (QUOTE NonWinners)
                                    suit)))
           (GREATERP (FLENGTH Winners)
@@ -574,7 +574,7 @@
                                               card
                                               (UNITMSG self (QUOTE GetWinner)
                                                        suit)))
-      else (for card in (OR cardlist (Hand.Cards (GET.VALUE (GET.VALUE self (QUOTE Player))
+      else (for card in [OR cardlist (Hand.Cards (GET.VALUE (GET.VALUE self (QUOTE Player))
                                                             (QUOTE Hand]
                  collect card unless (UNITMSG self (QUOTE Equivalent?)
                                               card
@@ -624,9 +624,9 @@
                         (QUOTE Elsewhere)))
       [if HWin
           then (Open.RemakeWindow HWin Hand)
-               (Open.Print HWin (CONCAT "Receiving; " (for pi in PassIn collect (Card.PrintCard
+               (Open.Print HWin (CONCAT "Receiving: " (for pi in PassIn collect (Card.PrintCard
                                                                                  pi]
-      #| ?? "Receiving;" — punctuation after Receiving reads as semicolon; cf. "Passing: " on page 11 |#
+      #| ?? "Receiving:" — lower dot is slightly elongated but sits on the baseline with no descender at 600 DPI, so read as colon (cf. "Passing: " on page 11) |#
 
         (* * Guess at passer's strategy based on pass)
 
@@ -929,7 +929,7 @@ Rule one.choice - Weight is 1000
 
 (EP.ShootPlay
   [LAMBDA (self Player Trick HeartsBroken? FirstTrick?) (* hed " 4-May-86 17:43")
-    (LET [(PlayMode (GET.VALUE Player (QUOTE PlayMode)))
+    (LET [(PlayMode (GET.VALUE Player (QUOTE PlayMode]
       (REMOVE.ALL.LOCAL.VALUES self (QUOTE WeakestSuit))
       (QUERY (LIST (QUOTE THE)
                    (QUOTE PlayCard)
@@ -1009,7 +1009,7 @@ Rule one.choice - Weight is 1000
              1
              (QUOTE trick.evaluation))
       (PUT.VALUE self (QUOTE Strategy)
-                 (GET.VALUE self (QUOTE NewStrategy]
+                 (GET.VALUE self (QUOTE NewStrategy])
 
 (KillExperts
   [LAMBDA NIL                                           (* hed "30-Apr-86 05:46")
