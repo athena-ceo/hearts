@@ -11,7 +11,27 @@ the losing threshold the game ends and the **lowest** total score wins. Each tri
 plays one card of the led suit if they can; highest card of the led suit takes the trick (and its
 points) and leads the next.
 
-## Starting a game
+## Starting a game — the easy way: `PlayHearts`
+
+```
+(FILESLOAD PLAYHEARTS)
+(PlayHearts)
+```
+
+`PlayHearts` asks, with pop-up menus, who sits in each of the four seats (you, an Expert, a
+Conservative or a Clown), whether to play with open hands, whether to deal by hand, and — if there
+are Conservatives — whether to show their thoughts; a human is asked for a name in the prompt window.
+Then the card table opens with a **menu bar: Start Game · Setup… · Exit**. Nothing happens until
+you choose **Start Game**; the game runs in its own process, so the Exec stays free. When it ends,
+the winner is announced in the prompt window and you can **Start Game** again (a fresh table, same
+players, same place), **Setup…** to change players, or **Exit** — which stops a game in progress
+and closes every Hearts window. Closing the card table does the same.
+
+You can skip the questions: `(PlayHearts '(HP EP EP CP) T)` — players, then open hands, then
+manual deal, as for `LHearts`. `PLAYHEARTS` loads HEARTS if needed, and EXPERT when you choose an
+Expert. It is a 2026 addition; the 1986 entry point, `LHearts`, is described next.
+
+## Starting a game — the 1986 way: `LHearts`
 
 At the Interlisp Exec:
 

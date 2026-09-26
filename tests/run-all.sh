@@ -16,6 +16,7 @@ run expert-dist     --timeout 1200          tests/expert-dist.lisp &
 run expert-open     --loops --timeout 900   tests/expert-open.lisp &
 run expert-pagehold --timeout 600           tests/expert-pagehold.lisp &
 run dealer                                  tests/dealer.lisp &
+run playhearts      --loops --timeout 900   tests/playhearts.lisp &
 wait
 run expert-game     --loops --timeout 1800  tests/expert-game.lisp   # alone: it needs the CPU
 wait

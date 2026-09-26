@@ -89,6 +89,9 @@ KEE expert system, on LOOPS). The loadable package lives in [`dist/`](dist/):
 (LHearts '(HP EP EP CP) T)           ; T = open hands: the Experts narrate their reasoning
 ```
 
+Or let a small 2026 front end ask who plays and give the table a Start Game / Setup / Exit menu bar:
+`(FILESLOAD PLAYHEARTS)` then `(PlayHearts)`.
+
 The two `(FILESLOAD …)`/`(LHearts …)` lines are the same on any platform. See
 **[dist/README.md](dist/README.md)** for full load & run instructions; the install/launch
 mechanics there (and in [medley/MEDLEY-SETUP-NOTES.md](medley/MEDLEY-SETUP-NOTES.md)) are written

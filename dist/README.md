@@ -18,6 +18,7 @@ original rules on **KEELOOPS**, a small KEE compatibility layer built on Xerox *
 | `ACTIVEREGIONS` | A standalone lispusers module: clickable/highlightable window regions, driven by the window `BUTTONEVENTFN`. A drop-in stand-in for the 1986 INTERMEZZO library of the same name, which modern Medley no longer ships. Reusable on its own. |
 | `HEARTS` | The game. `(FILESLOAD ACTIVEREGIONS)`s the above, then defines everything else. |
 | `KEELOOPS` | A reusable KEE compatibility layer on LOOPS: KEE units/slots/message handlers as LOOPS objects, plus `QUERY`, a backward-chaining interpreter for KEE's rule language (weights, `THE … OF … IS …` patterns, EMYCIN certainty factors). Loads LOOPS itself if it can find it. |
+| `PLAYHEARTS` | A 2026 front door: `(PlayHearts)` asks for the players and options with menus, then puts a **Start Game · Setup… · Exit** menu bar on the card table; games run in their own process and Exit closes every Hearts window. Loads HEARTS (and EXPERT, if needed) itself. The 1986 `LHearts` is unchanged. |
 | `EXPERT` | The Expert player: the reconstructed KEE knowledge base, the original 1986 `EP.*` code, and the original rules. `(FILESLOAD KEELOOPS)`s the above. Needs `HEARTS`. |
 
 ## Getting started (from scratch)
@@ -82,7 +83,18 @@ then copy `KEELOOPS` and `EXPERT` beside `HEARTS` and load them too:
 EXPERT finds and loads LOOPS on its own (or set `LOOPSDIR` to your checkout, or load LOOPS first
 yourself). Loading LOOPS prints a page of messages; that's normal.
 
-**4. Deal a hand.** The argument is the four seats, clockwise:
+**4. Play.** The simplest way is the menu-driven front door:
+
+```
+(FILESLOAD PLAYHEARTS)
+(PlayHearts)
+```
+
+It asks who plays and how, then opens the card table with **Start Game · Setup… · Exit**. Or deal
+directly with the 1986 entry point, as below (it plays game after game until you interrupt it
+with Ctrl-E).
+
+**4b. Deal a hand the 1986 way.** The argument is the four seats, clockwise:
 
 ```
 (LHearts '(HP CP CP CP))

@@ -336,3 +336,10 @@ if __name__ == "__main__":
     check_code(dev)
     check_code(dist_hearts)
     print("structure checks: OK")
+    # PLAYHEARTS: the modern menu-driven front door (medley/playhearts.lisp) -- a separate
+    # module so the 1986 system stays as it was.  (FILESLOAD PLAYHEARTS) then (PlayHearts).
+    from build_expert import with_header, lisp_src
+    ph = with_header("PLAYHEARTS", lisp_src("playhearts.lisp") + "\nSTOP\n")
+    check_code(ph)
+    (DIST / "PLAYHEARTS").write_text(ph, encoding="utf-8", newline="\n")
+    print(f"wrote {DIST / 'PLAYHEARTS'}  ({len(ph.splitlines())} lines)")

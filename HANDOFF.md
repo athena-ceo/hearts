@@ -75,6 +75,12 @@ release: `git clone https://github.com/Interlisp/loops ~/medley-260810/loops` on
 it itself (or set `LOOPSDIR`). Then e.g. `(LHearts '(HP EP EP CP) T)` — `T` = open hands, so each
 Expert's window narrates its strategy and reasons.
 
+The friendlier front door is **`(FILESLOAD PLAYHEARTS)` then `(PlayHearts)`**
+([medley/playhearts.lisp](medley/playhearts.lisp), built into `dist/PLAYHEARTS`): menus for the
+players and options, a Start Game / Setup… / Exit menu bar on the card table, games in their own
+process, and Exit closes every Hearts window. It only adds `PH.*` functions — the 1986 `LHearts`
+(which starts at once and loops until Ctrl-E) is untouched.
+
 Full setup (XQuartz tuning, leave-X-running, auto-load via `rem.cm`, quit with `(LOGOUT)` /
 `pkill ldex`) is in [medley/MEDLEY-SETUP-NOTES.md](medley/MEDLEY-SETUP-NOTES.md) §1a. How to play is
 in [USER-MANUAL.md](USER-MANUAL.md); first-time-on-Medley steps are in [dist/README.md](dist/README.md).
@@ -125,6 +131,7 @@ tools/medley-headless --build                                   # once
 tools/medley-headless tests/smoke.lisp                          # harness self-test
 tools/medley-headless --loops tests/expert-load.lisp            # KB wiring, pass/pass-in
 tools/medley-headless --loops tests/expert-examples.lisp        # the 1986 worked examples
+tools/medley-headless --loops tests/playhearts.lisp             # the PlayHearts front end
 tools/medley-headless --loops --timeout 1500 tests/expert-game.lisp   # two full games (~12 min)
 tests/run-all.sh                                                # everything, with a summary
 tools/medley-headless --loops --timeout 2700 tests/expert-soak.lisp  # 3 more games, rare-situation hunt
@@ -213,8 +220,8 @@ original/            The scanned source PDFs (starting assets)
 transcription/       Faithful text recovered from the scans (+ parts/, docs/, KEE files)
 tools/               interlisp-lint.py, interlisp-balance.py, readbitmap-decode.py, medley-headless
 medley/              build-loadfile.py, activeregions.lisp, HEARTS (dev build), MEDLEY-SETUP-NOTES.md,
-                     build_expert.py, keeloops.lisp, expert-kb.lisp, EXPERT (dev build)
-dist/                Community distribution: ACTIVEREGIONS, HEARTS, KEELOOPS, EXPERT, README.md
+                     build_expert.py, keeloops.lisp, expert-kb.lisp, EXPERT (dev build), playhearts.lisp
+dist/                Community distribution: ACTIVEREGIONS, HEARTS, KEELOOPS, EXPERT, PLAYHEARTS, README.md
 docker/              Headless Medley (Maiko + Xvfb + LOOPS) for scripted tests
 tests/               Headless test scripts (tools/medley-headless ...)
 attic/               Superseded work kept for the record (the first Expert attempt)
