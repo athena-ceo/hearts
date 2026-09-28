@@ -18,7 +18,7 @@ original rules on **KEELOOPS**, a small KEE compatibility layer built on Xerox *
 | `ACTIVEREGIONS` | A standalone lispusers module: clickable/highlightable window regions, driven by the window `BUTTONEVENTFN`. A drop-in stand-in for the 1986 INTERMEZZO library of the same name, which modern Medley no longer ships. Reusable on its own. |
 | `HEARTS` | The game. `(FILESLOAD ACTIVEREGIONS)`s the above, then defines everything else. |
 | `KEELOOPS` | A reusable KEE compatibility layer on LOOPS: KEE units/slots/message handlers as LOOPS objects, plus `QUERY`, a backward-chaining interpreter for KEE's rule language (weights, `THE … OF … IS …` patterns, EMYCIN certainty factors). Loads LOOPS itself if it can find it. |
-| `PLAYHEARTS` | A 2026 front door: `(PlayHearts)` asks for the players and options with menus, then puts a **Start Game · Setup… · Exit** menu bar on the card table; games run in their own process and Exit closes every Hearts window. Loads HEARTS (and EXPERT, if needed) itself. The 1986 `LHearts` is unchanged. |
+| `PLAYHEARTS` | A 2026 front door: `(PlayHearts)` asks for the players and options with menus, then puts a **Start Game · Setup… · Exit** menu bar on the card table; games run in their own process, closed-hand Experts narrate in their own Thoughts windows, and Exit closes every Hearts window. Loads HEARTS (and EXPERT, if needed) itself. The 1986 `LHearts` is unchanged. |
 | `EXPERT` | The Expert player: the reconstructed KEE knowledge base, the original 1986 `EP.*` code, and the original rules. `(FILESLOAD KEELOOPS)`s the above. Needs `HEARTS`. |
 
 ## Getting started (from scratch)

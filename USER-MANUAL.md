@@ -20,7 +20,12 @@ points) and leads the next.
 
 `PlayHearts` asks, with pop-up menus, who sits in each of the four seats (you, an Expert, a
 Conservative or a Clown), whether to play with open hands, whether to deal by hand, and — if there
-are Conservatives — whether to show their thoughts; a human is asked for a name in the prompt window.
+are Conservatives or Experts — whether to show their thoughts; a human is asked for a name in the
+prompt window. With hands closed, each Expert then gets its own **"Thoughts of …" window** (like
+the Conservatives'), where it narrates in its own 1986 words without showing its cards: its
+strategy ("My strategy is Shooting", "New strategy is: Minimizing"), the cards it passes and
+receives, a reason for every play ("l2 of Hearts Leading a heart. What the hey." — `l`/`f`/`d` =
+lead, follow, dump), and its hunches ("I think the player to my right is shooting.").
 Then the card table opens with a **menu bar: Start Game · Setup… · Exit**. Nothing happens until
 you choose **Start Game**; the game runs in its own process, so the Exec stays free. When it ends,
 the winner is announced in the prompt window and you can **Start Game** again (a fresh table, same

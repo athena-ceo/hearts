@@ -20,6 +20,19 @@
 
 (RPAQ? PH.CurrentTable NIL)
 
+(* "Show a closed-hand Expert's narration in a Thoughts window (like the Conservatives').")
+(RPAQ? PH.ExpertThoughts? T)
+
+(* "The only hooks into 1986 code, for Thoughts windows: they show no cards, and each message
+    starts a new line (the 1986 code prints plays 'same line' because its narration area was a
+    tiny prompt window).  Advice, not redefinitions: they act only on windows PlayHearts marked
+    PH.Thoughts, and (UNADVISE 'Open.RemakeWindow) / (UNADVISE 'Open.Print) remove them.")
+(RPAQQ PH.ThoughtsAdvice (if (WINDOWPROP HWin (QUOTE PH.Thoughts)) then (RETURN NIL)))
+(RPAQQ PH.ThoughtsPrintAdvice (if (WINDOWPROP Win (QUOTE PH.Thoughts)) then (SETQ SameLine? NIL)))
+(ADVISE (QUOTE Open.RemakeWindow) (QUOTE BEFORE) PH.ThoughtsAdvice)
+(ADVISE (QUOTE Open.Print) (QUOTE BEFORE) PH.ThoughtsPrintAdvice)
+(* "(Re-advising with the same advice doesn't add a second copy, so reloading is safe.)")
+
 (RPAQQ PH.PlayerTypes (("Human (you)" (QUOTE HP)
                               "You play, clicking cards in your own window")
                        ("Expert" (QUOTE EP)
@@ -80,6 +93,10 @@
       OPTIONS
           (SETQ Open? (PH.YesNo "Play with open hands?"))
           (if (NULL Open?) then (RETURN NIL))
+          (if (AND (EQ Open? (QUOTE NO)) (FMEMB (QUOTE EP) Config))
+              then (SETQ Think (PH.YesNo "Show the Experts' thoughts?"))
+                   (if (NULL Think) then (RETURN NIL))
+                   (SETQ PH.ExpertThoughts? (EQ Think (QUOTE YES))))
           (SETQ Manual (PH.YesNo "Deal the cards by hand?"))
           (if (NULL Manual) then (RETURN NIL))
           (if (FMEMB (QUOTE CP) Config)
@@ -102,7 +119,24 @@
     (if (EQ Type (QUOTE HP))
         then (HP.Create (OR (PROMPTFORWORD "Your name for this game:" NIL NIL PROMPTWINDOW)
                             "Player"))
-      else (H.MakePlayer Type Open?))))
+      else (LET ((Player (H.MakePlayer Type Open?)))
+                (if (AND (EQ Type (QUOTE EP)) (NOT Open?) PH.ExpertThoughts?)
+                    then (PH.GiveThoughtsWindow Player))
+                Player))))
+
+(PH.GiveThoughtsWindow
+  (LAMBDA (Player)
+    (* ; "Give a closed-hand Expert a Thoughts window.  The 1986 Expert narrates only into its hand window: (Open.Print HWin ...) prints in that window's prompt window, and (Open.RemakeWindow HWin Hand) draws the cards.  So hand it a window marked PH.Thoughts, that is its own prompt window (GETPROMPTWINDOW returns it), and whose hand drawing is skipped (PH.ThoughtsAdvice) and lines never run together (PH.ThoughtsPrintAdvice).  The Expert's code and rules are untouched.")
+    (LET* ((Name (fetch Name of Player))
+           (W (CREATEW (GETBOXREGION 500 250 NIL NIL NIL
+                              (CONCAT "Please find a place for the thinking window for " Name))
+                     (CONCAT "Thoughts of " Name))))
+          (WINDOWPROP W (QUOTE SCROLLFN) (FUNCTION SCROLLBYREPAINTFN))
+          (DSPSCROLL T (WINDOWPROP W (QUOTE DSP)))
+          (WINDOWPROP W (QUOTE PH.Thoughts) T)
+          (WINDOWPROP W (QUOTE PROMPTWINDOW) (CONS W 1000))
+          (PUT.VALUE (fetch Object of Player) (QUOTE HandWindow) W)
+          W)))
 
 (PH.OpenTable
   (LAMBDA (Players Region)

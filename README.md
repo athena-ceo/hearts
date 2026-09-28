@@ -92,6 +92,10 @@ KEE expert system, on LOOPS). The loadable package lives in [`dist/`](dist/):
 Or let a small 2026 front end ask who plays and give the table a Start Game / Setup / Exit menu bar:
 `(FILESLOAD PLAYHEARTS)` then `(PlayHearts)`.
 
+![Three Expert players and a Conservative mid-game under PlayHearts: each Expert narrates in its own
+"Thoughts of …" window — one decides it can shoot the moon, another spots the shooter, switches to
+Eclipsing, and announces "The shooter has been stopped!"](docs/hearts-experts.png)
+
 The two `(FILESLOAD …)`/`(LHearts …)` lines are the same on any platform. See
 **[dist/README.md](dist/README.md)** for full load & run instructions; the install/launch
 mechanics there (and in [medley/MEDLEY-SETUP-NOTES.md](medley/MEDLEY-SETUP-NOTES.md)) are written

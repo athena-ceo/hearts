@@ -78,8 +78,12 @@ Expert's window narrates its strategy and reasons.
 The friendlier front door is **`(FILESLOAD PLAYHEARTS)` then `(PlayHearts)`**
 ([medley/playhearts.lisp](medley/playhearts.lisp), built into `dist/PLAYHEARTS`): menus for the
 players and options, a Start Game / Setup… / Exit menu bar on the card table, games in their own
-process, and Exit closes every Hearts window. It only adds `PH.*` functions — the 1986 `LHearts`
-(which starts at once and loops until Ctrl-E) is untouched.
+process, and Exit closes every Hearts window; closed-hand Experts narrate in their own
+"Thoughts of …" windows. It only adds `PH.*` functions plus two pieces of *advice* (not
+redefinitions) that act only on those Thoughts windows — `Open.RemakeWindow` draws no cards there,
+`Open.Print` starts each message on a new line; `(UNADVISE 'Open.RemakeWindow)` /
+`(UNADVISE 'Open.Print)` remove them. The 1986 `LHearts` (which starts at once and loops until
+Ctrl-E) and all 1986 definitions are untouched.
 
 Full setup (XQuartz tuning, leave-X-running, auto-load via `rem.cm`, quit with `(LOGOUT)` /
 `pkill ldex`) is in [medley/MEDLEY-SETUP-NOTES.md](medley/MEDLEY-SETUP-NOTES.md) §1a. How to play is
