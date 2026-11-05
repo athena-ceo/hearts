@@ -132,7 +132,10 @@ Sent by the Administrator during a deal (see `H.PlayGame`/`H.Deal`, and overview
 
 Legality of a `Play` reply is defined by `H.GetLegals(hand, trick, heartsBroken?, firstTrick?)`
 (line 450): follow suit if possible; on the first trick exclude hearts and Q♠; don't lead hearts
-until broken. The Administrator is the authority — a player returns a card, the house validates.
+until broken. **The game loop does not check the card it gets back:** `H.PlayGame` passes it straight
+to `Trick.Play`, so each player is responsible for answering legally. `Play` also receives
+`heartsBroken?` and `firstTrick?` from the loop, which the table above omits. Ports should validate in
+the Administrator; the [LLM player](medley/llmplayer.lisp) validates its own answers for this reason.
 
 ---
 
@@ -183,6 +186,9 @@ line ~170, maps the UI choices `EP/CP/HP/CLOWN` to concrete players; the dispatc
 - **Human** (`HP.*`, `Type=Lisp`). A windowed interface: the user's hand is drawn; the user
   mouses cards to pass and play; legal cards can be highlighted. Uses the same six messages, but
   the method bodies drive UI and wait for input (`HP.WaitForReady`, `HP.ChooseSomeCards`).
+- **LLM** (`LP.*`, `Type=Lisp`, 2026). Not part of the 1986 system. Keeps what its seat has seen,
+  and for each decision has [medley/llm_player.py](medley/llm_player.py) ask Claude. Falls back to a
+  safe legal card on any failure.
 - **Expert** (`EP.*` + KEE units, `Type=Kee`). The expert system — see §8. Dispatched via
   `UNITMSG*` to a KEE unit rather than a Lisp function alist.
 

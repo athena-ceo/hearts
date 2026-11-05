@@ -343,3 +343,10 @@ if __name__ == "__main__":
     check_code(ph)
     (DIST / "PLAYHEARTS").write_text(ph, encoding="utf-8", newline="\n")
     print(f"wrote {DIST / 'PLAYHEARTS'}  ({len(ph.splitlines())} lines)")
+    # LLMPLAYER: the LLM player (medley/llmplayer.lisp) and its Python helper, which ships beside it.
+    lp = with_header("LLMPLAYER", lisp_src("llmplayer.lisp") + "\nSTOP\n")
+    check_code(lp)
+    (DIST / "LLMPLAYER").write_text(lp, encoding="utf-8", newline="\n")
+    (DIST / "llm_player.py").write_text((HERE / "llm_player.py").read_text(encoding="utf-8"),
+                                        encoding="utf-8", newline="\n")
+    print(f"wrote {DIST / 'LLMPLAYER'}  ({len(lp.splitlines())} lines) + llm_player.py")

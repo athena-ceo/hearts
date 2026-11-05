@@ -8,6 +8,7 @@ run() {  # run NAME [medley-run options...] SCRIPT
   printf '%-18s exit %s  %s\n' "$name" "$?" "$(grep -h '==HT-SUMMARY==' "out/test-$name.log" | sed 's/==HT-SUMMARY== //')"
 }
 mkdir -p out
+printf '%-18s %s\n' llm-helper "$(python3 tests/test_llm_player.py 2>&1 | tail -1)"
 run smoke                                   tests/smoke.lisp &
 run expert-load     --loops                 tests/expert-load.lisp &
 run expert-examples --loops                 tests/expert-examples.lisp &
@@ -17,6 +18,7 @@ run expert-open     --loops --timeout 900   tests/expert-open.lisp &
 run expert-pagehold --timeout 600           tests/expert-pagehold.lisp &
 run dealer                                  tests/dealer.lisp &
 run playhearts      --loops --timeout 900   tests/playhearts.lisp &
+run llmplayer       --timeout 900           tests/llmplayer.lisp &
 wait
 run expert-game     --loops --timeout 1800  tests/expert-game.lisp   # alone: it needs the CPU
 wait

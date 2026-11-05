@@ -36,6 +36,44 @@ You can skip the questions: `(PlayHearts '(HP EP EP CP) T)` — players, then op
 manual deal, as for `LHearts`. `PLAYHEARTS` loads HEARTS if needed, and EXPERT when you choose an
 Expert. It is a 2026 addition; the 1986 entry point, `LHearts`, is described next.
 
+## Playing against an LLM (`LP`)
+
+Seat code **`LP`** is a player that asks Claude for each pass and play. It sees only what its seat
+would see, works out a plan, and explains each move in its **"Thoughts of Claude…" window**. Choose
+**Claude (LLM)** in the `PlayHearts` menu, or give the seat code directly:
+
+```
+(FILESLOAD PLAYHEARTS)
+(PlayHearts '(HP LP EP CP))
+```
+
+It needs Python 3 with the Anthropic SDK (`pip install anthropic`), and an API key exported *before*
+you launch Medley:
+
+```bash
+export ANTHROPIC_API_KEY=...
+```
+
+Copy `dist/llm_player.py` to `~/il` with the other files, or set `LP.Helper` to its full path. Then
+`(FILESLOAD LLMPLAYER)` and `(LP.Check)` show what the player can see without spending anything; it
+returns `(CHECK python sdk keySet? model)`.
+
+**It costs real money, and each move takes as long as the model takes.** A game is roughly 100–140
+decisions per LLM seat (a rough estimate is a few dollars per seat per game on Opus). A seat with
+only one legal card makes no API call. `(LP.Stats)` shows the decisions and tokens so far. These
+settings change the cost and quality, and take effect on the next move:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `LP.Model` | `"claude-opus-5-5"` | Which model; e.g. `"claude-haiku-5-5"` is far cheaper |
+| `LP.Effort` | `"medium"` | `"low"` to `"max"`: how hard it thinks; more is slower and costs more |
+| `LP.TimeoutSeconds` | `300` | How long a move may take before it plays safe |
+| `LP.LogFile` | `NIL` | A file path to record every request and reply as JSON lines |
+
+If anything goes wrong (no key, no network, an unusable answer), the game carries on: the seat plays
+a safe legal card, the lowest for a play and the highest three for a pass, and says why in its
+Thoughts window and the prompt window. The count is in `(LP.Stats)` as `fallbacks`.
+
 ## Starting a game — the 1986 way: `LHearts`
 
 At the Interlisp Exec:
@@ -46,7 +84,8 @@ At the Interlisp Exec:
 
 Seat codes: **`HP`** = you (Human Player), **`CP`** = Conservative (a Lisp player running one fixed *minimizing* strategy — competent but non-adaptive),
 **`CLOWN`** = Clown (plays a random legal card), **`EP`** = Expert (the 1986 KEE expert system,
-revived on LOOPS — it picks a strategy, models its opponents, and switches strategy mid-hand). Mix
+revived on LOOPS — it picks a strategy, models its opponents, and switches strategy mid-hand), **`LP`** =
+Claude, an LLM over the API (load `LLMPLAYER`; see above). Mix
 them however you like, e.g. `(LHearts '(HP EP CP EP))`.
 
 The Expert needs one more file: load it with `(FILESLOAD CLIPBOARD ACTIVEREGIONS HEARTS EXPERT)`.

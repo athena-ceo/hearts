@@ -16,4 +16,5 @@ if [ "${1:-}" = "--build" ]; then
 fi
 docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -t "$IMAGE" "$ROOT/docker"
 TTY=(); [ -t 0 ] && TTY=(-it)
-exec docker run --rm ${TTY[@]+"${TTY[@]}"} -v "$ROOT:/hearts" -w /hearts "$IMAGE" "$@"
+# Pass the API key through (only if set) so an LLM player can reach the real API.
+exec docker run --rm ${TTY[@]+"${TTY[@]}"} -e ANTHROPIC_API_KEY -v "$ROOT:/hearts" -w /hearts "$IMAGE" "$@"

@@ -44,6 +44,7 @@ See it in action: [docs/hearts-game.png](docs/hearts-game.png).
 | Distribution package | ✅ [dist/](dist/) — `ACTIVEREGIONS` + `HEARTS` + `KEELOOPS` + `EXPERT` + README (fresh-image `FILESLOAD` fixed: HEARTS-BUGS H4) |
 | **KEE Expert** player | ✅ runs headlessly — original `EP.*` code + 97 original rules on KEELOOPS/LOOPS ([medley/keeloops.lisp](medley/keeloops.lisp), [medley/expert-kb.lisp](medley/expert-kb.lisp)); tests in [tests/](tests/). Not yet tried interactively on the Mac. |
 | Headless test Medley | ✅ [docker/](docker/) + [tools/medley-headless](tools/medley-headless) |
+| **LLM player** (`LP`, 2026) | 🟡 complete games pass on a stub and through the real SDK against a mock server ([tests/llmplayer.lisp](tests/llmplayer.lisp)). See "The LLM player" below for what has not been run. |
 | Ethernet networking | ⛔ deferred (dead PUP/XNS; collapse to one image) |
 | Modern CL / Python ports | 🔜 planned (Phases 3–4) |
 
@@ -95,6 +96,31 @@ SEdit wedges. X11 has all three. (Root causes: MEDLEY-ISSUES M2/M3/M8.)
 
 ---
 
+## The LLM player
+
+[medley/llmplayer.lisp](medley/llmplayer.lisp) (built into `dist/LLMPLAYER`) is a `Type=Lisp` player
+like the Conservative, so the core is untouched: one piece of advice on `H.MakePlayer` adds the seat
+code `LP`. For each decision it writes what its seat knows to a JSON file and runs
+[medley/llm_player.py](medley/llm_player.py), which calls the API and prints one S-expression line.
+The helper adds the bookkeeping (points so far, unseen cards, known voids) and asks for structured
+output. The model's plan is carried from move to move within a deal. How to use it and what it costs:
+[USER-MANUAL.md](USER-MANUAL.md).
+
+Design choices worth keeping:
+
+- **Requests go through a file,** because long stdin writes lose bytes (MEDLEY-ISSUES M10).
+- **Lisp validates every answer** against `H.GetLegals`, because the game loop doesn't, and falls back
+  to a safe card rather than ever stopping the game.
+- **The output schema is fixed** (all 52 cards) rather than narrowed to each decision's legal cards,
+  because every new schema pays a compile on first use. An illegal answer gets one retry.
+- **[tests/check_llm_log.py](tests/check_llm_log.py) lists the allowed request fields exactly,** to
+  guard against leaking another seat's cards. Adding a field means editing that list deliberately.
+
+Refusal fallback (`fallbacks: "default"`) is on for the models that accept it. Not yet done: a
+real API call, a game on the Mac, and any measurement of how well it plays or what it costs.
+
+---
+
 ## How to rebuild the loadable files
 
 The loadable `HEARTS` is **generated** from the faithful transcription — never hand-edit it. Edit the
@@ -104,7 +130,7 @@ source, then rebuild:
 cd ~/Development/hearts
 python3 medley/build-loadfile.py          # writes medley/HEARTS (dev) + dist/HEARTS + dist/ACTIVEREGIONS
 python3 medley/build_expert.py            # writes medley/EXPERT (dev) + dist/EXPERT + dist/KEELOOPS
-cp dist/HEARTS dist/ACTIVEREGIONS dist/KEELOOPS dist/EXPERT ~/il/    # stage where Medley loads them
+cp dist/HEARTS dist/ACTIVEREGIONS dist/KEELOOPS dist/EXPERT dist/PLAYHEARTS dist/LLMPLAYER dist/llm_player.py ~/il/    # stage where Medley loads them
 ```
 
 Then reload in Medley (`(FILESLOAD ACTIVEREGIONS HEARTS)`), or relaunch.
@@ -137,6 +163,8 @@ tools/medley-headless --loops tests/expert-load.lisp            # KB wiring, pas
 tools/medley-headless --loops tests/expert-examples.lisp        # the 1986 worked examples
 tools/medley-headless --loops tests/playhearts.lisp             # the PlayHearts front end
 tools/medley-headless --loops --timeout 1500 tests/expert-game.lisp   # two full games (~12 min)
+tools/medley-headless --timeout 900 tests/llmplayer.lisp        # the LLM player: stub + mock API, no key needed
+python3 tests/test_llm_player.py                                # its Python helper, on your own SDK
 tests/run-all.sh                                                # everything, with a summary
 tools/medley-headless --loops --timeout 2700 tests/expert-soak.lisp  # 3 more games, rare-situation hunt
 ```
@@ -224,8 +252,10 @@ original/            The scanned source PDFs (starting assets)
 transcription/       Faithful text recovered from the scans (+ parts/, docs/, KEE files)
 tools/               interlisp-lint.py, interlisp-balance.py, readbitmap-decode.py, medley-headless
 medley/              build-loadfile.py, activeregions.lisp, HEARTS (dev build), MEDLEY-SETUP-NOTES.md,
-                     build_expert.py, keeloops.lisp, expert-kb.lisp, EXPERT (dev build), playhearts.lisp
-dist/                Community distribution: ACTIVEREGIONS, HEARTS, KEELOOPS, EXPERT, PLAYHEARTS, README.md
+                     build_expert.py, keeloops.lisp, expert-kb.lisp, EXPERT (dev build), playhearts.lisp,
+                     llmplayer.lisp + llm_player.py (the LLM player)
+dist/                Community distribution: ACTIVEREGIONS, HEARTS, KEELOOPS, EXPERT, PLAYHEARTS, LLMPLAYER,
+                     llm_player.py, README.md
 docker/              Headless Medley (Maiko + Xvfb + LOOPS) for scripted tests
 tests/               Headless test scripts (tools/medley-headless ...)
 attic/               Superseded work kept for the record (the first Expert attempt)
