@@ -93,7 +93,8 @@ Or let a small 2026 front end ask who plays and give the table a Start Game / Se
 `(FILESLOAD PLAYHEARTS)` then `(PlayHearts)`.
 
 There are also 2026 opponents the authors could not have imagined. Seat code `NP` is a neural network,
-trained by self-play outside Medley and running in pure Lisp at no cost per move. And seat code `LP` asks an LLM (Claude by
+trained by self-play outside Medley and running in pure Lisp at no cost per move. In tests it beat the
+1986 Expert by about 3 points per deal ([results](docs/benchmarks/README.md)). And seat code `LP` asks an LLM (Claude by
 default, or any OpenAI-compatible model) for each move and explains itself in a Thoughts window. It
 usually needs an API key and costs money; see
 [USER-MANUAL.md](USER-MANUAL.md).

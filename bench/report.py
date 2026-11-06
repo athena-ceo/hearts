@@ -104,7 +104,7 @@ def finding(summary):
 
 def dot_chart(rows, title_id, reference, reference_label, x_label):
     """Horizontal dots with interval whiskers.  rows: (label, mean, low, high, tip)."""
-    width, row_height, left, right, top, bottom = 760, 38, 230, 70, 16, 44
+    width, row_height, left, right, top, bottom = 760, 38, 300, 130, 16, 44
     height = top + bottom + row_height * len(rows)
     low = min([r[2] for r in rows] + [reference])
     high = max([r[3] for r in rows] + [reference])
@@ -231,7 +231,7 @@ def build_html(summaries, run):
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HEARTS benchmark: {html.escape(run)}</title><style>{STYLE}</style></head>
 <body class="viz-root"><main>
-<h1>LLM players against the 1986 Hearts Expert</h1>
+<h1>{"LLM players" if llms else "Players"} against the 1986 Hearts Expert</h1>
 <p class="lead">{html.escape(headline)}.</p>
 <p>Each player sat in seat 1 against three copies of the Expert, on the same fixed deals. Hearts is a game
 of avoiding points, so lower is better. API spend for this run was ${total_cost:.2f}.</p>

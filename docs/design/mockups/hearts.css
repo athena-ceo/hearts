@@ -1,0 +1,86 @@
+/* HEARTS mockups.  The table's stipple and the windows' inverted title bars come from Interlisp-D;
+   the rest is plain and modern.  Yellow means one thing: you can act on this. */
+:root {
+  --table: #22265c;
+  --table-raised: #2d3273;
+  --dot: #33387f;
+  --paper: #fffefb;
+  --panel: #f2f2fb;
+  --ink: #14142b;
+  --quiet: #565a7d;
+  --on-table: #ffffff;
+  --on-table-quiet: #c5c8ee;
+  --red: #c80f35;
+  --marker: #ffd84d;
+  --rule: #cfd0e6;
+  --ui: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --rank: "Zilla Slab", Georgia, serif;
+  --code: "Spline Sans Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html { font-size: 16px; }
+body {
+  margin: 0; min-height: 100vh; color: var(--on-table); font-family: var(--ui); line-height: 1.45;
+  background-color: var(--table);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
+  background-size: 4px 4px;
+}
+h1, h2, h3, p { margin: 0; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--marker); outline-offset: 2px; }
+
+/* The top bar */
+.bar { display: flex; align-items: center; gap: 28px; padding: 14px 28px; background: var(--ink); }
+.bar .mark { font-size: 1.3rem; font-weight: 700; text-decoration: none; }
+.bar .mark span { color: #ff5c7c; }
+.bar nav { display: flex; gap: 20px; flex: 1; flex-wrap: wrap; }
+.bar nav a { color: var(--on-table-quiet); text-decoration: none; padding: 6px 0; }
+.bar nav a:hover { color: var(--on-table); }
+.bar nav a[aria-current] { color: var(--on-table); box-shadow: 0 2px 0 var(--marker); }
+
+/* Windows: square corners and an inverted title bar, as on the 1986 workstation */
+.window { background: var(--panel); color: var(--ink); border: 2px solid var(--ink); }
+.window > h2, .window > h3, .window > .title {
+  margin: 0; padding: 7px 14px; background: var(--ink); color: var(--paper);
+  font-size: 1rem; font-weight: 600; line-height: 1.3;
+}
+.window .body { padding: 16px; }
+.code { font-family: var(--code); font-size: .8rem; color: var(--quiet); }
+
+/* Cards */
+h-card { display: inline-block; }
+.card {
+  position: relative; display: block; width: 92px; height: 130px; padding: 0;
+  background: var(--paper); color: var(--ink); border: 1px solid #8f91b5; border-radius: 8px;
+  box-shadow: 0 2px 0 rgba(10, 10, 40, .45); text-align: left; font-family: var(--rank);
+}
+.card.red { color: var(--red); }
+.card .rank { position: absolute; top: 5px; left: 8px; font-size: 1.55rem; font-weight: 700; line-height: 1; }
+.card .pip { position: absolute; top: 31px; left: 8px; font-size: 1.15rem; line-height: 1; }
+.card .big { position: absolute; right: 8px; bottom: 2px; font-size: 3.5rem; line-height: 1; }
+.card.small { width: 46px; height: 62px; border-radius: 5px; }
+.card.small .rank { top: 4px; left: 5px; font-size: 1.05rem; }
+.card.small .pip { top: 23px; left: 5px; font-size: .9rem; }
+.card.small .big { display: none; }
+button.card { cursor: pointer; transition: transform .12s ease-out; }
+button.card:hover, button.card:focus-visible { transform: translateY(-10px); }
+button.card[aria-pressed="true"] { transform: translateY(-24px); box-shadow: 0 0 0 4px var(--marker); }
+.inline-card { font-weight: 700; white-space: nowrap; }
+.inline-card.red { color: var(--red); }
+
+/* Controls */
+.primary {
+  display: inline-block; min-height: 44px; padding: 10px 20px; border: 2px solid var(--ink); border-radius: 0;
+  background: var(--marker); color: var(--ink); font-weight: 700; text-decoration: none; cursor: pointer;
+}
+.primary[disabled] { background: #d9d9ea; color: #4b4e70; cursor: default; }
+.secondary {
+  display: inline-block; min-height: 44px; padding: 10px 16px; border: 2px solid currentColor; border-radius: 0;
+  background: transparent; font-weight: 600; text-decoration: none; cursor: pointer;
+}
+@media (max-width: 760px) {
+  .bar { padding: 8px 14px; gap: 14px; justify-content: space-between; }
+  .bar nav { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { button.card { transition: none; } }

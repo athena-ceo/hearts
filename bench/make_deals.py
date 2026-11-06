@@ -10,7 +10,7 @@ import random
 from pathlib import Path
 
 SEED = 1986
-COUNT = 4000
+COUNT = 6000
 
 rng = random.Random(SEED)
 lines = [f'(* "{COUNT} fixed shuffles from bench/make_deals.py, seed {SEED}.")', "(SETQ BM.AllDeals (QUOTE ("]

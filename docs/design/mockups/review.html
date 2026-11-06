@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Deal review: HEARTS mockup</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&family=Zilla+Slab:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="hearts.css">
+<script src="cards.js" defer></script>
+<style>
+main { max-width: 1240px; margin: 0 auto; padding: 28px; display: grid; gap: 24px; }
+h1 { font-size: 2.4rem; line-height: 1.12; max-width: 24em; font-weight: 700; }
+.outcome { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.outcome .scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+.outcome .scores b { display: block; font-family: var(--rank); font-size: 2.6rem; line-height: 1.1; }
+.outcome .scores span { font-size: .9rem; color: var(--quiet); }
+.outcome .me { background: var(--marker); }
+.wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 900px; background: var(--panel); color: var(--ink); }
+caption { text-align: left; background: var(--ink); color: var(--paper); padding: 7px 14px; font-weight: 600; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: middle; font-weight: 400; }
+thead th { font-size: .875rem; color: var(--quiet); }
+.cards { display: flex; gap: 4px; }
+.cards .winner .card { box-shadow: 0 0 0 3px var(--ink); }
+tr.split { background: #fff6cf; }
+.said { font-size: .95rem; }
+.same { color: var(--quiet); font-size: .92rem; }
+.pct { color: var(--quiet); font-size: .9rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pick { display: flex; align-items: center; gap: 8px; }
+.foot { color: var(--on-table-quiet); font-size: .95rem; }
+@media (max-width: 760px) { main { padding: 16px; } h1 { font-size: 1.8rem; } .outcome { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="mark" href="lobby.html"><span>♥</span> Hearts</a>
+  <nav aria-label="Main">
+    <a href="lobby.html">Play</a>
+    <a href="lobby.html#games">My games</a>
+    <a href="table.html">Study table</a>
+    <a href="#" aria-current="page">Deal review</a>
+  </nav>
+  <a class="primary" href="table.html">Next deal</a>
+</header>
+<main>
+  <h1>You took 7 points. From the same seat, the network shot the moon.</h1>
+  <div class="outcome">
+    <section class="window" aria-labelledby="yours">
+      <h2 id="yours">This deal as you played it</h2>
+      <div class="body scores">
+        <div class="me"><b>7</b><span>You</span></div><div><b>19</b><span>Dostoevsky</span></div><div><b>0</b><span>Kant</span></div><div><b>0</b><span>Proust</span></div>
+      </div>
+    </section>
+    <section class="window" aria-labelledby="theirs">
+      <h2 id="theirs">The same cards, with the network in your seat</h2>
+      <div class="body scores">
+        <div class="me"><b>-26</b><span>Network</span></div><div><b>0</b><span>Dostoevsky</span></div><div><b>0</b><span>Kant</span></div><div><b>0</b><span>Proust</span></div>
+      </div>
+    </section>
+  </div>
+  <div class="wrap">
+  <table>
+    <caption>Where your choices and the network's parted. Shaded rows differ.</caption>
+    <thead><tr><th scope="col">Trick</th><th scope="col">What was played (the outlined card won)</th><th scope="col">You, and the Expert's reason for that card</th><th scope="col">The network</th></tr></thead>
+    <tbody>
+      <tr class="split"><th scope="row">Pass</th><td><div class="cards"><h-card c="D5" small></h-card><h-card c="DA" small></h-card><h-card c="HK" small></h-card></div></td><td class="said">Passed these three to the left.</td><td><div class="cards"><h-card c="H10" small></h-card><h-card c="HK" small></h-card><h-card c="D5" small></h-card></div></td></tr>
+      <tr class="split"><th scope="row">2</th><td><div class="cards"><h-card c="S5" small></h-card><h-card c="S6" small></h-card><span class="winner"><h-card c="SJ" small></h-card></span><h-card c="S8" small></h-card></div></td><td class="said">J♠: Playing below QS on a safe trick.</td><td><div class="pick"><h-card c="SK" small></h-card><span class="pct">57%</span></div></td></tr>
+      <tr><th scope="row">3</th><td><div class="cards"><span class="winner"><h-card c="CJ" small></h-card></span><h-card c="C5" small></h-card><h-card c="C6" small></h-card><h-card c="C10" small></h-card></div></td><td class="said">J♣: Leading my singleton club.</td><td class="same">Same card, 100%</td></tr>
+      <tr class="split"><th scope="row">4</th><td><div class="cards"><h-card c="S7" small></h-card><span class="winner"><h-card c="S9" small></h-card></span><h-card c="HJ" small></h-card><h-card c="HQ" small></h-card></div></td><td class="said">7♠: Leading lowest non-winner.</td><td><div class="pick"><h-card c="SA" small></h-card><span class="pct">100%</span></div></td></tr>
+      <tr><th scope="row">5</th><td><div class="cards"><span class="winner"><h-card c="HK" small></h-card></span><h-card c="H7" small></h-card><h-card c="H8" small></h-card><h-card c="H10" small></h-card></div></td><td class="said">10♥: Normal play - highest under highest played.</td><td class="same">Same card, 100%</td></tr>
+      <tr class="split"><th scope="row">6</th><td><div class="cards"><span class="winner"><h-card c="D9" small></h-card></span><h-card c="D7" small></h-card><h-card c="D6" small></h-card><h-card c="SQ" small></h-card></div></td><td class="said">Q♠: Min - dumping the maggie. Heh, heh.</td><td><div class="pick"><h-card c="HA" small></h-card><span class="pct">100%</span></div></td></tr>
+      <tr class="split"><th scope="row">11</th><td><div class="cards"><span class="winner"><h-card c="S10" small></h-card></span><h-card c="D8" small></h-card><h-card c="C8" small></h-card><h-card c="DJ" small></h-card></div></td><td class="said">10♠: Leading lowest card.</td><td><div class="pick"><h-card c="SK" small></h-card><span class="pct">87%</span></div></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="foot">The network's percentages are its preference among the legal cards, in the position you faced. It gives no reasons, so the review can show only what it preferred.</p>
+</main>
+</body>
+</html>

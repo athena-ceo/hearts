@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study table: HEARTS mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&family=Zilla+Slab:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="hearts.css">
+<script src="cards.js" defer></script>
+<style>
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 430px; min-height: calc(100vh - 60px); }
+.stage { position: relative; display: grid; padding: 22px 28px 26px;
+  grid-template-columns: 200px minmax(0, 1fr) 200px; grid-template-rows: auto minmax(250px, 1fr) auto;
+  grid-template-areas: "note north ." "west trick east" "hand hand hand"; gap: 12px; }
+.note { grid-area: note; color: var(--on-table-quiet); font-size: .95rem; align-self: start; }
+.seat { padding: 10px 14px; background: var(--ink); align-self: center; justify-self: center; min-width: 170px; }
+.seat.north { grid-area: north; } .seat.west { grid-area: west; } .seat.east { grid-area: east; }
+.seat h2 { font-size: 1.1rem; line-height: 1.2; }
+.seat .kind { color: var(--on-table-quiet); font-size: .875rem; }
+.seat .score { margin-top: 6px; font-size: .9rem; }
+.seat .score b { font-size: 1.05rem; }
+.trick { grid-area: trick; position: relative; width: 340px; height: 300px; justify-self: center; align-self: center; }
+.trick .slot { position: absolute; }
+.trick .w { left: 10px; top: 85px; } .trick .n { left: 124px; top: 0; } .trick .e { right: 10px; top: 85px; }
+.trick .s { left: 124px; bottom: 0; width: 92px; height: 130px; border: 2px dashed var(--on-table-quiet); border-radius: 8px;
+  display: grid; place-items: center; color: var(--on-table-quiet); text-align: center; font-size: .9rem; }
+.trick .tag { display: block; text-align: center; font-size: .82rem; color: var(--on-table-quiet); margin-top: 6px; }
+.you { grid-area: hand; display: grid; gap: 12px; justify-items: center; }
+.you .turn { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: center; }
+.you .turn p { font-size: 1.05rem; }
+.you .turn b { color: var(--marker); }
+.you .mine { color: var(--on-table-quiet); font-size: .9rem; }
+.hand { display: flex; justify-content: center; gap: 8px; flex-wrap: nowrap; padding-top: 26px; max-width: 100%; }
+.thoughts { border-width: 0 0 0 2px; display: flex; flex-direction: column; }
+.thoughts .why { padding: 10px 16px; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: 54px 1fr; gap: 2px 12px; }
+.thoughts .why h-card { grid-row: span 3; }
+.thoughts .who { font-weight: 700; }
+.thoughts .who span { font-weight: 400; color: var(--quiet); }
+.thoughts .said { font-size: 1.02rem; }
+.thoughts h3 { padding: 7px 14px; background: var(--ink); color: var(--paper); font-size: 1rem; font-weight: 600; }
+.thoughts .ask { padding: 10px 16px; margin-top: auto; }
+.thoughts .ask p { color: var(--quiet); font-size: .92rem; margin-bottom: 10px; }
+.thoughts .ask .secondary { color: var(--ink); }
+.scoreline { font-size: .9rem; color: var(--on-table-quiet); margin-right: 8px; }
+@media (max-width: 1180px) {
+  .layout { grid-template-columns: 1fr; }
+  .thoughts { border-width: 2px 0 0 0; }
+}
+@media (max-width: 760px) {
+  .bar { padding: 8px 14px; gap: 14px; }
+  .bar nav { display: none; }
+  .stage { padding: 10px 10px 16px; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: auto auto auto auto;
+    grid-template-areas: "note note note" "west north east" "trick trick trick" "hand hand hand"; gap: 8px; }
+  .seat { min-width: 0; width: 100%; padding: 6px 8px; align-self: stretch; }
+  .seat h2 { font-size: .92rem; overflow-wrap: anywhere; }
+  .seat .kind { display: none; }
+  .seat .score { margin-top: 2px; font-size: .8rem; }
+  .trick { width: 250px; height: 190px; }
+  .trick .card { width: 64px; height: 90px; }
+  .trick .card .rank { font-size: 1.2rem; } .trick .card .pip { top: 25px; font-size: .95rem; } .trick .card .big { font-size: 2.2rem; }
+  .trick .tag { display: none; }
+  .trick .w { left: 0; top: 50px; } .trick .n { left: 93px; top: 0; } .trick .e { right: 0; top: 50px; }
+  .trick .s { left: 93px; width: 64px; height: 90px; font-size: .75rem; }
+  .hand { justify-content: flex-start; overflow-x: auto; width: 100%; gap: 0; padding: 26px 6px 8px; }
+  .hand h-card { flex: none; }
+  .hand h-card + h-card { margin-left: -20px; }
+  .hand .card { width: 64px; height: 90px; }
+  .hand .card .rank { font-size: 1.2rem; left: 6px; } .hand .card .pip { top: 25px; left: 6px; font-size: .95rem; } .hand .card .big { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="mark" href="lobby.html"><span>♥</span> Hearts</a>
+  <nav aria-label="Main">
+    <a href="lobby.html">Play</a>
+    <a href="lobby.html#games">My games</a>
+    <a href="#" aria-current="page">Study table</a>
+    <a href="review.html">Deal review</a>
+  </nav>
+  <a class="secondary" href="lobby.html">Leave table</a>
+</header>
+<main class="layout">
+  <section class="stage" aria-label="Card table">
+    <p class="note">Deal 5, trick 6.<br>Thoughts are open, so this game isn't rated.</p>
+    <div class="seat north"><h2>Kant</h2><p class="kind">Expert, 1986</p><p class="score"><b>0</b> this deal, 22 in all</p></div>
+    <div class="seat west"><h2>Dostoevsky</h2><p class="kind">Expert, 1986</p><p class="score"><b>6</b> this deal, 48 in all</p></div>
+    <div class="seat east"><h2>Proust</h2><p class="kind">Expert, 1986</p><p class="score"><b>0</b> this deal, 40 in all</p></div>
+    <div class="trick" aria-label="Cards on this trick">
+      <div class="slot w"><h-card c="D9"></h-card><span class="tag">Led, winning</span></div>
+      <div class="slot n"><h-card c="D7"></h-card></div>
+      <div class="slot e"><h-card c="D6"></h-card></div>
+      <div class="slot s">Your card</div>
+    </div>
+    <div class="you">
+      <div class="turn">
+        <p><b>Your turn.</b> You have no diamonds, so you can play any card.</p>
+        <span class="scoreline">You: 0 this deal, 31 in all</span>
+        <button class="primary" id="play" disabled>Choose a card</button>
+      </div>
+      <div class="hand" id="hand" aria-label="Your hand">
+        <h-card c="S2" button></h-card><h-card c="S3" button></h-card><h-card c="S4" button></h-card><h-card c="S10" button></h-card><h-card c="SQ" button></h-card><h-card c="SK" button></h-card><h-card c="SA" button></h-card><h-card c="HA" button></h-card>
+      </div>
+    </div>
+  </section>
+  <aside class="window thoughts" aria-label="Thoughts">
+    <h2 class="title">Thoughts on this trick</h2>
+    <div class="why"><h-card c="D9" small></h-card><p class="who">Dostoevsky</p><p class="said">Shooting - leading non-QS non-winner non-opponent void card.</p><p class="code">slead.non.op.void.loser</p></div>
+    <div class="why"><h-card c="D7" small></h-card><p class="who">Kant</p><p class="said">Normal play - highest under highest played.</p><p class="code">safe.play</p></div>
+    <div class="why"><h-card c="D6" small></h-card><p class="who">Proust</p><p class="said">Normal play - highest under highest played.</p><p class="code">safe.play</p></div>
+    <h3>From your seat</h3>
+    <div class="why"><h-card c="SQ" small></h-card><p class="who">The Expert would play this</p><p class="said">Min - dumping the maggie. Heh, heh.</p><p class="code">dump.queen</p></div>
+    <div class="why"><h-card c="HA" small></h-card><p class="who">The network would play this</p><p class="said">Its preference is 100% for this card. It gives no reasons.</p></div>
+    <div class="ask">
+      <p>An LLM can explain its choice. It costs about 1¢ a move.</p>
+      <button class="secondary">Ask Claude</button>
+    </div>
+  </aside>
+</main>
+<script>
+const play = document.getElementById("play");
+document.getElementById("hand").addEventListener("click", event => {
+  const card = event.target.closest("button.card");
+  if (!card) return;
+  document.querySelectorAll("#hand button.card").forEach(c => c.setAttribute("aria-pressed", c === card));
+  play.disabled = false;
+  play.textContent = "Play the " + card.getAttribute("aria-label");
+});
+</script>
+</body>
+</html>

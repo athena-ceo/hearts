@@ -44,7 +44,7 @@ See it in action: [docs/hearts-game.png](docs/hearts-game.png).
 | Distribution package | ✅ [dist/](dist/) — `ACTIVEREGIONS` + `HEARTS` + `KEELOOPS` + `EXPERT` + README (fresh-image `FILESLOAD` fixed: HEARTS-BUGS H4) |
 | **KEE Expert** player | ✅ runs headlessly — original `EP.*` code + 97 original rules on KEELOOPS/LOOPS ([medley/keeloops.lisp](medley/keeloops.lisp), [medley/expert-kb.lisp](medley/expert-kb.lisp)); tests in [tests/](tests/). Not yet tried interactively on the Mac. |
 | Headless test Medley | ✅ [docker/](docker/) + [tools/medley-headless](tools/medley-headless) |
-| **Neural network player** (`NP`, 2026) | 🟡 runs in pure Lisp and plays the same moves as Python on 300 deals; see "Benchmarks, rule experiments and the neural network" below. Not yet tried on the Mac, and `dist/HEARTSNET` holds a 1-hour network until training finishes. |
+| **Neural network player** (`NP`, 2026) | ✅ runs in pure Lisp; beat the Expert by 3.09 points per deal on 2,800 held-out deals ([docs/benchmarks/](docs/benchmarks/README.md)). See "Benchmarks, rule experiments and the neural network" below. Not yet tried on the Mac. |
 | **LLM player** (`LP`, 2026) | 🟡 complete games pass on a stub and through the real SDK against a mock server ([tests/llmplayer.lisp](tests/llmplayer.lisp)), and a short game has run against the real API on Haiku. See "The LLM player" below for what has not been run. |
 | Ethernet networking | ⛔ deferred (dead PUP/XNS; collapse to one image) |
 | Modern CL / Python ports | 🔜 planned (Phases 3–4) |
@@ -166,14 +166,15 @@ it in the shell Claude Code starts from: Claude Code reads `ANTHROPIC_API_KEY` a
 ## Benchmarks, rule experiments and the neural network
 
 **The benchmark** ([bench/](bench/)): `bench/run.py` plays one player in seat 1 against three Experts, on
-fixed deals ([bench/deals.lisp](bench/deals.lisp), 4,000 shuffles, from `bench/make_deals.py`), in one long
+fixed deals ([bench/deals.lisp](bench/deals.lisp), 6,000 shuffles, from `bench/make_deals.py`), in one long
 game with the over score out of reach and the table's trick pause off. `bench/report.py` writes
 [docs/benchmarks/](docs/benchmarks/); `bench/compare.py` compares variants by points and by margin (points
 minus the average of the other three). The Expert is deterministic on fixed deals: an unchanged run
 matched on all 1,000 deals, so only deals a change actually touches differ, which makes rule tests sensitive.
 
 Deals are split so results stay honest: 1-200 are the pilot, 201-1200 are for trying things,
-1201-2000 and 2001-4000 are held out for a final test of a candidate, once.
+1201-2000 and 2001-4000 are held out for a final test of a candidate, once. `x-combo` and the network have used
+those. 4001-6000 tested `x-sr-combo`, `x-sr-plus`, `x-combo` and the network, so a new candidate needs fresh deals.
 
 **Rule experiments** ([bench/rules/](bench/rules/)): each `x-*.lisp` gives seat 1 alone its own rules or
 thresholds (`bench/rules/epx.lisp`), leaving the 1986 rule base and the other Experts untouched. `x-combo`
@@ -196,6 +197,27 @@ to every Expert is our assumption, so that gain may partly reflect our reconstru
   `features.py`. To check them, play the same deals both ways and compare `deals.jsonl`: on 300 deals every
   score matched. A move takes about 10 ms because `NP.Layer` and `NP.Scores` are compiled when the file loads.
   Layers are arrays of raw float blocks because `\ALLOCBLOCK` rows read straight off the file with `\BINS`.
+- `dist/HEARTSNET` is seed `a`, `out/selfplay/a/final.json`, after 10 hours of training. It scored -3.09 points
+  per deal against the Expert (-3.55 to -2.65) on the 2,800 held-out deals, in pure Lisp, so those deals are now
+  spent for this network. A new candidate needs fresh deals: raise `COUNT` in `bench/make_deals.py`, which keeps
+  the earlier deals as they are. The results and their limits are in
+  [docs/benchmarks/README.md](docs/benchmarks/README.md).
+
+**Comparing the two** ([docs/benchmarks/differential.md](docs/benchmarks/differential.md)):
+
+- `bench/diff_positions.py` asks a network about each position in a traced Expert game. `bench/diff_shooting.py` and
+  `bench/mine_rules.py` describe the differences, `bench/moon_stats.py` pairs traced games, and
+  `bench/void_leads.py` relates leads to what propagation knows.
+- `bench/rules/hy.lisp` is a hybrid seat: the Expert, playing the network's card for chosen kinds of decision, through
+  `x-hy-*.lisp`. `x-hy-all` must score exactly as the network does.
+- `bench/rules/pr.lisp` is constraint propagation in Lisp, the method in section 3.4 of the 1986 report.
+  `bench/propagate.py` is the Python version and `bench/hall.py` the closed form both use. To check them, run `x-pr-check`
+  with `--trace`, then `bench/propagate_check.py`. It needs every seat to be an Expert.
+- `x-sr-*.lisp`, `x-pr-*.lisp` and `x-or-voids.lisp` are the rules tried. `selfplay/.venv` also needs `scikit-learn` for
+  `bench/mine_rules.py`.
+
+**A Python version** is proposed in [docs/design/python-platform.md](docs/design/python-platform.md), with
+[mockups](docs/design/mockups/index.html). Nothing is built yet.
 
 ---
 

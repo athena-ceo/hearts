@@ -1,0 +1,90 @@
+[
+ {
+  "name": "np-HEARTSNET",
+  "label": "Self-play network in Lisp (HEARTSNET)",
+  "deals": 800,
+  "mean": [
+   1.99875,
+   1.32,
+   2.68
+  ],
+  "difference": [
+   -3.23,
+   -4.1725,
+   -2.3025
+  ],
+  "margin": [
+   -3.873333333333333,
+   -4.825,
+   -2.9066666666666667
+  ],
+  "others_moons": 38,
+  "paired": 800,
+  "spread": 9.72725669657439,
+  "difference_spread": 13.117342751146813,
+  "queen": 0.195,
+  "moons": 60,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.06275
+ },
+ {
+  "name": "x-combo",
+  "label": "Expert with combo",
+  "deals": 800,
+  "mean": [
+   4.96375,
+   4.46625,
+   5.47625
+  ],
+  "difference": [
+   -0.265,
+   -0.79625,
+   0.28625
+  ],
+  "margin": [
+   -0.46166666666666667,
+   -1.085,
+   0.16833333333333336
+  ],
+  "others_moons": 67,
+  "paired": 800,
+  "spread": 7.372100838700591,
+  "difference_spread": 8.018425277441475,
+  "queen": 0.19875,
+  "moons": 6,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.72541
+ },
+ {
+  "name": "expert",
+  "label": "Expert (1986 rules)",
+  "deals": 800,
+  "mean": [
+   5.22875,
+   4.60625,
+   5.855
+  ],
+  "difference": null,
+  "margin": null,
+  "others_moons": 56,
+  "paired": 800,
+  "spread": 9.01848600374529,
+  "difference_spread": 0.0,
+  "queen": 0.255,
+  "moons": 22,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.70736
+ }
+]

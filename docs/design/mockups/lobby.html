@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Lobby: HEARTS mockup</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&family=Zilla+Slab:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="hearts.css">
+<script src="cards.js" defer></script>
+<style>
+main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 24px; padding: 28px; max-width: 1320px; margin: 0 auto; }
+h1 { font-size: 2.6rem; line-height: 1.1; font-weight: 700; grid-column: 1 / -1; }
+.start .body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 260px); gap: 24px; align-items: start; }
+.seats { display: grid; grid-template-columns: minmax(150px, 1fr) 72px minmax(150px, 1fr); grid-template-areas: "n n n" "w t e" "s s s"; gap: 10px; align-items: end; }
+.seats .n, .seats .s { justify-self: center; width: 180px; }
+.seats .t { grid-area: t; aspect-ratio: 1; background-color: var(--table); background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 4px 4px; }
+.seats .n { grid-area: n; } .seats .w { grid-area: w; } .seats .e { grid-area: e; } .seats .s { grid-area: s; }
+label { display: block; font-size: .875rem; color: var(--quiet); font-weight: 500; }
+select { width: 100%; min-height: 44px; padding: 8px; border: 2px solid var(--ink); border-radius: 0; background: var(--paper); font: inherit; color: var(--ink); }
+.seats .s p { min-height: 44px; display: grid; place-items: center; background: var(--ink); color: var(--paper); font-weight: 600; }
+.choices { display: grid; gap: 14px; }
+.choices .primary { font-size: 1.1rem; text-align: center; width: 100%; }
+.choices label.check { display: flex; gap: 10px; align-items: flex-start; color: var(--ink); font-size: .95rem; }
+.choices input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; }
+.strength { margin-top: 20px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.strength h3 { font-size: 1rem; }
+.strength p.how { color: var(--quiet); font-size: .9rem; }
+table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: .95rem; }
+td, th { padding: 6px 8px 6px 0; text-align: left; border-bottom: 1px solid var(--rule); font-weight: 400; vertical-align: top; }
+th[scope=col] { color: var(--quiet); font-size: .85rem; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; }
+.side { display: grid; gap: 24px; align-content: start; }
+.game { display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; padding: 12px 16px; border-bottom: 1px solid var(--rule); align-items: center; }
+.game:last-child { border-bottom: 0; }
+.game .who { font-weight: 600; }
+.game .state { color: var(--quiet); font-size: .92rem; }
+.game .go { grid-row: span 2; }
+.game.turn .state { color: var(--ink); font-weight: 600; }
+.open { grid-column: 1 / -1; }
+.open h2.head { font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; }
+.tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 18px; }
+.mini { background: var(--panel); color: var(--ink); border: 2px solid var(--ink); padding: 12px; display: grid; gap: 10px; }
+.mini .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-areas: ". n ." "w c e" ". s ."; gap: 5px; font-size: .86rem; text-align: center; align-items: center; }
+.mini .grid > * { min-height: 44px; display: grid; place-items: center; padding: 3px; line-height: 1.15; }
+.mini .n { grid-area: n; } .mini .w { grid-area: w; } .mini .e { grid-area: e; } .mini .s { grid-area: s; } .mini .c { grid-area: c; background: var(--table); }
+.mini .person { background: #dfe0f2; }
+.mini .bot { border: 1px solid var(--quiet); }
+.mini .sit { background: var(--marker); border: 2px solid var(--ink); font-weight: 700; cursor: pointer; }
+.mini p { font-size: .9rem; color: var(--quiet); }
+@media (max-width: 960px) { main { grid-template-columns: minmax(0, 1fr); padding: 16px; } h1 { font-size: 2rem; } .start .body { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .seats { grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); } select { font-size: .9rem; padding: 8px 4px; } .tables { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="mark" href="#"><span>♥</span> Hearts</a>
+  <nav aria-label="Main">
+    <a href="#" aria-current="page">Play</a>
+    <a href="#games">My games</a>
+    <a href="table.html">Study table</a>
+    <a href="review.html">Deal review</a>
+  </nav>
+  <a class="secondary" href="#">Harley</a>
+</header>
+<main>
+  <h1>Take a seat</h1>
+  <section class="window start" aria-labelledby="start-title">
+    <h2 id="start-title">Start a game</h2>
+    <div class="body">
+      <div class="seats">
+        <div class="n"><label for="s-n">Across</label><select id="s-n"><option>Find a person</option><option>Clown</option><option>Conservative</option><option selected>Expert, 1986</option><option>Neural network</option><option>Claude</option></select></div>
+        <div class="w"><label for="s-w">Left</label><select id="s-w"><option selected>Find a person</option><option>Clown</option><option>Conservative</option><option>Expert, 1986</option><option>Neural network</option><option>Claude</option></select></div>
+        <div class="t" aria-hidden="true"></div>
+        <div class="e"><label for="s-e">Right</label><select id="s-e"><option>Find a person</option><option>Clown</option><option>Conservative</option><option>Expert, 1986</option><option selected>Neural network</option><option>Claude</option></select></div>
+        <div class="s"><p>You</p></div>
+      </div>
+      <div class="choices">
+        <button class="primary">Deal me in</button>
+        <label class="check"><input type="checkbox" checked> If nobody joins in 30 seconds, an Expert takes the seat</label>
+        <label class="check"><input type="checkbox"> Study table: show everyone's thoughts, unrated</label>
+      </div>
+    </div>
+    <div class="body strength" style="display:block">
+      <h3>How strong are they?</h3>
+      <p class="how">Points a deal, playing one seat against three Experts in our benchmark. Lower is stronger.</p>
+      <table>
+        <thead><tr><th scope="col">Opponent</th><th scope="col">How it plays</th><th scope="col" class="n">Points</th></tr></thead>
+        <tbody>
+          <tr><td>Neural network</td><td>Taught itself by self-play. Gives no reasons.</td><td class="n">2.2</td></tr>
+          <tr><td>Expert, 1986</td><td>97 rules, and it tells you which one it used.</td><td class="n">5.4</td></tr>
+          <tr><td>Conservative</td><td>One careful strategy, no memory of past tricks.</td><td class="n">about 6</td></tr>
+          <tr><td>Claude</td><td>Reasons about each move. Costs about 1¢ a move.</td><td class="n">about 6</td></tr>
+          <tr><td>Clown</td><td>Plays any legal card at random.</td><td class="n">about 12</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <div class="side" id="games">
+    <section class="window" aria-labelledby="games-title">
+      <h2 id="games-title">Your games</h2>
+      <div class="game turn"><p class="who">With Ana, Expert, Neural network</p><a class="primary go" href="table.html">Play</a><p class="state">Your turn, deal 5. You 31, lowest 22.</p></div>
+      <div class="game"><p class="who">With Bruno, Mei, Tomas</p><a class="secondary go" href="table.html">Watch</a><p class="state">Waiting for Mei, deal 2. You 14, lowest 3.</p></div>
+      <div class="game"><p class="who">With three Experts (study table)</p><a class="secondary go" href="table.html">Open</a><p class="state">Paused at trick 6, deal 5.</p></div>
+    </section>
+    <section class="window" aria-labelledby="last-title">
+      <h2 id="last-title">Your last deal</h2>
+      <div class="body">
+        <p>You took 7 points. From the same seat, the network shot the moon.</p>
+        <p style="margin-top:12px"><a class="secondary" href="review.html" style="color:var(--ink)">Review the deal</a></p>
+      </div>
+    </section>
+  </div>
+  <section class="open" aria-labelledby="open-title">
+    <h2 class="head" id="open-title">Tables looking for players</h2>
+    <div class="tables">
+      <div class="mini"><div class="grid"><span class="n person">Ana</span><span class="w person">Bruno</span><span class="c" aria-hidden="true"></span><span class="e bot">Expert</span><button class="s sit" aria-label="Sit at Ana and Bruno's table">Sit here</button></div><p>Rated, 90 seconds a move.</p></div>
+      <div class="mini"><div class="grid"><button class="n sit" aria-label="Sit at Mei's table">Sit here</button><span class="w person">Mei</span><span class="c" aria-hidden="true"></span><span class="e bot">Neural network</span><span class="s bot">Neural network</span></div><p>Two networks. Rated, 30 seconds a move.</p></div>
+      <div class="mini"><div class="grid"><span class="n person">Tomas</span><button class="w sit" aria-label="Sit at Tomas's table">Sit here</button><span class="c" aria-hidden="true"></span><span class="e person">Priya</span><span class="s person">Sam</span></div><p>Friends only, by invitation link.</p></div>
+      <div class="mini"><div class="grid"><span class="n bot">Claude</span><span class="w bot">Expert</span><span class="c" aria-hidden="true"></span><span class="e bot">Neural network</span><button class="s sit" aria-label="Sit at the study table">Sit here</button></div><p>Study table, thoughts open, unrated.</p></div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

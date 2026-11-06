@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HEARTS benchmark: fresh</title><style>
+.viz-root { color-scheme: light; --surface: #fcfcfb; --page: #f9f9f7; --ink: #0b0b0b; --ink2: #52514e;
+  --muted: #6f6d68; --grid: #e1e0d9; --base: #c3c2b7; --series: #2a78d6; --hover: rgba(11,11,11,.04);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--page);
+  margin: 0; padding: 32px 20px 64px; }
+@media (prefers-color-scheme: dark) { .viz-root { color-scheme: dark; --surface: #1a1a19; --page: #0d0d0d;
+  --ink: #f0efec; --ink2: #c3c2b7; --muted: #a09e97; --grid: #2c2c2a; --base: #4a4a46; --series: #3987e5;
+  --hover: rgba(255,255,255,.05); } }
+main { max-width: 820px; margin: 0 auto; }
+h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 8px; }
+h2 { font-size: 1.15rem; margin: 36px 0 6px; }
+p, li { color: var(--ink2); }
+.lead { font-size: 1.05rem; color: var(--ink); }
+figure { margin: 12px 0 0; background: var(--surface); border: 1px solid var(--grid); border-radius: 8px; padding: 12px; }
+figcaption { font-size: .85rem; color: var(--muted); margin-top: 6px; }
+svg.dots { width: 100%; height: auto; display: block; }
+.grid { stroke: var(--grid); stroke-width: 1; }
+.reference { stroke: var(--ink2); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.axis { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.label { fill: var(--ink); font-size: 13px; }
+.value { fill: var(--ink2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.whisker { stroke: var(--series); stroke-width: 2; stroke-linecap: round; }
+.dot { fill: var(--series); stroke: var(--surface); stroke-width: 2; }
+.hit { fill: transparent; }
+.row:hover .hit { fill: var(--hover); }
+#tip { position: fixed; pointer-events: none; display: none; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--base); border-radius: 6px; padding: 6px 10px; font-size: 13px; max-width: 320px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; margin-top: 10px; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--grid); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--ink2); font-weight: 600; }
+code { font-size: .9em; }
+</style></head>
+<body class="viz-root"><main>
+<h1>Players against the 1986 Hearts Expert</h1>
+<p class="lead">Self-play network in Lisp (HEARTSNET) scored 3.2 fewer points per deal than the Expert: better, beyond the noise.</p>
+<p>Each player sat in seat 1 against three copies of the Expert, on the same fixed deals. Hearts is a game
+of avoiding points, so lower is better. API spend for this run was $0.00.</p>
+
+<h2 id="t1">Points per deal compared with the Expert, on the same cards</h2>
+<figure><svg viewBox="0 0 760 250" role="img" aria-labelledby="t1" class="dots"><line class="grid" x1="300.0" x2="300.0" y1="16" y2="206"/><text class="axis" x="300.0" y="224" text-anchor="middle">-4</text><line class="grid" x1="410.0" x2="410.0" y1="16" y2="206"/><text class="axis" x="410.0" y="224" text-anchor="middle">-2</text><line class="grid" x1="520.0" x2="520.0" y1="16" y2="206"/><text class="axis" x="520.0" y="224" text-anchor="middle">0</text><line class="grid" x1="630.0" x2="630.0" y1="16" y2="206"/><text class="axis" x="630.0" y="224" text-anchor="middle">2</text><line class="reference" x1="520.0" x2="520.0" y1="10" y2="206"/><text class="axis" x="465.0" y="244" text-anchor="middle">points per deal, difference from the Expert (left of the line is better)</text><text class="axis" x="525.0" y="18">same as the Expert</text><g class="row" data-tip="Self-play network in Lisp (HEARTSNET): -3.23 points per deal against the Expert on the same 2000 deals; 95% interval -3.77 to -2.72"><rect class="hit" x="0" y="16.0" width="760" height="38"/><text class="label" x="288" y="39.0" text-anchor="end">Self-play network in Lisp (HEARTSNET)</text><line class="whisker" x1="312.7" x2="370.3" y1="35.0" y2="35.0"/><circle class="dot" cx="342.4" cy="35.0" r="6"/><text class="value" x="380.3" y="39.0">-3.2</text></g><g class="row" data-tip="Expert with hy-shooting: -1.44 points per deal against the Expert on the same 2000 deals; 95% interval -1.84 to -1.07"><rect class="hit" x="0" y="54.0" width="760" height="38"/><text class="label" x="288" y="77.0" text-anchor="end">Expert with hy-shooting</text><line class="whisker" x1="418.9" x2="461.3" y1="73.0" y2="73.0"/><circle class="dot" cx="440.9" cy="73.0" r="6"/><text class="value" x="471.3" y="77.0">-1.4</text></g><g class="row" data-tip="Expert with sr-plus: -0.49 points per deal against the Expert on the same 2000 deals; 95% interval -0.82 to -0.15"><rect class="hit" x="0" y="92.0" width="760" height="38"/><text class="label" x="288" y="115.0" text-anchor="end">Expert with sr-plus</text><line class="whisker" x1="474.7" x2="512.0" y1="111.0" y2="111.0"/><circle class="dot" cx="493.3" cy="111.0" r="6"/><text class="value" x="522.0" y="115.0">-0.5</text></g><g class="row" data-tip="Expert with combo: -0.44 points per deal against the Expert on the same 2000 deals; 95% interval -0.76 to -0.11"><rect class="hit" x="0" y="130.0" width="760" height="38"/><text class="label" x="288" y="153.0" text-anchor="end">Expert with combo</text><line class="whisker" x1="478.4" x2="513.7" y1="149.0" y2="149.0"/><circle class="dot" cx="496.0" cy="149.0" r="6"/><text class="value" x="523.7" y="153.0">-0.4</text></g><g class="row" data-tip="Expert with sr-combo: -0.23 points per deal against the Expert on the same 2000 deals; 95% interval -0.55 to +0.09"><rect class="hit" x="0" y="168.0" width="760" height="38"/><text class="label" x="288" y="191.0" text-anchor="end">Expert with sr-combo</text><line class="whisker" x1="489.9" x2="524.8" y1="187.0" y2="187.0"/><circle class="dot" cx="507.3" cy="187.0" r="6"/><text class="value" x="534.8" y="191.0">-0.2</text></g></svg>
+<figcaption>Dots are mean differences and lines are 95% bootstrap intervals over deals. An interval that
+crosses the dashed line can't be told apart from the Expert.</figcaption></figure>
+<ul><li><strong>Self-play network in Lisp (HEARTSNET)</strong> scored 3.2 fewer points per deal than the Expert: better, beyond the noise.</li><li><strong>Expert with hy-shooting</strong> scored 1.4 fewer points per deal than the Expert: better, beyond the noise.</li><li><strong>Expert with sr-plus</strong> scored 0.5 fewer points per deal than the Expert: better, beyond the noise.</li><li><strong>Expert with combo</strong> scored 0.4 fewer points per deal than the Expert: better, beyond the noise.</li><li><strong>Expert with sr-combo</strong> can&#x27;t be told apart from the Expert on 2000 deals (difference -0.2).</li></ul>
+
+<h2 id="t2">Points per deal</h2>
+<figure><svg viewBox="0 0 760 288" role="img" aria-labelledby="t2" class="dots"><line class="grid" x1="300.0" x2="300.0" y1="16" y2="244"/><text class="axis" x="300.0" y="262" text-anchor="middle">0</text><line class="grid" x1="382.5" x2="382.5" y1="16" y2="244"/><text class="axis" x="382.5" y="262" text-anchor="middle">2</text><line class="grid" x1="465.0" x2="465.0" y1="16" y2="244"/><text class="axis" x="465.0" y="262" text-anchor="middle">4</text><line class="grid" x1="547.5" x2="547.5" y1="16" y2="244"/><text class="axis" x="547.5" y="262" text-anchor="middle">6</text><line class="grid" x1="630.0" x2="630.0" y1="16" y2="244"/><text class="axis" x="630.0" y="262" text-anchor="middle">8</text><line class="reference" x1="568.1" x2="568.1" y1="10" y2="244"/><text class="axis" x="465.0" y="282" text-anchor="middle">points per deal, in seat 1 against three Experts (lower is better)</text><text class="axis" x="573.1" y="18">6.5: an even share</text><g class="row" data-tip="Self-play network in Lisp (HEARTSNET): 2.17 points per deal over 2000 deals; 95% interval 1.75 to 2.59"><rect class="hit" x="0" y="16.0" width="760" height="38"/><text class="label" x="288" y="39.0" text-anchor="end">Self-play network in Lisp (HEARTSNET)</text><line class="whisker" x1="372.1" x2="406.8" y1="35.0" y2="35.0"/><circle class="dot" cx="389.6" cy="35.0" r="6"/><text class="value" x="416.8" y="39.0">2.2</text></g><g class="row" data-tip="Expert with hy-shooting: 3.96 points per deal over 2000 deals; 95% interval 3.57 to 4.35"><rect class="hit" x="0" y="54.0" width="760" height="38"/><text class="label" x="288" y="77.0" text-anchor="end">Expert with hy-shooting</text><line class="whisker" x1="447.4" x2="479.5" y1="73.0" y2="73.0"/><circle class="dot" cx="463.5" cy="73.0" r="6"/><text class="value" x="489.5" y="77.0">4.0</text></g><g class="row" data-tip="Expert with sr-plus: 4.92 points per deal over 2000 deals; 95% interval 4.55 to 5.28"><rect class="hit" x="0" y="92.0" width="760" height="38"/><text class="label" x="288" y="115.0" text-anchor="end">Expert with sr-plus</text><line class="whisker" x1="487.6" x2="517.8" y1="111.0" y2="111.0"/><circle class="dot" cx="502.8" cy="111.0" r="6"/><text class="value" x="527.8" y="115.0">4.9</text></g><g class="row" data-tip="Expert with combo: 4.97 points per deal over 2000 deals; 95% interval 4.67 to 5.27"><rect class="hit" x="0" y="130.0" width="760" height="38"/><text class="label" x="288" y="153.0" text-anchor="end">Expert with combo</text><line class="whisker" x1="492.5" x2="517.6" y1="149.0" y2="149.0"/><circle class="dot" cx="504.9" cy="149.0" r="6"/><text class="value" x="527.6" y="153.0">5.0</text></g><g class="row" data-tip="Expert with sr-combo: 5.17 points per deal over 2000 deals; 95% interval 4.80 to 5.54"><rect class="hit" x="0" y="168.0" width="760" height="38"/><text class="label" x="288" y="191.0" text-anchor="end">Expert with sr-combo</text><line class="whisker" x1="498.2" x2="528.4" y1="187.0" y2="187.0"/><circle class="dot" cx="513.3" cy="187.0" r="6"/><text class="value" x="538.4" y="191.0">5.2</text></g><g class="row" data-tip="Expert (1986 rules): 5.40 points per deal over 2000 deals; 95% interval 5.03 to 5.79"><rect class="hit" x="0" y="206.0" width="760" height="38"/><text class="label" x="288" y="229.0" text-anchor="end">Expert (1986 rules)</text><line class="whisker" x1="507.3" x2="538.9" y1="225.0" y2="225.0"/><circle class="dot" cx="522.9" cy="225.0" r="6"/><text class="value" x="548.9" y="229.0">5.4</text></g></svg>
+<figcaption>A deal holds 26 points, so four equal players would average about 6.5 each. Players ran different
+numbers of deals, which is why some intervals are wider.</figcaption></figure>
+
+<h2>All the numbers</h2>
+<div class="scroll"><table><tr><th>Player</th><th>Deals</th><th>Points per deal</th><th>95% interval</th><th>Vs Expert</th><th>Margin vs Expert</th><th>Took Q♠</th><th>Moons shot</th><th>Moons by others</th><th>API calls</th><th>Fallbacks</th><th>Input tokens</th><th>Output tokens</th><th>Cost</th><th>Seconds per deal</th></tr><tr><td>Self-play network in Lisp (HEARTSNET)</td><td>2000</td><td>2.17</td><td>1.75 to 2.59</td><td>-3.23</td><td>-3.83</td><td>19%</td><td>137</td><td>100</td><td></td><td></td><td></td><td></td><td></td><td>1.1</td></tr><tr><td>Expert with hy-shooting</td><td>2000</td><td>3.96</td><td>3.57 to 4.35</td><td>-1.44</td><td>-1.67</td><td>22%</td><td>76</td><td>135</td><td></td><td></td><td></td><td></td><td></td><td>1.4</td></tr><tr><td>Expert with sr-plus</td><td>2000</td><td>4.92</td><td>4.55 to 5.28</td><td>-0.49</td><td>-0.48</td><td>22%</td><td>38</td><td>163</td><td></td><td></td><td></td><td></td><td></td><td>1.3</td></tr><tr><td>Expert with combo</td><td>2000</td><td>4.97</td><td>4.67 to 5.27</td><td>-0.44</td><td>-0.62</td><td>19%</td><td>6</td><td>171</td><td></td><td></td><td></td><td></td><td></td><td>1.4</td></tr><tr><td>Expert with sr-combo</td><td>2000</td><td>5.17</td><td>4.80 to 5.54</td><td>-0.23</td><td>-0.33</td><td>23%</td><td>38</td><td>141</td><td></td><td></td><td></td><td></td><td></td><td>1.3</td></tr><tr><td>Expert (1986 rules)</td><td>2000</td><td>5.40</td><td>5.03 to 5.79</td><td></td><td></td><td>25%</td><td>41</td><td>141</td><td></td><td></td><td></td><td></td><td></td><td>1.3</td></tr></table></div>
+
+<h2>How it was run</h2>
+<ul>
+<li><strong>The game:</strong> the 1986 code running in headless Medley, unchanged except for test advice: fixed shuffles
+in place of <code>H.Shuffle</code> and no pause at the end of each trick. The report checks that every player was dealt the same cards.</li>
+<li><strong>One long game:</strong> the pass direction follows the deal number, and the Expert opponents keep modelling
+the other players across deals. The over score is set out of reach, so nobody plays for the end of a game, and this doesn't measure that skill.</li>
+<li><strong>Scoring:</strong> a player's points for the deal, with a shot moon scoring -26 and nothing added to the others, as in the 1986 code.</li>
+<li><strong>Margin:</strong> a player's points minus the average of the other three, compared with the Expert on the same deal. Points alone ignore an opponent's moon, which in a real game hurts you.</li>
+<li><strong>Fallbacks:</strong> when a model gave no usable answer the seat played a safe legal card, and that deal still counts.</li>
+<li><strong>Cost:</strong> tokens at each provider's listed price. Local models cost nothing here, apart from the machine.</li>
+</ul>
+
+<h2>What this can't tell you</h2>
+<ul>
+<li><strong>Small differences.</strong> Comparing on the same deals, the difference from the Expert varies by 7.1 to 12.0 points from deal to deal, so telling apart players 1 point per deal apart would take about 554 deals.</li>
+<li><strong>What the models could do with more effort.</strong> Claude ran at low effort, and the local models are old.</li>
+<li><strong>How a model plays against other opponents.</strong> The field here is three Experts, and results against people or a mixed table could differ.</li>
+<li><strong>Repeatability of a single run.</strong> The models aren't deterministic, and each ran once.</li>
+</ul>
+<div id="tip" role="status"></div>
+</main><script>
+const tip = document.getElementById('tip');
+document.querySelectorAll('.row').forEach(row => {
+  row.addEventListener('mousemove', e => {
+    tip.textContent = row.dataset.tip; tip.style.display = 'block';
+    tip.style.left = Math.min(e.clientX + 14, innerWidth - 340) + 'px'; tip.style.top = (e.clientY + 14) + 'px';
+  });
+  row.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+});
+</script></body></html>

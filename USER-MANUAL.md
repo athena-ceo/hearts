@@ -182,7 +182,9 @@ their own SDK clients.
 
 Seat code **`NP`** is a neural network that runs entirely in Interlisp: no Python, no API and no cost
 per move. It was trained outside Medley by playing millions of deals against itself, then its weights
-were copied into the file `HEARTSNET`. Choose **Neural network** in the `PlayHearts` menu, or:
+were copied into the file `HEARTSNET`. Against three Experts it took about 3 points per deal fewer than
+an Expert in the same seat, over 2,800 test deals, largely by shooting the moon more often. Choose
+**Neural network** in the `PlayHearts` menu, or:
 
 ```
 (FILESLOAD PLAYHEARTS)

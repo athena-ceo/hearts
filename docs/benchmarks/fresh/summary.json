@@ -1,0 +1,186 @@
+[
+ {
+  "name": "np-HEARTSNET",
+  "label": "Self-play network in Lisp (HEARTSNET)",
+  "deals": 2000,
+  "mean": [
+   2.173,
+   1.748,
+   2.59
+  ],
+  "difference": [
+   -3.23,
+   -3.769,
+   -2.7215
+  ],
+  "margin": [
+   -3.83,
+   -4.415333333333333,
+   -3.266
+  ],
+  "others_moons": 100,
+  "paired": 2000,
+  "spread": 9.57318619619265,
+  "difference_spread": 12.013586605654691,
+  "queen": 0.192,
+  "moons": 137,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.1257584999999999
+ },
+ {
+  "name": "x-hy-shooting",
+  "label": "Expert with hy-shooting",
+  "deals": 2000,
+  "mean": [
+   3.964,
+   3.574,
+   4.3505
+  ],
+  "difference": [
+   -1.439,
+   -1.838,
+   -1.0675
+  ],
+  "margin": [
+   -1.6673333333333333,
+   -2.0753333333333335,
+   -1.2793333333333332
+  ],
+  "others_moons": 135,
+  "paired": 2000,
+  "spread": 8.970280763080064,
+  "difference_spread": 8.788167894815945,
+  "queen": 0.215,
+  "moons": 76,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.3513245
+ },
+ {
+  "name": "x-sr-plus",
+  "label": "Expert with sr-plus",
+  "deals": 2000,
+  "mean": [
+   4.917,
+   4.549,
+   5.279
+  ],
+  "difference": [
+   -0.486,
+   -0.823,
+   -0.146
+  ],
+  "margin": [
+   -0.48333333333333334,
+   -0.8593333333333334,
+   -0.10400000000000002
+  ],
+  "others_moons": 163,
+  "paired": 2000,
+  "spread": 8.410260236081836,
+  "difference_spread": 7.712038755795088,
+  "queen": 0.221,
+  "moons": 38,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.347574
+ },
+ {
+  "name": "x-combo",
+  "label": "Expert with combo",
+  "deals": 2000,
+  "mean": [
+   4.9675,
+   4.6655,
+   5.274
+  ],
+  "difference": [
+   -0.4355,
+   -0.7565,
+   -0.1145
+  ],
+  "margin": [
+   -0.624,
+   -0.9913333333333334,
+   -0.2553333333333333
+  ],
+  "others_moons": 171,
+  "paired": 2000,
+  "spread": 6.974795167875319,
+  "difference_spread": 7.3615851702000334,
+  "queen": 0.1935,
+  "moons": 6,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.352046
+ },
+ {
+  "name": "x-sr-combo",
+  "label": "Expert with sr-combo",
+  "deals": 2000,
+  "mean": [
+   5.172,
+   4.805,
+   5.537
+  ],
+  "difference": [
+   -0.231,
+   -0.548,
+   0.0875
+  ],
+  "margin": [
+   -0.334,
+   -0.6613333333333333,
+   -0.00866666666666665
+  ],
+  "others_moons": 141,
+  "paired": 2000,
+  "spread": 8.477992343537975,
+  "difference_spread": 7.095407768810955,
+  "queen": 0.231,
+  "moons": 38,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.347769
+ },
+ {
+  "name": "expert",
+  "label": "Expert (1986 rules)",
+  "deals": 2000,
+  "mean": [
+   5.403,
+   5.025,
+   5.7925
+  ],
+  "difference": null,
+  "margin": null,
+  "others_moons": 141,
+  "paired": 2000,
+  "spread": 8.807347823711966,
+  "difference_spread": 0.0,
+  "queen": 0.2465,
+  "moons": 41,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.339203
+ }
+]
