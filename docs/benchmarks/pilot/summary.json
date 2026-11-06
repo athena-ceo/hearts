@@ -1,0 +1,218 @@
+[
+ {
+  "name": "opus-medium",
+  "label": "Claude Opus 5.5, medium effort",
+  "deals": 75,
+  "mean": [
+   5.04,
+   3.5866666666666664,
+   6.6
+  ],
+  "difference": [
+   0.5333333333333333,
+   -1.3066666666666666,
+   2.6666666666666665
+  ],
+  "margin": [
+   0.9422222222222223,
+   -1.297777777777778,
+   3.4133333333333336
+  ],
+  "others_moons": 7,
+  "paired": 75,
+  "spread": 6.747251692756496,
+  "difference_spread": 8.9357062869617,
+  "queen": 0.2,
+  "moons": 0,
+  "decisions": 809,
+  "fallbacks": 0,
+  "input_tokens": 1805434,
+  "output_tokens": 356499,
+  "cost": 14.351716,
+  "seconds_per_deal": 76.43660000000001
+ },
+ {
+  "name": "expert",
+  "label": "Expert (1986 rules)",
+  "deals": 200,
+  "mean": [
+   5.585,
+   4.36,
+   6.73
+  ],
+  "difference": null,
+  "margin": null,
+  "others_moons": 14,
+  "paired": 200,
+  "spread": 8.797142923591185,
+  "difference_spread": 0.0,
+  "queen": 0.265,
+  "moons": 4,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.3115899999999998
+ },
+ {
+  "name": "conservative",
+  "label": "Conservative (1986)",
+  "deals": 200,
+  "mean": [
+   5.975,
+   4.835,
+   7.085
+  ],
+  "difference": [
+   0.39,
+   -0.84,
+   1.625
+  ],
+  "margin": [
+   0.52,
+   -1.126666666666667,
+   2.106666666666667
+  ],
+  "others_moons": 16,
+  "paired": 200,
+  "spread": 8.121834520593207,
+  "difference_spread": 8.97108140123239,
+  "queen": 0.28,
+  "moons": 2,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 1.02152
+ },
+ {
+  "name": "haiku",
+  "label": "Claude Haiku 5.5, low effort",
+  "deals": 100,
+  "mean": [
+   8.68,
+   6.93,
+   10.36
+  ],
+  "difference": [
+   3.18,
+   1.2,
+   5.26
+  ],
+  "margin": [
+   4.586666666666667,
+   2.1199999999999997,
+   7.12
+  ],
+  "others_moons": 10,
+  "paired": 100,
+  "spread": 9.046322987598861,
+  "difference_spread": 10.489417466564994,
+  "queen": 0.37,
+  "moons": 1,
+  "decisions": 1094,
+  "fallbacks": 0,
+  "input_tokens": 2451649,
+  "output_tokens": 704242,
+  "cost": 0.5972859,
+  "seconds_per_deal": 56.5002
+ },
+ {
+  "name": "mistral",
+  "label": "Mistral 7B (local, Ollama)",
+  "deals": 40,
+  "mean": [
+   11.675,
+   8.45,
+   14.4
+  ],
+  "difference": [
+   6.35,
+   2.6,
+   9.5
+  ],
+  "margin": [
+   8.466666666666667,
+   3.9,
+   12.5
+  ],
+  "others_moons": 1,
+  "paired": 40,
+  "spread": 9.5498355469798,
+  "difference_spread": 11.400742216054317,
+  "queen": 0.5,
+  "moons": 1,
+  "decisions": 443,
+  "fallbacks": 20,
+  "input_tokens": 814107,
+  "output_tokens": 30603,
+  "cost": 0.0,
+  "seconds_per_deal": 68.97319999999999
+ },
+ {
+  "name": "clown",
+  "label": "Clown (random legal)",
+  "deals": 200,
+  "mean": [
+   12.135,
+   10.625,
+   13.575
+  ],
+  "difference": [
+   6.55,
+   4.785,
+   8.295
+  ],
+  "margin": [
+   8.213333333333333,
+   6.086666666666668,
+   10.3
+  ],
+  "others_moons": 7,
+  "paired": 200,
+  "spread": 10.458185464796482,
+  "difference_spread": 12.449596873455693,
+  "queen": 0.59,
+  "moons": 5,
+  "decisions": 0,
+  "fallbacks": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost": 0.0,
+  "seconds_per_deal": 0.989
+ },
+ {
+  "name": "gemma2",
+  "label": "Gemma 2 9B (local, Ollama)",
+  "deals": 40,
+  "mean": [
+   14.8,
+   12.5,
+   17.05
+  ],
+  "difference": [
+   9.475,
+   6.9,
+   12.025
+  ],
+  "margin": [
+   11.766666666666667,
+   8.266666666666666,
+   15.233333333333334
+  ],
+  "others_moons": 0,
+  "paired": 40,
+  "spread": 7.286094940856829,
+  "difference_spread": 8.384930010563671,
+  "queen": 0.65,
+  "moons": 0,
+  "decisions": 449,
+  "fallbacks": 5,
+  "input_tokens": 657957,
+  "output_tokens": 22746,
+  "cost": 0.0,
+  "seconds_per_deal": 45.676075
+ }
+]

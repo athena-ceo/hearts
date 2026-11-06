@@ -1,0 +1,38 @@
+(* "Rule changes for one Expert only: seat 1 sees the 1986 rules plus EPX.Classes, minus EPX.Removed.
+    The other Experts and the 1986 rule base are untouched.")
+(RPAQ? EPX.Classes NIL)
+(RPAQ? EPX.Removed NIL)
+(DEFINEQ
+(EPX.DEFRULE (LAMBDA (ClassName RuleName Weight IfForm)
+  (LET ((KEE.RuleClasses EPX.Classes))
+    (DECLARE (SPECVARS KEE.RuleClasses))
+    (KEE.DEFRULE ClassName RuleName Weight IfForm)
+    (SETQ EPX.Classes KEE.RuleClasses))
+  RuleName))
+(EPX.Subject? (LAMBDA NIL
+  (AND H.LastGame
+       (EQ (GET.VALUE (QUOTE (expert.players expert)) (QUOTE CurrentPlayer))
+           (fetch Object of (CAR (fetch Players of H.LastGame)))))))
+(EPX.Filter (LAMBDA (Rules Class)
+  (if (EPX.Subject?)
+      then (LET ((Result (for R in Rules collect R unless (FMEMB (CAR R) EPX.Removed))))
+             (for R in (CDR (FASSOC (if (LISTP Class) then (CAR Class) else Class) EPX.Classes))
+                do (SETQ Result (KEE.InsertByWeight R Result)))
+             Result)
+    else Rules)))
+(EPX.Fired (LAMBDA (Name)
+  (for R in KEE.Fired count (EQ R Name))))
+(EPX.Report (LAMBDA NIL
+  (for Entry in EPX.Classes join (for R in (CDR Entry) collect (LIST (CAR R) (EPX.Fired (CAR R)))))))
+(EPX.HighestUnder (LAMBDA (Legals Trick)
+  (* ; "The highest card that still loses to the trick so far.")
+  (LET* ((Suit (Trick.LeadSuit Trick))
+         (Lower (CardList.LowerCards Legals (Card.MaxCard (Trick.Cards Trick) Suit) Suit)))
+    (AND Lower (Card.MaxCard Lower)))))
+)
+(ADVISE (QUOTE KEE.RulesOf) (QUOTE AROUND) (QUOTE (EPX.Filter * Class)))
+(* "Seat 1 can have its own thresholds, in a personality of its own.")
+(UNITCREATE (QUOTE epx.personality) NIL (QUOTE personalities))
+(ADVISE (QUOTE H.PlayGame) (QUOTE BEFORE)
+  (QUOTE (PUT.VALUE (fetch Object of (CAR Players)) (QUOTE Personality) (QUOTE epx.personality))))
+STOP

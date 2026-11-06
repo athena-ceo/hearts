@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Helper for the HEARTS LLM player (medley/llmplayer.lisp): decide one move with Claude.
+"""Helper for the HEARTS LLM player (medley/llmplayer.lisp): decide one move with an LLM.
 
 Medley writes what the player's seat knows to a JSON file and runs this once per decision:
 
-    python3 llm_player.py [--model M] [--effort E] [--timeout SECS] [--log FILE] REQUEST.json
+    python3 llm_player.py [--provider P] [--model M] [--effort E] [--timeout SECS] [--log FILE] REQUEST.json
+
+--provider is anthropic (the Messages API, through the anthropic package) or openai (Chat Completions
+on OpenAI or any compatible server, through the openai package).
 
 The answer is a single line on stdout, an S-expression Interlisp can READ:
 
@@ -19,6 +22,7 @@ checks the card itself and falls back to a safe one on ERROR.
 import argparse
 import json
 import os
+import re
 import signal
 import sys
 import time
@@ -34,8 +38,8 @@ FALLBACK_MODELS = {"claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "clau
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
 SYSTEM_PROMPT = """You are playing four-player Hearts, and you are trying to finish the game with \
-the lowest score. You play one seat; the others may be programs or people. These are the exact \
-rules of this game:
+the lowest score. You play one seat; the others may be programs or people. There are no partners \
+or teams: every player is on their own. These are the exact rules of this game:
 
 - Seats are numbered 1-4 and play proceeds 1, 2, 3, 4, 1. Each player holds 13 cards.
 - Before each deal's play, players may pass 3 cards. Left passes to the next seat, Across to the \
@@ -179,6 +183,11 @@ def choices_error(req, cards):
     return None
 
 
+def state_message(req):
+    # Compact: this is sent for every decision, and indentation would only cost tokens.
+    return json.dumps(describe_state(req), separators=(",", ":"))
+
+
 # --- the reply Lisp reads --------------------------------------------------------------------
 
 def lisp_string(text):
@@ -202,7 +211,7 @@ def error_reply(message):
     return f"(ERROR {lisp_string(message)})"
 
 
-# --- Claude ----------------------------------------------------------------------------------
+# --- Claude, and servers speaking its API ------------------------------------------------------------------------------
 
 class HelperError(Exception):
     pass
@@ -234,7 +243,7 @@ def request_params(req, args, messages):
 
 def ask_claude(req, args, client):
     """Return (cards, plan, remark, input_tokens, output_tokens).  One retry on an unusable answer."""
-    messages = [{"role": "user", "content": json.dumps(describe_state(req), indent=1)}]
+    messages = [{"role": "user", "content": state_message(req)}]
     input_tokens = output_tokens = 0
     problem = None
     for _attempt in range(2):
@@ -275,13 +284,106 @@ def run_claude(req, args):
     except HelperError as e:
         return error_reply(e)
     except anthropic.AuthenticationError:
-        return error_reply("the API rejected the credential (check ANTHROPIC_API_KEY)")
+        return error_reply("the API rejected the credential (check ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN)")
     except anthropic.APIStatusError as e:
         return error_reply(f"API error {e.status_code}: {e.message}")
     except anthropic.APIConnectionError as e:
         return error_reply(f"could not reach the API: {e}")
     except (anthropic.AnthropicError, TypeError, KeyError, json.JSONDecodeError) as e:
         # TypeError is how SDK 0.x reports having no credential at all.
+        return error_reply(f"{type(e).__name__}: {e}")
+    elapsed_ms = (time.monotonic() - started) * 1000
+    return ok_reply(cards, plan, remark, (in_toks, out_toks, elapsed_ms))
+
+
+# --- OpenAI and compatible servers -----------------------------------------------------------
+
+def openai_system_prompt(decision):
+    # Servers vary in honouring response_format, so the prompt asks for the same shape too.
+    keys = ", ".join(["plan", "remark"] + card_fields(decision))
+    return (f"{SYSTEM_PROMPT}\n\nReply with only a JSON object with the keys {keys}. Each card is a "
+            "string such as \"S10\".")
+
+
+def openai_response_format(decision):
+    return {"type": "json_schema",
+            "json_schema": {"name": f"hearts_{decision}", "strict": True,
+                            "schema": PASS_SCHEMA if decision == "pass" else PLAY_SCHEMA}}
+
+
+def read_answer(req, text):
+    """Return (cards, plan, remark, problem) from text that may wrap the JSON in reasoning or a code
+    fence, as servers without structured output do."""
+    text = re.sub(r"<think>.*?</think>", "", text or "", flags=re.DOTALL)
+    start, end = text.find("{"), text.rfind("}")
+    try:
+        answer = json.loads(text[start:end + 1]) if start >= 0 else None
+    except json.JSONDecodeError:
+        answer = None
+    fields = card_fields(req["decision"])
+    if not isinstance(answer, dict) or not all(isinstance(answer.get(f), str) for f in fields):
+        return None, None, None, f"That was not a JSON object with the keys {fields}."
+    cards = [answer[f].strip().upper() for f in fields]
+    return cards, answer.get("plan", ""), answer.get("remark", ""), choices_error(req, cards)
+
+
+def ask_openai(req, args, client, bad_request_error):
+    """Return (cards, plan, remark, input_tokens, output_tokens).  One retry on an unusable answer."""
+    messages = [{"role": "system", "content": openai_system_prompt(req["decision"])},
+                {"role": "user", "content": state_message(req)}]
+    # No token limit and no reasoning effort: servers and models differ on which of those they
+    # accept, and reject the rest.
+    options = {"response_format": openai_response_format(req["decision"])}
+    input_tokens = output_tokens = 0
+    problem = None
+    for _attempt in range(2):
+        try:
+            response = client.chat.completions.create(model=args.model, messages=messages, **options)
+        except bad_request_error:
+            if not options:
+                raise
+            # Probably no structured output here; the prompt asks for JSON anyway.
+            options = {}
+            response = client.chat.completions.create(model=args.model, messages=messages)
+        if response.usage:
+            input_tokens += response.usage.prompt_tokens or 0
+            output_tokens += response.usage.completion_tokens or 0
+        if not response.choices:
+            raise HelperError("the server returned no answer")
+        choice = response.choices[0]
+        if getattr(choice.message, "refusal", None) or choice.finish_reason == "content_filter":
+            raise HelperError("the model declined this request")
+        if choice.finish_reason == "length":
+            raise HelperError("the model ran out of tokens before answering")
+        cards, plan, remark, problem = read_answer(req, choice.message.content)
+        if not problem:
+            return cards, plan, remark, input_tokens, output_tokens
+        messages.append({"role": "assistant", "content": choice.message.content or ""})
+        messages.append({"role": "user", "content": problem + " Answer again."})
+    raise HelperError(f"unusable answer after a retry: {problem}")
+
+
+def run_openai(req, args):
+    try:
+        import openai
+    except ImportError:
+        return error_reply("the openai package is not installed (pip install openai)")
+    started = time.monotonic()
+    # A local server may need no key, but the SDK insists on one.
+    api_key = os.environ.get("OPENAI_API_KEY") or (
+        "not-needed" if os.environ.get("OPENAI_BASE_URL") else None)
+    try:
+        client = openai.OpenAI(api_key=api_key, timeout=args.timeout / 3, max_retries=2)
+        cards, plan, remark, in_toks, out_toks = ask_openai(req, args, client, openai.BadRequestError)
+    except HelperError as e:
+        return error_reply(e)
+    except openai.AuthenticationError:
+        return error_reply("the server rejected the credential (check OPENAI_API_KEY)")
+    except openai.APIStatusError as e:
+        return error_reply(f"API error {e.status_code}: {e.message}")
+    except openai.APIConnectionError as e:
+        return error_reply(f"could not reach the server: {e}")
+    except openai.OpenAIError as e:
         return error_reply(f"{type(e).__name__}: {e}")
     elapsed_ms = (time.monotonic() - started) * 1000
     return ok_reply(cards, plan, remark, (in_toks, out_toks, elapsed_ms))
@@ -315,12 +417,19 @@ def stub_reply(req, policy):
 
 def check_reply(args):
     try:
-        import anthropic
-        sdk = anthropic.__version__
+        if args.provider == "openai":
+            import openai as sdk_module
+            # A server of your own may need no key.
+            has_credential = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_BASE_URL")
+        else:
+            import anthropic as sdk_module
+            has_credential = (os.environ.get("ANTHROPIC_API_KEY")
+                              or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+        sdk = sdk_module.__version__
     except ImportError:
-        sdk = None
+        sdk, has_credential = None, None
     return (f"(CHECK {lisp_string(sys.version.split()[0])} {lisp_string(sdk or 'not installed')} "
-            f"{'T' if os.environ.get('ANTHROPIC_API_KEY') else 'NIL'} {lisp_string(args.model)})")
+            f"{'T' if has_credential else 'NIL'} {lisp_string(args.model)})")
 
 
 def log_decision(path, req, reply, seconds):
@@ -332,6 +441,7 @@ def log_decision(path, req, reply, seconds):
 def parse_args(argv):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("request", nargs="?", help="JSON file describing the decision")
+    p.add_argument("--provider", default="anthropic", choices=["anthropic", "openai"])
     p.add_argument("--model", default="claude-opus-5-5")
     p.add_argument("--effort", default="medium", choices=["low", "medium", "high", "xhigh", "max"])
     p.add_argument("--timeout", type=float, default=300.0, help="seconds to answer within")
@@ -357,7 +467,8 @@ def main(argv=None):
     try:
         with open(args.request, encoding="utf-8") as f:
             req = json.load(f)
-        reply = stub_reply(req, args.stub) if args.stub else run_claude(req, args)
+        ask = run_openai if args.provider == "openai" else run_claude
+        reply = stub_reply(req, args.stub) if args.stub else ask(req, args)
     except (OSError, ValueError, KeyError) as e:
         reply = error_reply(f"bad request: {type(e).__name__}: {e}")
     if args.log:

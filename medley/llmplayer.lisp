@@ -23,6 +23,7 @@
 (FILESLOAD UNIXCOMM)
 
 (* "Settings.  The model and effort are the cost controls: see USER-MANUAL.")
+(RPAQ? LP.Provider "anthropic")
 (RPAQ? LP.Model "claude-opus-5-5")
 (RPAQ? LP.Effort "medium")
 (RPAQ? LP.TimeoutSeconds 300)
@@ -55,7 +56,9 @@
 (LP.Create
   (LAMBDA (Open?)
     (* ; "A new LLM player.  Unlike the Conservative it always gets a Thoughts window (unless LP.Thoughts? is NIL), because its reasoning is the point; an open hand gets a hand window as well.")
-    (LET* ((Name (GENSYM (QUOTE Claude)))
+    (LET* ((Name (GENSYM (if (EQUAL LP.Provider "anthropic")
+                               then (QUOTE Claude)
+                             else (QUOTE LLM))))
            (Win (if LP.Thoughts?
                     then (CREATEW (GETBOXREGION 500 250 NIL NIL NIL
                                          (CONCAT "Please find a place for the thinking window for " Name))
@@ -251,7 +254,7 @@
 
 (LP.HelperCommand
   (LAMBDA (Helper)
-    (CONCAT LP.Python " " Helper " --model " LP.Model " --effort " LP.Effort
+    (CONCAT LP.Python " " Helper " --provider " LP.Provider " --model " LP.Model " --effort " LP.Effort
            " --timeout " LP.TimeoutSeconds
            (if LP.LogFile
                then (CONCAT " --log " LP.LogFile)

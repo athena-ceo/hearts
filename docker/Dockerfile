@@ -40,10 +40,10 @@ RUN git clone https://github.com/Interlisp/loops.git /opt/loops \
  && git -C /opt/loops log -1 --format='LOOPS %H %cd' \
  && rm -rf /opt/loops/.git
 
-# Python and the Anthropic SDK, for the LLM player's helper (medley/llm_player.py).
+# Python and the Anthropic and OpenAI SDKs, for the LLM player's helper (medley/llm_player.py).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 python3-pip \
- && pip3 install --break-system-packages --no-cache-dir anthropic \
+ && pip3 install --break-system-packages --no-cache-dir anthropic openai \
  && rm -rf /var/lib/apt/lists/*
 
 COPY harness.lisp /usr/local/share/hearts/harness.lisp

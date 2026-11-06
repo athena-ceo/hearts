@@ -4,3 +4,4 @@ medley/*.log
 medley/*.png
 out/
 __pycache__/
+selfplay/.venv/

@@ -350,3 +350,9 @@ if __name__ == "__main__":
     (DIST / "llm_player.py").write_text((HERE / "llm_player.py").read_text(encoding="utf-8"),
                                         encoding="utf-8", newline="\n")
     print(f"wrote {DIST / 'LLMPLAYER'}  ({len(lp.splitlines())} lines) + llm_player.py")
+
+    # NNPLAYER: the neural network player (medley/nnplayer.lisp).  Its weights, dist/HEARTSNET, are
+    # written by selfplay/export_lisp.py.
+    np_file = with_header("NNPLAYER", lisp_src("nnplayer.lisp") + "\nSTOP\n")
+    (DIST / "NNPLAYER").write_text(np_file, encoding="utf-8", newline="\n")
+    print(f"wrote {DIST / 'NNPLAYER'}  ({len(np_file.splitlines())} lines)")

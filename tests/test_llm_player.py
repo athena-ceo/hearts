@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Tests for the LLM player's helper (medley/llm_player.py), with no key and no spending: the API
-paths run through the real SDK against tests/mock_anthropic.py.
+paths run through the real SDKs against tests/mock_llm.py.
 
     python3 tests/test_llm_player.py
 """
 import contextlib
+import importlib.util
 import io
 import json
 import os
@@ -12,11 +13,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path[:0] = [str(ROOT / "medley"), str(ROOT / "tests")]
 import llm_player  # noqa: E402
-import mock_anthropic  # noqa: E402
+import mock_llm  # noqa: E402
 
 PLAY = {
     "decision": "play", "seat": 3, "deal": 2, "direction": "Left",
@@ -44,6 +46,12 @@ class DescribeState(unittest.TestCase):
         self.assertEqual(s["you_passed"]["to_seat"], 4)
         self.assertEqual(s["you_passed"]["not_yet_played"], ["SA", "H9", "D2"])
         self.assertEqual(s["game_scores_by_seat"]["2"], 41)
+
+    def test_state_message_is_compact_and_complete(self):
+        message = llm_player.state_message(PLAY)
+        self.assertNotIn("\n", message)
+        self.assertNotIn(": ", message)
+        self.assertEqual(json.loads(message), llm_player.describe_state(PLAY))
 
     def test_unseen_excludes_hand_and_played(self):
         unseen = llm_player.describe_state(PLAY)["cards_you_have_not_seen"]
@@ -113,9 +121,9 @@ class ThroughTheSDK(unittest.TestCase):
     """The real SDK and helper code, talking to the mock server."""
 
     def setUp(self):
-        mock_anthropic.RequestLog.bodies.clear()
-        mock_anthropic.RequestLog.headers.clear()
-        self.saved = {k: os.environ.get(k) for k in ("ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY")}
+        mock_llm.RequestLog.bodies.clear()
+        mock_llm.RequestLog.headers.clear()
+        self.saved = {k: os.environ.get(k) for k in ("ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
         self.server = None
 
     def tearDown(self):
@@ -128,7 +136,7 @@ class ThroughTheSDK(unittest.TestCase):
                 os.environ[k] = v
 
     def start(self, behaviour):
-        self.server = mock_anthropic.serve(behaviour=behaviour)
+        self.server = mock_llm.serve(behaviour=behaviour)
         os.environ["ANTHROPIC_BASE_URL"] = f"http://127.0.0.1:{self.server.server_address[1]}"
         os.environ["ANTHROPIC_API_KEY"] = "test-key"
 
@@ -138,20 +146,20 @@ class ThroughTheSDK(unittest.TestCase):
         self.assertTrue(reply.startswith("(OK ((D . 9))"), reply)
         self.assertIn('"Mock plan: duck everything."', reply)
         self.assertIn("(100 20 ", reply)
-        body = mock_anthropic.RequestLog.bodies[0]
+        body = mock_llm.RequestLog.bodies[0]
         self.assertEqual(body["model"], "claude-opus-5-5")
         self.assertEqual(body["thinking"], {"type": "adaptive"})
         self.assertEqual(body["output_config"]["effort"], "medium")
         self.assertEqual(body["output_config"]["format"]["schema"], llm_player.PLAY_SCHEMA)
         self.assertEqual(body["fallbacks"], "default")
         self.assertNotIn("temperature", body)
-        headers = {k.lower(): v for k, v in mock_anthropic.RequestLog.headers[0].items()}
+        headers = {k.lower(): v for k, v in mock_llm.RequestLog.headers[0].items()}
         self.assertIn(llm_player.FALLBACK_BETA, headers.get("anthropic-beta", ""))
 
     def test_pass_uses_three_card_schema(self):
         self.start("good")
         self.assertTrue(run_helper(PASS).startswith("(OK ((C . 2) (C . 3) (D . 4))"))
-        body = mock_anthropic.RequestLog.bodies[0]
+        body = mock_llm.RequestLog.bodies[0]
         self.assertEqual(body["output_config"]["format"]["schema"], llm_player.PASS_SCHEMA)
 
     def test_illegal_answer_is_retried_with_the_turn_replayed(self):
@@ -159,7 +167,7 @@ class ThroughTheSDK(unittest.TestCase):
         reply = run_helper(PLAY)
         self.assertTrue(reply.startswith("(OK ((D . 9))"), reply)
         self.assertIn("(200 40 ", reply)
-        second = mock_anthropic.RequestLog.bodies[1]["messages"]
+        second = mock_llm.RequestLog.bodies[1]["messages"]
         self.assertEqual(len(second), 3)
         self.assertEqual(second[1]["content"][0]["type"], "thinking")
         self.assertIn("not legal", second[2]["content"])
@@ -186,11 +194,163 @@ class ThroughTheSDK(unittest.TestCase):
         reply = run_helper(PLAY)
         self.assertTrue(reply.startswith("(ERROR"), reply)
 
+    def test_bearer_token_reaches_a_custom_endpoint(self):
+        self.start("good")
+        del os.environ["ANTHROPIC_API_KEY"]
+        os.environ["ANTHROPIC_AUTH_TOKEN"] = "gateway-token"
+        reply = run_helper(PLAY, "--model", "any-model-the-gateway-serves")
+        self.assertTrue(reply.startswith("(OK"), reply)
+        headers = {k.lower(): v for k, v in mock_llm.RequestLog.headers[0].items()}
+        self.assertEqual(headers["authorization"], "Bearer gateway-token")
+        self.assertEqual(mock_llm.RequestLog.bodies[0]["model"], "any-model-the-gateway-serves")
+
+    def test_check_counts_either_credential(self):
+        self.start("good")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            llm_player.main(["--check"])
+        self.assertIn(" T ", out.getvalue())
+        del os.environ["ANTHROPIC_API_KEY"]
+        os.environ["ANTHROPIC_AUTH_TOKEN"] = "gateway-token"
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            llm_player.main(["--check"])
+        self.assertIn(" T ", out.getvalue())
+        del os.environ["ANTHROPIC_AUTH_TOKEN"]
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            llm_player.main(["--check"])
+        self.assertIn(" NIL ", out.getvalue())
+
     def test_model_without_fallbacks_uses_plain_endpoint(self):
         self.start("good")
         reply = run_helper(PLAY, "--model", "claude-haiku-5-5")
         self.assertTrue(reply.startswith("(OK"), reply)
-        self.assertNotIn("fallbacks", mock_anthropic.RequestLog.bodies[0])
+        self.assertNotIn("fallbacks", mock_llm.RequestLog.bodies[0])
+
+
+@unittest.skipUnless(importlib.util.find_spec("openai"), "the openai package is not installed")
+class ThroughTheOpenAISDK(unittest.TestCase):
+    """The real openai SDK and helper code, talking to the mock server."""
+
+    VARIABLES = ("OPENAI_BASE_URL", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
+
+    def setUp(self):
+        mock_llm.RequestLog.bodies.clear()
+        mock_llm.RequestLog.headers.clear()
+        self.saved = {k: os.environ.pop(k, None) for k in self.VARIABLES}
+        self.server = None
+
+    def tearDown(self):
+        if self.server:
+            self.server.shutdown()
+            self.server.server_close()
+        for k, v in self.saved.items():
+            os.environ.pop(k, None)
+            if v is not None:
+                os.environ[k] = v
+
+    def start(self, behaviour, key="test-key"):
+        self.server = mock_llm.serve(behaviour=behaviour)
+        os.environ["OPENAI_BASE_URL"] = f"http://127.0.0.1:{self.server.server_address[1]}/v1"
+        if key:
+            os.environ["OPENAI_API_KEY"] = key
+
+    def ask(self, req=PLAY):
+        return run_helper(req, "--provider", "openai", "--model", "mock-model")
+
+    def test_play_request_and_reply(self):
+        self.start("good")
+        reply = self.ask()
+        self.assertTrue(reply.startswith("(OK ((D . 9))"), reply)
+        self.assertIn("(100 20 ", reply)
+        body = mock_llm.RequestLog.bodies[0]
+        self.assertEqual(body["model"], "mock-model")
+        self.assertEqual([m["role"] for m in body["messages"]], ["system", "user"])
+        self.assertEqual(body["response_format"]["json_schema"]["schema"], llm_player.PLAY_SCHEMA)
+        self.assertTrue(body["response_format"]["json_schema"]["strict"])
+        for field in ("max_tokens", "max_completion_tokens", "reasoning_effort", "temperature"):
+            self.assertNotIn(field, body)
+        headers = {k.lower(): v for k, v in mock_llm.RequestLog.headers[0].items()}
+        self.assertEqual(headers["authorization"], "Bearer test-key")
+
+    def test_pass_uses_three_card_schema(self):
+        self.start("good")
+        self.assertTrue(self.ask(PASS).startswith("(OK ((C . 2) (C . 3) (D . 4))"))
+        schema = mock_llm.RequestLog.bodies[0]["response_format"]["json_schema"]["schema"]
+        self.assertEqual(schema, llm_player.PASS_SCHEMA)
+
+    def test_illegal_answer_is_retried(self):
+        self.start("illegal_once")
+        reply = self.ask()
+        self.assertTrue(reply.startswith("(OK ((D . 9))"), reply)
+        self.assertIn("(200 40 ", reply)
+        second = mock_llm.RequestLog.bodies[1]["messages"]
+        self.assertEqual([m["role"] for m in second], ["system", "user", "assistant", "user"])
+        self.assertIn("not legal", second[3]["content"])
+
+    def test_server_without_structured_output(self):
+        self.start("no_schema")
+        reply = self.ask()
+        self.assertTrue(reply.startswith("(OK ((D . 9))"), reply)
+        self.assertIn("response_format", mock_llm.RequestLog.bodies[0])
+        self.assertNotIn("response_format", mock_llm.RequestLog.bodies[1])
+        self.assertIn("JSON object", mock_llm.RequestLog.bodies[1]["messages"][0]["content"])
+
+    def test_json_wrapped_in_reasoning_and_a_fence_with_no_usage(self):
+        self.start("prose")
+        reply = self.ask()
+        self.assertTrue(reply.startswith("(OK ((D . 9))"), reply)
+        self.assertIn("(0 0 ", reply)
+
+    def test_no_json_at_all_becomes_error_after_a_retry(self):
+        self.start("garbage")
+        self.assertIn("unusable answer", self.ask())
+        self.assertEqual(len(mock_llm.RequestLog.bodies), 2)
+
+    def test_refusal_becomes_error(self):
+        self.start("refuse")
+        self.assertIn("declined", self.ask())
+
+    def test_bad_key_becomes_error(self):
+        self.start("401")
+        self.assertIn("rejected the credential", self.ask())
+
+    def test_local_server_needs_no_key(self):
+        self.start("good", key=None)
+        self.assertTrue(self.ask().startswith("(OK"))
+
+    def test_no_key_and_no_server_becomes_error(self):
+        reply = self.ask()
+        self.assertTrue(reply.startswith("(ERROR"), reply)
+        self.assertIn("OPENAI_API_KEY", reply)
+
+    def test_missing_package_becomes_error(self):
+        self.start("good")
+        with mock.patch.dict(sys.modules, {"openai": None}):
+            self.assertIn("pip install openai", self.ask())
+
+    def test_check_looks_at_this_provider(self):
+        os.environ["ANTHROPIC_API_KEY"] = "not-for-openai"
+        def check():
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                llm_player.main(["--provider", "openai", "--model", "mock-model", "--check"])
+            return out.getvalue()
+        self.assertIn(" NIL ", check())
+        os.environ["OPENAI_API_KEY"] = "a-key"
+        self.assertIn(" T ", check())
+
+
+class ReadAnswer(unittest.TestCase):
+    def test_lower_case_card_is_accepted(self):
+        cards, _plan, _remark, problem = llm_player.read_answer(PLAY, '{"plan": "p", "remark": "r", "card": "dk"}')
+        self.assertEqual(cards, ["DK"])
+        self.assertIsNone(problem)
+
+    def test_a_card_that_is_not_text_is_a_problem(self):
+        self.assertIsNotNone(llm_player.read_answer(PLAY, '{"card": ["DK"]}')[3])
+        self.assertIsNotNone(llm_player.read_answer(PASS, '{"card1": 2, "card2": 3, "card3": 4}')[3])
 
 
 if __name__ == "__main__":

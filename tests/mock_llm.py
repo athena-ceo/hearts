@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""A local stand-in for POST /v1/messages, so the LLM player's real SDK path can be tested with no
-key and no spending.  It reads the state the helper sent and answers like the model would.
+"""A local stand-in for POST /v1/messages and /v1/chat/completions, so the LLM player's real SDK
+paths can be tested with no key and no spending.  It reads the state the helper sent and answers
+like the model would.
 
-    python3 tests/mock_anthropic.py PORT [BEHAVIOUR]
+    python3 tests/mock_llm.py PORT [BEHAVIOUR]
 
 Behaviours: good (first legal card), illegal_once (illegal, then good on the retry), refuse, 401.
+For Chat Completions also: no_schema (rejects response_format), prose (reasoning and a code fence
+around the JSON, and no usage), garbage (never any JSON).
 Every request body is appended to RequestLog.bodies when used from Python.
 """
 import json
@@ -40,6 +43,9 @@ def make_handler(behaviour):
                 self.reply(401, {"type": "error", "error": {"type": "authentication_error",
                                                             "message": "invalid x-api-key"}})
                 return
+            if self.path.endswith("/chat/completions"):
+                self.chat_completion(body)
+                return
             first_turn = len(body["messages"]) == 1
             state = json.loads(body["messages"][0]["content"])
             stop_reason = "refusal" if behaviour == "refuse" else "end_turn"
@@ -51,6 +57,27 @@ def make_handler(behaviour):
                              "model": body["model"], "content": content,
                              "stop_reason": stop_reason, "stop_sequence": None,
                              "usage": {"input_tokens": 100, "output_tokens": 20}})
+
+        def chat_completion(self, body):
+            if behaviour == "no_schema" and "response_format" in body:
+                self.reply(400, {"error": {"message": "response_format is not supported"}})
+                return
+            first_turn = len(body["messages"]) == 2
+            state = json.loads(body["messages"][1]["content"])
+            answer = json.dumps(answer_for(state, illegal=behaviour == "illegal_once" and first_turn))
+            if behaviour == "prose":
+                answer = f"<think>Which {{card}} though?</think>Here you go:\n```json\n{answer}\n```"
+            elif behaviour == "garbage":
+                answer = "I would rather not say."
+            message = {"role": "assistant", "content": answer, "refusal": None}
+            if behaviour == "refuse":
+                message.update(content=None, refusal="I can't help with that.")
+            reply = {"id": "chatcmpl-mock", "object": "chat.completion", "created": 0,
+                     "model": body["model"],
+                     "choices": [{"index": 0, "message": message, "finish_reason": "stop"}]}
+            if behaviour != "prose":
+                reply["usage"] = {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120}
+            self.reply(200, reply)
 
         def reply(self, status, payload):
             data = json.dumps(payload).encode()

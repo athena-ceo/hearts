@@ -44,7 +44,8 @@ See it in action: [docs/hearts-game.png](docs/hearts-game.png).
 | Distribution package | ✅ [dist/](dist/) — `ACTIVEREGIONS` + `HEARTS` + `KEELOOPS` + `EXPERT` + README (fresh-image `FILESLOAD` fixed: HEARTS-BUGS H4) |
 | **KEE Expert** player | ✅ runs headlessly — original `EP.*` code + 97 original rules on KEELOOPS/LOOPS ([medley/keeloops.lisp](medley/keeloops.lisp), [medley/expert-kb.lisp](medley/expert-kb.lisp)); tests in [tests/](tests/). Not yet tried interactively on the Mac. |
 | Headless test Medley | ✅ [docker/](docker/) + [tools/medley-headless](tools/medley-headless) |
-| **LLM player** (`LP`, 2026) | 🟡 complete games pass on a stub and through the real SDK against a mock server ([tests/llmplayer.lisp](tests/llmplayer.lisp)). See "The LLM player" below for what has not been run. |
+| **Neural network player** (`NP`, 2026) | 🟡 runs in pure Lisp and plays the same moves as Python on 300 deals; see "Benchmarks, rule experiments and the neural network" below. Not yet tried on the Mac, and `dist/HEARTSNET` holds a 1-hour network until training finishes. |
+| **LLM player** (`LP`, 2026) | 🟡 complete games pass on a stub and through the real SDK against a mock server ([tests/llmplayer.lisp](tests/llmplayer.lisp)), and a short game has run against the real API on Haiku. See "The LLM player" below for what has not been run. |
 | Ethernet networking | ⛔ deferred (dead PUP/XNS; collapse to one image) |
 | Modern CL / Python ports | 🔜 planned (Phases 3–4) |
 
@@ -111,13 +112,90 @@ Design choices worth keeping:
 - **Requests go through a file,** because long stdin writes lose bytes (MEDLEY-ISSUES M10).
 - **Lisp validates every answer** against `H.GetLegals`, because the game loop doesn't, and falls back
   to a safe card rather than ever stopping the game.
+- **Two API paths in the helper, chosen by `LP.Provider`:** `anthropic` (Messages API, adaptive
+  thinking, effort) and `openai` (Chat Completions). The second is deliberately forgiving because
+  servers vary: it sends no token limit or effort, retries once without `response_format` on a 400,
+  and reads JSON out of `<think>` reasoning or a code fence.
 - **The output schema is fixed** (all 52 cards) rather than narrowed to each decision's legal cards,
   because every new schema pays a compile on first use. An illegal answer gets one retry.
 - **[tests/check_llm_log.py](tests/check_llm_log.py) lists the allowed request fields exactly,** to
   guard against leaking another seat's cards. Adding a field means editing that list deliberately.
 
-Refusal fallback (`fallbacks: "default"`) is on for the models that accept it. Not yet done: a
-real API call, a game on the Mac, and any measurement of how well it plays or what it costs.
+Refusal fallback (`fallbacks: "default"`) is on for the models that accept it. The real API has
+been called once in a short game (2026-11-05, `claude-haiku-5-5`, low effort, one deal to a 10-point
+limit): 10 calls, no fallbacks, 27,065 input and 6,632 output tokens, about $0.006, and 5 seconds a
+move on average (12 at most). The OpenAI path has played the same short game on a real server, local
+Ollama 0.6.0 with `mistral:latest` (12 calls, no fallbacks), and passed `tests/real_api_check.py` with
+`gemma2:latest`. Not yet done: anything on OpenAI's own API or a hosted OpenAI-compatible service, a
+game on the Mac, a game on Opus, a full game to 100, and any measurement of how well it plays.
+
+**Testing against the real API.** Two checks spend real money and stay out of `tests/run-all.sh`.
+Both default to `claude-haiku-5-5` at low effort. Keep the key in a private file outside the repo
+and pass it on the command line of the one command that needs it:
+
+```bash
+ANTHROPIC_API_KEY="$(cat ~/.config/hearts/anthropic-key)" python3 tests/real_api_check.py
+```
+
+```bash
+ANTHROPIC_API_KEY="$(cat ~/.config/hearts/anthropic-key)" tools/medley-headless --timeout 900 tests/llm-real-game.lisp
+```
+
+The first asks for one play and one pass, with no Medley. The second plays a short game in headless
+Medley, with the model's reasoning in `out/llm-real-game.jsonl`. `tools/medley-headless` also passes
+`ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `LP_PROVIDER` and
+`LP_MODEL` through.
+
+For the OpenAI path, a local Ollama is a free real server. Inside Docker its address is
+`host.docker.internal` rather than `127.0.0.1`:
+
+```bash
+OPENAI_BASE_URL=http://127.0.0.1:11434/v1 python3 tests/real_api_check.py --provider openai --model mistral:latest
+```
+
+```bash
+LP_PROVIDER=openai LP_MODEL=mistral:latest OPENAI_BASE_URL=http://host.docker.internal:11434/v1 tools/medley-headless --timeout 900 tests/llm-real-game.lisp
+```
+
+In Claude Code, use this form rather than setting the key in `env` in `settings.json`, or exporting
+it in the shell Claude Code starts from: Claude Code reads `ANTHROPIC_API_KEY` and
+`ANTHROPIC_BASE_URL` for its own API calls too. Don't paste the key into chat.
+
+---
+
+## Benchmarks, rule experiments and the neural network
+
+**The benchmark** ([bench/](bench/)): `bench/run.py` plays one player in seat 1 against three Experts, on
+fixed deals ([bench/deals.lisp](bench/deals.lisp), 4,000 shuffles, from `bench/make_deals.py`), in one long
+game with the over score out of reach and the table's trick pause off. `bench/report.py` writes
+[docs/benchmarks/](docs/benchmarks/); `bench/compare.py` compares variants by points and by margin (points
+minus the average of the other three). The Expert is deterministic on fixed deals: an unchanged run
+matched on all 1,000 deals, so only deals a change actually touches differ, which makes rule tests sensitive.
+
+Deals are split so results stay honest: 1-200 are the pilot, 201-1200 are for trying things,
+1201-2000 and 2001-4000 are held out for a final test of a candidate, once.
+
+**Rule experiments** ([bench/rules/](bench/rules/)): each `x-*.lisp` gives seat 1 alone its own rules or
+thresholds (`bench/rules/epx.lisp`), leaving the 1986 rule base and the other Experts untouched. `x-combo`
+(no setting out to shoot, no eclipsing, more spade protection, play high when you must win anyway) scored
+-1.21 of margin on the training deals, then -0.46 on 800 unseen deals and -0.79 on 2,000 fresh ones, -0.70
+over both. The shooting threshold of 15 comes from one example player in the 1986 overview, and applying it
+to every Expert is our assumption, so that gain may partly reflect our reconstruction.
+
+**The network** ([selfplay/](selfplay/)):
+
+- `hearts_sim.py` is the game outside Medley. `test_sim.py` replays real Medley logs through it, so a rule
+  mismatch fails loudly. It needs benchmark logs in `out/bench/`.
+- `features.py` turns the same request the LLM helper gets into 512 numbers. `train.py` trains by self-play
+  with PPO in a local virtual environment (`python3 -m venv selfplay/.venv`, then `pip install numpy torch`).
+  `overnight.py` runs two seeds and tries them in Medley on the way.
+- `nn_helper.py` plays a network through the LLM player's seat, in pure Python, to test it against the
+  real Expert before any Lisp is involved: `python3 bench/run.py nn:out/selfplay/a/best.json`.
+- `export_lisp.py` writes the weights for [medley/nnplayer.lisp](medley/nnplayer.lisp), seat `NP`, which
+  needs nothing outside Medley: `python3 bench/run.py np:PATH`. `NP.Features` must stay the exact twin of
+  `features.py`. To check them, play the same deals both ways and compare `deals.jsonl`: on 300 deals every
+  score matched. A move takes about 10 ms because `NP.Layer` and `NP.Scores` are compiled when the file loads.
+  Layers are arrays of raw float blocks because `\ALLOCBLOCK` rows read straight off the file with `\BINS`.
 
 ---
 
@@ -165,6 +243,9 @@ tools/medley-headless --loops tests/playhearts.lisp             # the PlayHearts
 tools/medley-headless --loops --timeout 1500 tests/expert-game.lisp   # two full games (~12 min)
 tools/medley-headless --timeout 900 tests/llmplayer.lisp        # the LLM player: stub + mock API, no key needed
 python3 tests/test_llm_player.py                                # its Python helper, on your own SDK
+tools/medley-headless --timeout 900 tests/nnplayer.lisp         # the neural network player, in pure Lisp
+python3 selfplay/test_sim.py                                    # the simulator, against real Medley logs
+python3 tests/real_api_check.py                                 # the real API: costs money, needs a key (see "The LLM player")
 tests/run-all.sh                                                # everything, with a summary
 tools/medley-headless --loops --timeout 2700 tests/expert-soak.lisp  # 3 more games, rare-situation hunt
 ```

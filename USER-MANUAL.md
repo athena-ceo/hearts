@@ -38,41 +38,162 @@ Expert. It is a 2026 addition; the 1986 entry point, `LHearts`, is described nex
 
 ## Playing against an LLM (`LP`)
 
-Seat code **`LP`** is a player that asks Claude for each pass and play. It sees only what its seat
-would see, works out a plan, and explains each move in its **"Thoughts of Claude…" window**. Choose
-**Claude (LLM)** in the `PlayHearts` menu, or give the seat code directly:
+Seat code **`LP`** is a player that asks an LLM for each pass and play: Claude by default, or another
+hosted or local model (see [Using another model](#using-another-model)). It sees only what its seat
+would see, works out a plan, and explains each move in its **"Thoughts of…" window**. Choose **LLM
+player** in the `PlayHearts` menu, or give the seat code directly:
 
 ```
 (FILESLOAD PLAYHEARTS)
 (PlayHearts '(HP LP EP CP))
 ```
 
-It needs Python 3 with the Anthropic SDK (`pip install anthropic`), and an API key exported *before*
-you launch Medley:
-
-```bash
-export ANTHROPIC_API_KEY=...
-```
-
-Copy `dist/llm_player.py` to `~/il` with the other files, or set `LP.Helper` to its full path. Then
-`(FILESLOAD LLMPLAYER)` and `(LP.Check)` show what the player can see without spending anything; it
-returns `(CHECK python sdk keySet? model)`.
-
 **It costs real money, and each move takes as long as the model takes.** A game is roughly 100–140
-decisions per LLM seat (a rough estimate is a few dollars per seat per game on Opus). A seat with
-only one legal card makes no API call. `(LP.Stats)` shows the decisions and tokens so far. These
-settings change the cost and quality, and take effect on the next move:
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `LP.Model` | `"claude-opus-5-5"` | Which model; e.g. `"claude-haiku-5-5"` is far cheaper |
-| `LP.Effort` | `"medium"` | `"low"` to `"max"`: how hard it thinks; more is slower and costs more |
-| `LP.TimeoutSeconds` | `300` | How long a move may take before it plays safe |
-| `LP.LogFile` | `NIL` | A file path to record every request and reply as JSON lines |
+decisions per LLM seat (a rough estimate is a few dollars per seat per game on Opus; on Haiku at low effort, one deal
+measured about $0.006 and 5 seconds a move). A seat with only one legal card makes no API call. `(LP.Stats)` shows the decisions and tokens so far.
 
 If anything goes wrong (no key, no network, an unusable answer), the game carries on: the seat plays
 a safe legal card, the lowest for a play and the highest three for a pass, and says why in its
 Thoughts window and the prompt window. The count is in `(LP.Stats)` as `fallbacks`.
+
+### Setting it up
+
+1. **Install the Anthropic SDK** for Python 3:
+
+   ```bash
+   pip install anthropic
+   ```
+
+   If the `python3` Medley finds isn't the one you installed it into, give the full path:
+   `(SETQ LP.Python "/full/path/to/python3")`.
+
+2. **Copy the files** `dist/LLMPLAYER` and `dist/llm_player.py` to `~/il` with the others, or set
+   `LP.Helper` to the full path of `llm_player.py`.
+
+3. **Provide your API key.** There is no `.env` file: the helper reads environment variables. Either
+   export the key in the shell you launch Medley from, before you launch it:
+
+   ```bash
+   export ANTHROPIC_API_KEY=...
+   ```
+
+   or keep it in a private file outside this repository and have each helper call read it, which
+   needs no restart and leaves your shell's environment alone. Put the key in
+   `~/.config/hearts/anthropic-key`, make that file readable only by you
+   (`chmod 600 ~/.config/hearts/anthropic-key`), then at the Exec:
+
+   ```
+   (SETQ LP.Python "ANTHROPIC_API_KEY=$(cat ~/.config/hearts/anthropic-key) python3")
+   ```
+
+4. **Check it,** which spends nothing:
+
+   ```
+   (FILESLOAD LLMPLAYER)
+   (LP.Check)
+   ```
+
+   It returns `(CHECK python sdk keySet? model)`. `keySet?` is `T` if a key or token is set; it
+   doesn't prove the key is valid. A bad key shows up on the first move, as a fallback whose reason
+   is in the Thoughts window.
+
+To try the whole path for free first, `(SETQ LP.HelperOptions "--stub lowest")` makes the seat play
+its first legal card without calling the API. Set it back with `(SETQ LP.HelperOptions "")`.
+
+### Settings
+
+Set these with `SETQ` at the Exec, before or after loading `LLMPLAYER`. They take effect on the next
+move, except `LP.Thoughts?`, which applies to new players. They last for the Medley session.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `LP.Provider` | `"anthropic"` | Which kind of API: `"anthropic"` or `"openai"` (see below) |
+| `LP.Model` | `"claude-opus-5-5"` | Which model; e.g. `"claude-haiku-5-5"` is far cheaper |
+| `LP.Effort` | `"medium"` | `"low"`, `"medium"`, `"high"`, `"xhigh"` or `"max"`: how hard it thinks; more is slower and costs more. Only for `"anthropic"` |
+| `LP.TimeoutSeconds` | `300` | How long a move may take before it plays safe |
+| `LP.GraceSeconds` | `15` | Extra time Medley waits for the helper's answer beyond that |
+| `LP.Python` | `"python3"` | The command that runs Python; can start with `NAME=value` settings, as in step 3 |
+| `LP.Helper` | `NIL` | Full path of `llm_player.py`; `NIL` looks beside the loaded files |
+| `LP.HelperOptions` | `""` | Extra options for the helper, such as `"--stub lowest"` |
+| `LP.LogFile` | `NIL` | A file path to record every request and reply as JSON lines |
+| `LP.TempDir` | `"/tmp"` | Where the request files are written |
+| `LP.Thoughts?` | `T` | Whether a new LLM player gets a Thoughts window |
+
+### Using another model
+
+`LP.Provider` says which kind of API to speak. Set the variables below as in step 3: in the shell you
+launch Medley from, or at the front of `LP.Python`.
+
+**OpenAI, or any server with an OpenAI-compatible API** (`/v1/chat/completions`). Install its SDK with
+`pip install openai`, then:
+
+| Variable | Meaning |
+|---|---|
+| `OPENAI_API_KEY` | The key, sent as `Authorization: Bearer`. A server of your own may not need one |
+| `OPENAI_BASE_URL` | The server's address, usually ending in `/v1`: requests go to `<address>/chat/completions`. Leave it unset for OpenAI itself |
+
+```
+(SETQ LP.Provider "openai")
+(SETQ LP.Model "name-of-the-model")
+(SETQ LP.Python "OPENAI_BASE_URL=https://llm.example.com/v1 OPENAI_API_KEY=$(cat ~/.config/hearts/llm-key) python3")
+```
+
+You have to set `LP.Model`, because the default is a Claude model. For example, a model on your own
+machine through Ollama, which costs nothing and needs no key:
+
+```
+(SETQ LP.Provider "openai")
+(SETQ LP.Model "mistral:latest")
+(SETQ LP.Python "OPENAI_BASE_URL=http://127.0.0.1:11434/v1 python3")
+```
+
+The helper asks for structured output. If the server rejects that, it asks again without it, and it
+accepts JSON wrapped in `<think>` reasoning or a code fence. It sends no token limit and no effort,
+because servers disagree about those, so `LP.Effort` has no effect here. Two things to watch:
+
+- **A small or local model may be weak or slow.** Raise `LP.TimeoutSeconds` if moves time out.
+- **Ollama's context window can be as small as 2048 tokens,** and a request late in a deal comes close
+  to that. A larger one is set on the Ollama side.
+
+**A server that speaks the Anthropic API,** such as a company gateway or a proxy. Leave `LP.Provider`
+as `"anthropic"`, and use:
+
+| Variable | Meaning |
+|---|---|
+| `ANTHROPIC_BASE_URL` | The server's address, without `/v1`: requests go to `<address>/v1/messages` |
+| `ANTHROPIC_API_KEY` | A key sent as the `x-api-key` header |
+| `ANTHROPIC_AUTH_TOKEN` | Instead of a key, a token sent as `Authorization: Bearer` |
+
+```
+(SETQ LP.Python "ANTHROPIC_BASE_URL=https://llm.example.com ANTHROPIC_AUTH_TOKEN=$(cat ~/.config/hearts/gateway-token) python3")
+(SETQ LP.Model "name-of-the-model")
+```
+
+Unlike the OpenAI path, this one has no way around a server that lacks a feature. The server has to
+accept `thinking: {"type": "adaptive"}` and `output_config`, with `effort` and a `json_schema` format.
+For the model names `claude-opus-5-5`, `claude-opus-5`, `claude-sonnet-5-5` and `claude-fable-5-1` it
+also has to accept the beta endpoint with a `fallbacks` field.
+
+Whichever you use, a server that fails doesn't stop the game: each move becomes a fallback, with the
+server's error in the Thoughts window. Amazon Bedrock and Google Vertex aren't supported through
+their own SDK clients.
+
+## Playing against a neural network (`NP`)
+
+Seat code **`NP`** is a neural network that runs entirely in Interlisp: no Python, no API and no cost
+per move. It was trained outside Medley by playing millions of deals against itself, then its weights
+were copied into the file `HEARTSNET`. Choose **Neural network** in the `PlayHearts` menu, or:
+
+```
+(FILESLOAD PLAYHEARTS)
+(PlayHearts '(HP NP EP CP))
+```
+
+Copy `dist/NNPLAYER` and `dist/HEARTSNET` to `~/il` with the other files, or set `NP.ModelFile` to the
+full path of the weights. Its **"Thoughts of Neural…" window** shows each decision as the network's
+preference among the legal cards, such as `play: D9 71% DK 20% D3 9%`. Those shares are all it can
+tell you: unlike the Expert or the LLM, it has no reasons to give. `(SETQ NP.Thoughts? NIL)` turns the
+window off for new players, and `(NP.Stats)` shows the moves made and the time they took.
 
 ## Starting a game — the 1986 way: `LHearts`
 
@@ -85,7 +206,7 @@ At the Interlisp Exec:
 Seat codes: **`HP`** = you (Human Player), **`CP`** = Conservative (a Lisp player running one fixed *minimizing* strategy — competent but non-adaptive),
 **`CLOWN`** = Clown (plays a random legal card), **`EP`** = Expert (the 1986 KEE expert system,
 revived on LOOPS — it picks a strategy, models its opponents, and switches strategy mid-hand), **`LP`** =
-Claude, an LLM over the API (load `LLMPLAYER`; see above). Mix
+an LLM over an API, Claude by default (load `LLMPLAYER`; see above), **`NP`** = a neural network in pure Lisp (load `NNPLAYER`; see above). Mix
 them however you like, e.g. `(LHearts '(HP EP CP EP))`.
 
 The Expert needs one more file: load it with `(FILESLOAD CLIPBOARD ACTIVEREGIONS HEARTS EXPERT)`.

@@ -9,6 +9,7 @@ run() {  # run NAME [medley-run options...] SCRIPT
 }
 mkdir -p out
 printf '%-18s %s\n' llm-helper "$(python3 tests/test_llm_player.py 2>&1 | tail -1)"
+printf '%-18s %s\n' simulator "$(python3 selfplay/test_sim.py 2>&1 | tail -1)"
 run smoke                                   tests/smoke.lisp &
 run expert-load     --loops                 tests/expert-load.lisp &
 run expert-examples --loops                 tests/expert-examples.lisp &
@@ -19,6 +20,7 @@ run expert-pagehold --timeout 600           tests/expert-pagehold.lisp &
 run dealer                                  tests/dealer.lisp &
 run playhearts      --loops --timeout 900   tests/playhearts.lisp &
 run llmplayer       --timeout 900           tests/llmplayer.lisp &
+run nnplayer        --timeout 900           tests/nnplayer.lisp &
 wait
 run expert-game     --loops --timeout 1800  tests/expert-game.lisp   # alone: it needs the CPU
 wait
