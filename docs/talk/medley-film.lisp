@@ -1,0 +1,23 @@
+(* "Film four Experts playing in real Medley: one screenshot before every Expert card, for the talk's video.
+    tools/medley-headless --loops --geometry 1440x900 --out /hearts/out/video/medley --timeout 900 docs/talk/medley-film.lisp")
+(LOAD "{DSK}/hearts/medley/HEARTS")
+(LOAD "{DSK}/hearts/medley/EXPERT")
+(LOAD "{DSK}/hearts/dist/PLAYHEARTS")
+(HT.AUTOPLACE)
+(SETQ ThinkFlag? T)
+(SETQ Game.OverScore 40)
+(SETQ FILM.N 1000)
+(DEFINEQ (FILM.Snap (LAMBDA NIL
+  (if (LESSP FILM.N 1240)
+      then (SETQ FILM.N (ADD1 FILM.N))
+           (HT.SNAP (CONCAT "f" FILM.N)))))
+ (FILM.Wait (LAMBDA (Table Secs)
+  (for I from 1 to (TIMES 2 Secs) while (AND (PH.Running? Table) (LESSP FILM.N 1240)) do (DISMISS 500))
+  FILM.N)))
+(ADVISE (QUOTE EP.Play) (QUOTE BEFORE) (QUOTE (FILM.Snap)))
+(SETQ PH.ExpertThoughts? T)
+(SETQ T5 (PlayHearts (QUOTE (EP EP EP EP))))
+(PH.Start T5)
+(FILM.Wait T5 800)
+(HT.SNAP "last")
+FILM.N
