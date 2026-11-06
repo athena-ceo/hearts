@@ -1,0 +1,51 @@
+# Copyright (c) 2026 Athena Decisions Systems SAS.
+#
+# Production stack for apps.athenadecisions.com.
+# Ports: backend 8050, frontend 3050 (distinct from golden-path 8020/3020,
+# xcape 8030/3030, advent 8040/3040).
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8050}:8000"
+    environment:
+      ENVIRONMENT: production
+      HEARTS_DB: /data/db/hearts.db
+      HEARTS_ADMIN_PASSWORD: ${HEARTS_ADMIN_PASSWORD:-}
+    volumes:
+      - hearts-db:/data/db          # players + games database (SQLite)
+    networks:
+      - hearts-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+      args:
+        # Path-based under apps.athenadecisions.com/hearts.
+        VITE_BASE_PATH: ${HEARTS_BASE_PATH:-/hearts/}
+        VITE_API_BASE: ${HEARTS_API_BASE:-/hearts/api}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3050}:80"
+    depends_on:
+      - backend
+    networks:
+      - hearts-network
+
+volumes:
+  hearts-db:
+
+networks:
+  hearts-network:
+    driver: bridge

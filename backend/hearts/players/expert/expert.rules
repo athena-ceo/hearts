@@ -1,0 +1,610 @@
+# Copyright (c) 2026 Athena Decisions Systems SAS.
+#
+# The 97 rules of the 1986 Expert, one to one with the KEE.DEFRULEs in medley/EXPERT, as they run there.  Reasons are
+# verbatim, and tests/test_expert.py checks every class, name, weight, reason and certainty against the listing.
+# Rules are tried by descending weight, and a rule whose conclusion comes to no card hasn't fired.
+#
+# The rules keep the listing's oddities and the revival's fixes (HEARTS-BUGS.md section K), so that they behave as in
+# Medley, and the oddities are noted where they occur.  Change them in a variant, in variants/.
+
+class trick.evaluation: the strategy for the next trick
+class passin.evaluation: the strategy after the pass
+class initial.evaluation: the strategy before the pass
+class opponent.trick.evaluation: how sure am I that this opponent is shooting, after this trick?
+class opponent.passin.evaluation: what does this pass say about the passer?
+class lead.play: minimizing, on the lead
+class follow.play: minimizing, following suit
+class dump.play: minimizing, unable to follow
+class eclipse.lead: stopping a shooter, on the lead
+class eclipse.follow: stopping a shooter, following suit
+class eclipse.dump: stopping a shooter, unable to follow
+class shoot.lead: shooting, on the lead
+class shoot.follow: shooting, following suit
+class shoot.dump: shooting, unable to follow
+class minimizing.passout: each rule picks cards, and passing more than three makes it fail
+class shooting.passout: each rule picks cards, and passing more than three makes it fail
+
+# The thresholds the rules consult, as in medley/expert-kb.lisp.  The 1986 values are lost.  That file says where each of
+# these came from: four from the overview's example, TriggerHappiness inferred from another, the rest judgement calls.
+parameter TriggerHappiness: the trigger happiness = 0.5
+parameter POMaxLowSpades: the most low spades to shoot before the pass = 2
+parameter POMaxLoserHearts: the most loser hearts to shoot before the pass = 3
+parameter POMinShootPoints: the fewest points to shoot before the pass = 15
+parameter PIMaxLowSpades: the most low spades to shoot after the pass = 2
+parameter PIMaxLoserHearts: the most loser hearts to shoot after the pass = 2
+parameter PILowestHeart: the lowest heart rank to shoot after the pass = 10
+parameter PIMinShootPoints: the fewest points to shoot after the pass = 15
+parameter LowPassPoints: the low pass points = 0
+parameter HiPassPoints: the high pass points = 6
+parameter SpadeProtLen: the spade protection length = 4
+parameter LastSingletonTrick: the last singleton trick = 6
+
+
+# ---- trick.evaluation
+
+rule trick.eval.cant.shoot in trick.evaluation weight 100
+  when
+    my strategy is shooting
+    the trick's points are above 0
+    I did not win the trick
+  then adopt minimizing
+
+rule te.right.shooting in trick.evaluation weight 100
+  when
+    my strategy is minimizing
+    the right opponent is suspected of shooting
+  then
+    the shooter is the right opponent
+    adopt eclipsing
+
+rule te.left.shooting in trick.evaluation weight 100
+  when
+    my strategy is minimizing
+    the left opponent is suspected of shooting
+  then
+    the shooter is the left opponent
+    adopt eclipsing
+
+# It counts the suits I am void in as winner suits, but compares the count with the suits I hold.
+rule te.go.for.it in trick.evaluation weight 100
+  when
+    my strategy is eclipsing or my strategy is minimizing
+    (the number of players with points is 1 and the points I have taken are above 0)
+      or the number of players with points is 0
+    the number of the suits I hold is the number of my winner suits
+  then adopt shooting
+
+rule te.across.shooting in trick.evaluation weight 100
+  when
+    my strategy is minimizing
+    the opponent across is suspected of shooting
+  then
+    the shooter is the opponent across
+    adopt eclipsing
+
+rule eclipse.success in trick.evaluation weight 100
+  when
+    my strategy is eclipsing
+    the number of players with points is above 1
+  then adopt minimizing
+
+rule trickeval.keep.strategy in trick.evaluation weight 0
+  then adopt my strategy
+
+
+# ---- passin.evaluation
+
+rule pi.shoot.test in passin.evaluation weight 100
+  when
+    the high spade of my spades exists
+      or the number of my spades is at most the most low spades to shoot after the pass
+    let the loose hearts be my non-winners in hearts
+    the loose hearts are empty
+      or (the number of the loose hearts is at most the most loser hearts to shoot after the pass
+          and the lowest of the loose hearts is higher than the lowest heart rank to shoot after the pass of hearts)
+    the bridge points of my face cards are at least the fewest points to shoot after the pass
+  then adopt shooting
+
+rule pi.default.strategy in passin.evaluation weight 0
+  then adopt minimizing
+
+
+# ---- opponent.trick.evaluation
+
+rule ote.only.point.taker in opponent.trick.evaluation weight 100
+  when
+    the opponent won the trick
+    the trick's points are at least 1
+    the number of players with points is 1
+  then the opponent is shooting with certainty 0.2
+
+rule ote.no.shooting in opponent.trick.evaluation weight 100
+  when the number of players with points is above 1
+  then the opponent is shooting with certainty -0.99
+
+rule ote.low.on.trick.1 in opponent.trick.evaluation weight 100
+  when
+    the trick number is 1
+    let the last play be the last card played by the opponent
+    the last play is not the 2 of clubs
+    the last play is lower than the 10 of the suit of the last play
+  then the opponent is shooting with certainty 0.12
+
+# It looks for the opponent's card among the cards left, which it has just left, so it never fires.
+rule ote.dump.non.point in opponent.trick.evaluation weight 100
+  when
+    let the last play be the last card played by the opponent
+    let its suit be the suit of the last play
+    the lead suit is not its suit
+    its suit is not hearts
+    the last play is not the queen
+    the last play is in the non-winners in its suit among the cards left
+  then the opponent is shooting with certainty 0.11
+
+
+# ---- opponent.passin.evaluation
+
+rule ope.two.h.pass in opponent.passin.evaluation weight 100
+  when
+    let the hearts passed be the cards I was passed in hearts
+    the number of the hearts passed is 2
+    the bridge points of the hearts passed are below 4
+  then the opponent is shooting with certainty 0.2
+
+rule ope.min.is.normal in opponent.passin.evaluation weight 100
+  then the opponent is minimizing with certainty 0.3
+
+rule ope.low.pass in opponent.passin.evaluation weight 100
+  when the bridge points of the cards I was passed are at most the low pass points
+  then the opponent is shooting with certainty 0.3
+
+rule ope.high.pass in opponent.passin.evaluation weight 100
+  when the bridge points of the cards I was passed are at least the high pass points
+  then the opponent is minimizing with certainty 0.5
+
+rule ope.all.h.pass in opponent.passin.evaluation weight 100
+  when
+    let the hearts passed be the cards I was passed in hearts
+    the number of the hearts passed is 3
+    the bridge points of the hearts passed are below 4
+  then the opponent is shooting with certainty 0.4
+
+
+# ---- initial.evaluation
+
+rule default.strategy in initial.evaluation weight 0
+  then adopt minimizing
+
+rule shoot.test in initial.evaluation weight 100
+  when
+    the high spade of my spades exists
+      or the number of my spades is at most the most low spades to shoot before the pass
+    the number of my non-winners in hearts is at most the most loser hearts to shoot before the pass
+    the bridge points of my face cards are at least the fewest points to shoot before the pass
+  then adopt shooting
+
+
+# ---- every play class: nothing to decide
+
+rule one.choice in lead.play, follow.play, dump.play, eclipse.lead, eclipse.follow, eclipse.dump, shoot.lead, shoot.follow, shoot.dump weight 1000
+  reason "One choice."
+  when the number of my legal cards is 1
+  then play the first of my legal cards
+
+
+# ---- lead.play
+
+rule lead.lowest.non.winner in lead.play weight 50
+  reason "Leading lowest non-winner."
+  then play the highest card equivalent to the lowest of the non-winners among my legal cards
+
+rule lead.lowest.non.s in lead.play weight 70
+  reason "Leading lowest non-spade."
+  when
+    I hold the queen
+    let the candidates be my legal cards except spades that are also in the non-winners among my legal cards
+  then play the highest card equivalent to the lowest of the candidates
+
+rule lead.lowest in lead.play, shoot.lead weight 0
+  reason "Leading lowest card."
+  then play the lowest of my legal cards
+
+rule lead.heart in lead.play weight 60
+  reason "Leading a heart. What the hey."
+  when my legal cards in hearts are not empty
+  then play the highest of my losers in hearts
+
+# It tests the trick number against 6, where lead.single.club consults the personality.
+rule lead.single.diamond in lead.play weight 100
+  reason "Leading my singleton diamond."
+  when
+    the trick number is below 6
+    let the diamonds be my legal cards in diamonds
+    the number of the diamonds is 1
+    the first of the diamonds is not equivalent to the winner of diamonds
+  then play the first of the diamonds
+
+rule lead.single.club in lead.play weight 90
+  reason "Leading my singleton club."
+  when
+    the trick number is below the last singleton trick
+    let the clubs be my legal cards in clubs
+    the number of the clubs is 1
+    the first of the clubs is not equivalent to the winner of clubs
+  then play the first of the clubs
+
+rule lead.queen.hunt in lead.play weight 80
+  reason "Looking for the maggie."
+  when
+    the queen has not been played
+    let the spades be my legal cards in spades
+    the spades are not empty
+    the highest of the spades is lower than the queen
+  then play the highest card equivalent to the lowest of the spades
+
+
+# ---- follow.play
+
+rule safe.play.QS in follow.play weight 110
+  reason "Min - looks like someone's munching the maggie."
+  when the queen is in my legal cards in the lead suit lower than the trick's highest card
+  then play the queen
+
+rule follow.not.QS in follow.play weight 80
+  reason "Playing something other than the QS."
+  when the lowest of my legal cards is the queen
+  then play the lowest card equivalent to the highest of my legal cards among my legal cards except the queen
+
+rule follow.lowest.non.s in follow.play weight 60
+  reason "Playing lowest non spade. A silly rule."
+  when
+    I hold the queen
+    let the candidates be my legal cards except spades that are also in the non-winners among my legal cards
+  then play the highest card equivalent to the lowest of the candidates among the candidates
+
+rule follow.lowest in follow.play, shoot.follow weight 0
+  reason "Following with lowest card."
+  then play the highest card equivalent to the lowest of my legal cards among my legal cards
+
+rule follow.last.must.win in follow.play weight 110
+  reason "Playing last; must win trick; will play high."
+  when
+    the trick has 3 cards
+    my legal cards in the lead suit lower than the trick's highest card are empty
+    let the nice cards be my legal cards except the queen
+  then play the lowest card equivalent to the highest of the nice cards among the nice cards
+
+rule follow.last.high.safe in follow.play weight 80
+  reason "Playing last; trick is safe; going high."
+  when
+    the trick has 3 cards
+    the trick's points are 0
+    let the nice cards be my legal cards except the queen
+  then play the lowest card equivalent to the highest of the nice cards among the nice cards
+
+rule follow.last.above.QS in follow.play weight 90
+  reason "Playing last; avoiding QS."
+  when
+    the queen is in my legal cards
+    the trick has 3 cards
+    the highest of my legal cards is higher than the queen
+  then play the highest of my legal cards
+
+rule follow.highest.below.QS in follow.play weight 70
+  reason "Playing below QS on a safe trick."
+  when
+    the queen has not been played
+    the trick's points are 0
+  then play the highest of my legal cards in spades lower than the queen
+
+rule third.plays.hi.c.or.d in follow.play weight 65
+  reason "No harm to play high in third position."
+  when
+    the trick has 2 cards
+    the trick's points are 0
+    the lead suit is clubs or the lead suit is diamonds
+      or (the lead suit is spades
+          and (the queen has been played
+               or (the queen has not been played and the highest of my legal cards is lower than the queen)))
+  then play the lowest card equivalent to the highest of my legal cards among my legal cards
+
+rule safe.play in follow.play weight 70
+  reason "Normal play - highest under highest played."
+  when
+    let the safe cards be my legal cards in the lead suit lower than the trick's highest card
+  then play the lowest card equivalent to the highest of the safe cards among the safe cards
+
+rule follow.t1.hi.c in follow.play weight 90
+  reason "Min - playing high on first trick."
+  when the trick number is 1
+  then play the lowest card equivalent to the highest of my legal cards among my legal cards
+
+
+# ---- dump.play
+
+rule dump.hi.s in dump.play weight 90
+  reason "Dumping my highest spade."
+  when the queen has not been played
+  then play the high spade of my legal cards
+
+rule dump.hi.non.s in dump.play weight 75
+  reason "Min - dumping my highest non-spade."
+  when I hold the queen
+  then play the highest of my legal cards except spades
+
+rule dump.hi.card in dump.play weight 70
+  reason "Min - dumping my highest card."
+  then play the highest of my legal cards
+
+rule dump.h in dump.play weight 80
+  reason "Min - dumping a heart. Sorry."
+  then play the highest of my legal cards in hearts
+
+rule dump.queen in dump.play weight 100
+  reason "Min - dumping the maggie. Heh, heh."
+  when the queen is in my legal cards
+  then play the queen
+
+
+# ---- eclipse.lead
+
+rule elead.shooter.void in eclipse.lead weight 80
+  reason "Eclipsing - leading a card in the shooter's void suit."
+  then play the lowest of my legal cards in the void suits of the shooter
+
+rule elead.non.shooter.void in eclipse.lead weight 90
+  reason "Eclipsing - leading a card in a non-shooter's void suit."
+  then play the highest of my legal cards in the void suits of hearty non-shooters
+
+rule elead.lowest.shortest.suit in eclipse.lead weight 0
+  reason "Eclipsing - leading a card in my shortest suit."
+  then play the lowest of my legal cards in the shortest suit of my legal cards
+
+rule elead.lead.h in eclipse.lead weight 100
+  reason "Eclipsing - leading a low heart; the shooter is void in them."
+  when hearts is in the void suits of the shooter
+  then play the lowest of my legal cards in hearts
+
+
+# ---- eclipse.follow
+
+rule efol.womp.3 in eclipse.follow weight 50
+  reason "Eclipsing - hoping to take this trick with points."
+  when
+    the trick's points are above 0
+    the trick's card from the shooter does not exist
+    let the top be the highest of my legal cards in the lead suit
+    the top is higher than the trick's highest card
+    the top is not equivalent to the trick's highest card
+  then play the top
+
+rule efol.womp.2 in eclipse.follow weight 60
+  reason "Eclipsing - going to take this trick with points."
+  when
+    the trick's points are above 0
+    the trick's card from the shooter does not exist
+    the trick's highest card is in the non-winners in the lead suit among the cards left
+    let the top be the highest of my legal cards in the lead suit
+    the winner of the lead suit is equivalent to the top
+  then play the top
+
+# Trick.WinnerSoFar usually names the wrong seat, here and in edump.screw.shooter and edump.no.points.
+rule efol.womp.1 in eclipse.follow weight 70
+  reason "Eclipsing - going to go over the shooter on this trick with points."
+  when
+    the trick's points are above 0
+    let the shooter's card be the trick's card from the shooter
+    the shooter's card exists
+    the shooter is winning so far
+  then play the lowest of my legal cards in the lead suit higher than the shooter's card
+
+rule efol.low.play in eclipse.follow weight 0
+  reason "Eclipsing - playing my lowest card."
+  then play the lowest of my legal cards
+
+rule efol.dump.queen in eclipse.follow weight 70
+  reason "Eclipsing - sacrificing the queen for the glory of mankind."
+  when
+    the trick's card from the shooter exists
+    the lead suit is spades
+    the queen is in my legal cards
+    the queen is higher than the trick's highest card
+  then play the queen
+
+
+# ---- eclipse.dump
+
+rule edump.shooter.void in eclipse.dump weight 93
+  reason "Eclipsing - dumping a shooter void card."
+  then play the highest of my legal cards in the void suits of the shooter
+
+rule edump.hope.to.screw.shooter in eclipse.dump weight 95
+  reason "Eclipsing - hoping a non-shooter wins this one; dumping low point card."
+  when
+    the point cards in my legal cards are not empty
+    let the shooter's card be the trick's card from the shooter
+    the shooter's card exists
+    the shooter's card is not equivalent to the winner of the lead suit
+  then play the queen if I can otherwise the lowest of my legal cards
+
+rule edump.useless in eclipse.dump weight 80
+  reason "Eclipsing - dumping a useless suit."
+  then play the highest of my legal cards in the suits where every card left is mine
+
+rule edump.short.suit.nonwinners in eclipse.dump weight 70
+  reason "Eclipsing - dumping a short suit non-winner."
+  when
+    let the non-winners be the non-winners among my legal cards
+  then play the lowest of the non-winners in the shortest suit of the non-winners
+
+rule edump.screw.shooter in eclipse.dump weight 100
+  reason "Eclipsing - dumping a point card on a non-shooter!"
+  when
+    the point cards in my legal cards are not empty
+    the trick's card from the shooter exists
+    the shooter is not winning so far
+  then play the queen if I can otherwise the highest of my legal cards
+
+rule edump.no.points in eclipse.dump weight 90
+  reason "Eclipsing - dumping a non-winner on the shooter."
+  when the shooter is winning so far
+  then play the lowest of (the non-winners among my legal cards) except the point cards in my legal cards
+
+rule edump.lowest in eclipse.dump weight 0
+  reason "Eclipsing - dumping my lowest card."
+  then play the lowest of my legal cards
+
+
+# ---- shoot.lead (and lead.lowest, above)
+
+rule lead.lowest.except.QS in shoot.lead weight 10
+  reason "Leading lowest non-QS card."
+  then play the lowest of my legal cards except the queen
+
+rule slead.non.op.void.loser in shoot.lead weight 125
+  reason "Shooting - leading non-QS non-winner non-opponent void card."
+  then play the highest of (the non-winners among my legal cards) except my winner suits except the queen
+         except the void suits of hearty opponents
+
+rule slead.lowest.winner.except.QS in shoot.lead weight 120
+  reason "Shooting - leading a non-QS winner."
+  when
+    let the winner suit cards be my legal cards in my winner suits
+    the winner suit cards are not empty
+  then play the lowest of (the winners among the winner suit cards) except the queen
+
+rule slead.loser.except.QS in shoot.lead weight 110
+  reason "Shooting - leading a non-QS non-winner."
+  then play the highest of (the non-winners among my legal cards) except my winner suits except the queen
+
+rule slead.hearts in shoot.lead weight 130
+  reason "Shooting - leading hearts to clean up this game."
+  when
+    hearts is a winner suit
+    the queen has been played
+    my legal cards in hearts are not empty
+  then play the lowest card equivalent to the winner of hearts among my legal cards
+
+
+# ---- shoot.follow (and follow.lowest, above)
+
+rule sfol.trick.1.low in shoot.follow weight 100
+  reason "Shooting - playing low on first trick."
+  when the trick number is 1
+  then play the highest card equivalent to the lowest of my legal cards among my legal cards
+
+# It compares its card with the highest of the trick whatever the suits.
+rule sfol.must.take in shoot.follow weight 90
+  reason "Shooting - must take this one."
+  when
+    the trick's points are above 0
+    let the card be the lowest card equivalent to the highest of my legal cards among my legal cards
+    the card is higher than the highest of the trick's cards
+  then play the card
+
+rule sfol.little.over in shoot.follow weight 70
+  reason "Shooting - going a little bit over."
+  when
+    let the cards above be my legal cards in the lead suit higher than the trick's highest card
+    the cards above are not empty
+    the number of the cards between the lowest of the cards above and the trick's highest card is at most 4
+  then play the lowest of the cards above
+
+rule sfol.last.dump.loser in shoot.follow weight 80
+  reason "Shooting - following with loser on last play."
+  when
+    the trick has 3 cards
+    the trick's points are 0
+  then play the highest card equivalent to the lowest of my legal cards among my legal cards
+
+
+# ---- shoot.dump
+
+rule sdump.lowest in shoot.dump weight 0
+  reason "Shooting - dumping lowest card."
+  then play the lowest of my legal cards
+
+# compute.weak.suit often finds a suit I am void in, and then this fails.
+rule dump.weak.suit.loser in shoot.dump weight 100
+  reason "Shooting - dumping a weak suit non-winner."
+  when
+    the weakest suit exists
+    let the weak cards be the non-winners in the weakest suit among my legal cards
+  then play the highest card equivalent to the lowest of the weak cards among the weak cards
+
+rule dump.non.winner in shoot.dump weight 80
+  reason "Shooting - dumping a non-winner."
+  when
+    let the candidates be (the non-winners among my legal cards) except hearts except the queen
+  then play the highest card equivalent to the lowest of the candidates among the candidates
+
+rule dump.loser in shoot.dump weight 90
+  reason "Shoot - dumping a loser."
+  then play the highest of (the losers among my legal cards) except hearts except the queen
+
+rule compute.weak.suit in shoot.dump weight 100
+  then the weakest suit is the suit with the fewest winners other than hearts
+
+
+# ---- minimizing.passout
+
+rule highest.pick in minimizing.passout weight 5
+  then pass the highest of my hand
+
+rule highest.non.s.pick in minimizing.passout weight 50
+  when
+    let the pick be the highest of my hand except spades
+    the pick exists
+  then pass the pick
+
+rule two.d in minimizing.passout weight 70
+  when the number of my diamonds is 2
+  then pass the highest of my diamonds
+
+rule short.c in minimizing.passout weight 60
+  when
+    my clubs are not empty
+    the number of my clubs is below 3
+  then pass my clubs
+
+rule s.prot?.1 in minimizing.passout weight 10
+  when the number of my spades is below the spade protection length
+  then conclude my spade protection is poor
+
+rule pass.hi.s in minimizing.passout weight 100
+  when
+    the highest of my spades is higher than the jack of spades
+    my spade protection is poor
+  then pass the highest of my spades
+
+rule pass.hi.h in minimizing.passout weight 90
+  when the highest of my hearts is higher than the jack of hearts
+  then pass the highest of my hearts
+
+rule one.d in minimizing.passout weight 70
+  when the number of my diamonds is 1
+  then pass the first of my diamonds
+
+
+# ---- shooting.passout
+
+# pass.lowest and pass.any.non.winner can never fire: pass.lowest.non.s comes first, and it only fails to pass a card when
+# I have nothing but spades, by passing no card, which is SHOULDNT (a break in Medley, checked there).
+rule pass.lowest.non.s in shooting.passout weight 20
+  then pass the lowest of my hand except spades
+
+rule pass.lowest in shooting.passout weight 0
+  then pass the lowest of my hand
+
+rule pass.loser.h in shooting.passout weight 90
+  when the lowest of my hearts is in my non-winners in hearts
+  then pass the lowest of my hearts
+
+rule pass.any.non.winner in shooting.passout weight 10
+  when
+    let the candidates be my non-winners in diamonds plus my non-winners in clubs
+    the candidates are not empty
+  then pass the lowest of the candidates
+
+rule pass.all.loser.h in shooting.passout weight 100
+  then pass my non-winners in hearts

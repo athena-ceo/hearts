@@ -1,0 +1,63 @@
+# Copyright (c) 2026 Athena Decisions Systems SAS.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend (with test deps)
+        run: pip install -e "./backend[test]"
+      - name: Run tests
+        run: python -m pytest backend/tests -q
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm install
+      - name: Tests
+        run: npm test
+      - name: Type-check and build
+        run: npm run build
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build backend image
+        run: docker build -t hearts-backend ./backend
+      - name: Run backend container
+        run: |
+          docker run -d --name hearts -e HEARTS_ADMIN_PASSWORD=ci-only -p 8050:8000 hearts-backend
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8050/health >/dev/null 2>&1; then
+              echo "backend healthy"; break
+            fi
+            sleep 2
+          done
+      - name: Smoke test
+        run: SMOKE_BASE_URL=http://localhost:8050 HEARTS_ADMIN_PASSWORD=ci-only python scripts/smoke_test.py
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs hearts || true
+      - name: Tear down
+        if: always()
+        run: docker rm -f hearts || true

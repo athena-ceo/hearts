@@ -221,6 +221,25 @@ to every Expert is our assumption, so that gain may partly reflect our reconstru
 
 ---
 
+## The Python platform
+
+`backend/hearts` (game, bots, tables, web), `backend/rulebook` (the rule language), `frontend/` (React), run with
+`hearts.sh`. Conventions follow the sibling repos advent, xcape and golden-path. Design: `docs/design/python-platform.md`;
+backlog: `TODO.md`.
+
+- **Tests:** `.venv/bin/python -m pytest backend/tests -q`, `cd frontend && npm test && npm run build`.
+- **The Expert:** `players/expert/expert.rules` is the rules, `vocabulary.py` is what they can say, `player.py` is the EP.*
+  handlers. Change behaviour in a variant, in `variants/`, as `x-sr-plus.rules` does, and leave `expert.rules` as 1986.
+- **The proof it is the 1986 Expert:** `python3 bench/run.py --run conform --deals 6000 --trace expert conservative-table
+  mixed-table`, then `.venv/bin/python scripts/medley_conformance.py out/bench/conform/expert`. Exit 0 means no mismatch in
+  cards, passes, reasons, scores or rules fired. Fixtures cut from these runs keep the check in CI without Medley.
+- **Not proven by running:** `ote.dump.non.point`, `pass.any.non.winner` and `pass.lowest` never fire, in Medley or here,
+  so their conditions are checked by reading only. `elead.lead.h`, `highest.pick` and `pass.loser.h` fire only in the
+  stress runs. Personalities are the revival's reconstruction, so this is a match with the revival, not with 1986.
+- **Known differences from Medley:** a shooter passing with only spades left raises `Shouldnt` where Medley opens a break
+  window. Game winners are the seats with the lowest total, not the odd list `Game.Winner` builds.
+- **Not done:** real deployment; a real touch drag on a device; a full game to 100 in a browser.
+
 ## How to rebuild the loadable files
 
 The loadable `HEARTS` is **generated** from the faithful transcription — never hand-edit it. Edit the

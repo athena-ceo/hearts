@@ -23,7 +23,7 @@ experiments. Medley stays as the historical system and as the reference that the
 | Game records | Each game is an append-only list of events | Replay, reconnection, review and research all read the same record |
 | Live connection | WebSockets, one per client | Moves must arrive immediately in both directions |
 | User interface | React with TypeScript, with no game logic | Cards can animate as real objects, and it works well on phones |
-| First deployment | One container and one managed Postgres | Enough to learn from; the design leaves room to split later |
+| First deployment | Docker compose on apps.athenadecisions.com, with SQLite | The same setup as the other Athena apps, and enough for invited players |
 
 ## Architecture
 
@@ -33,23 +33,23 @@ flowchart TB
     web[Browser]
     bot[Someone's own bot]
   end
-  subgraph server [hearts_server]
+  subgraph server [web.py, tables.py]
     gateway[WebSocket gateway and accounts]
     lobby[Lobby and matchmaking]
     tables[Tables: one task per game]
   end
-  subgraph core [hearts_core: no I/O]
+  subgraph core [game.py, rules.py: no I/O]
     rules[Game rules and scoring]
     events[Event log and seat views]
   end
-  subgraph players [hearts_players]
+  subgraph players [players/]
     expert[Expert rules]
     conservative[Conservative and Clown]
     network[Neural network]
     llm[LLM]
   end
-  lab[hearts_lab: benchmarks and comparisons]
-  db[(Postgres)]
+  lab[Experiments: benchmarks and comparisons]
+  db[(SQLite)]
   web --> gateway
   bot --> gateway
   gateway --> lobby
@@ -62,13 +62,13 @@ flowchart TB
   lab --> db
 ```
 
-### `hearts_core`: the game, with no I/O
+### The game, with no I/O
 
 The rules from [ARCHITECTURE.md](../../ARCHITECTURE.md), which [selfplay/hearts_sim.py](../../selfplay/hearts_sim.py)
 already implements and tests against Medley logs. It is pure and seeded, so a game can be replayed from its events.
 Unlike the 1986 game loop, it validates every card it receives.
 
-### `hearts_players`: the six messages
+### The players: the six messages
 
 The 1986 protocol survives as the player interface, because it is still the right design: `GiveHand`, `PassOut`, `PassIn`,
 `Play`, `Trick` and `Results`. The 1986 transports map directly:
@@ -102,7 +102,7 @@ require the Python Expert to match all of them. That needs a small change to the
 reasons today. Hard cases will be backward chaining through the KEE layer and the order in which opponent-model
 rules update.
 
-### `hearts_lab`: experiments
+### Experiments
 
 Everything in [bench/](../../bench/) and [selfplay/](../../selfplay/), with the same fixed deals and the same held-out
 discipline. New abilities follow from the design:
@@ -115,20 +115,18 @@ discipline. New abilities follow from the design:
 The speed gain has to be measured. I'd expect it to be large, but the target to check against the Expert's current 1.3
 seconds a deal is at least 100 times faster on one core.
 
-### `hearts_server`: tables and matchmaking
+### Tables and matchmaking
 
 - **A table** is one asyncio task, which owns its game and writes each event before announcing it. After a restart,
   tables rebuild by replaying their events.
-- **Compute-heavy players** run in a worker pool, so the Expert's thinking doesn't stall other tables. LLM seats are I/O and
-  stay in the event loop, with a budget.
+- **Bots think in worker threads,** so one table's thinking doesn't block its sockets.
 - **Timeouts:** each move has a time limit. When it runs out, the Conservative plays that card and the game says so. A
   player who leaves can return and catch up from the event log.
 - **Matchmaking** starts simple: quick play fills seats with people, and after a set wait, with chosen bots. Invitation links
   make private tables.
-- **Rating** uses a Bayesian multiplayer method such as OpenSkill. Bots are rated like anyone else, which gives a new
+- **Rating** (not built yet) uses a Bayesian multiplayer method such as OpenSkill. Bots are rated like anyone else, which gives a new
   and more useful strength measure than one seat against three Experts.
-- **Scaling later:** route each table to one process by its ID, with Redis for messages between processes. Nothing before
-  that needs it.
+- **Scaling later:** route each table to one process by its ID. Nothing for an invited group needs this.
 
 ### What each client can see
 
@@ -143,7 +141,7 @@ deal. The 1986 windows had this leak too.
 The client is React with TypeScript, built with Vite and served as static files. Everything else is Python.
 
 - **It stays thin.** The server sends each seat's view, including which cards are legal, and the client draws it and sends
-  back choices. Hearts' rules live only in `hearts_core`, so the client never decides anything about the game.
+  back choices. Hearts' rules live only in `game.py` and `rules.py`, so the client never decides anything about the game.
 - **One definition of the messages.** The server's event and view types are Pydantic models, and the TypeScript types are
   generated from their JSON Schema, so a change that breaks the client fails at build time.
 - **State follows the event stream.** A small store applies each event from the WebSocket. Reconnecting is the same code:
@@ -160,12 +158,19 @@ and card markup would carry over as the first React components.
 
 Tests: component tests with Vitest, and Playwright for whole games in a real browser against a server with a seeded deal.
 
-### Hosting
+### Hosting and operations
 
-A single container on a host that supports long-lived WebSockets, such as Fly.io or Render, with managed Postgres. Serverless
-platforms that limit request length are a poor fit. Accounts start with guests and a sign-in provider, so no passwords are
-stored. Costs still need pricing; LLM seats are the one cost that grows with play, so they need a budget, and perhaps each
-person's own API key.
+It follows the same setup as advent, xcape and golden-path:
+
+- `backend/` and `frontend/`, with `docker-compose.dev.yml`, `docker-compose.server.yml` and a `./hearts.sh` control script.
+- Path-based serving at `apps.athenadecisions.com/hearts`, using [nginx/hearts-apps-location.conf](../../nginx/hearts-apps-location.conf),
+  on ports 8050 and 3050.
+- SQLite on a persistent volume, as in advent, which suits an invited group. Each game is an append-only list of events, so
+  moving to Postgres later touches only `store.py`.
+- Accounts are a name and password with a bearer token, as in advent. Registering needs an invitation code, made with
+  `./hearts.sh invite`, so nobody plays anonymously for now.
+
+LLM seats are the one cost that grows with play, so they need a budget, and perhaps each person's own API key.
 
 ## The mockups
 
@@ -188,18 +193,12 @@ Each step ends in something that can be checked.
 
 | Step | What | Done when |
 |---|---|---|
-| 1 | `hearts_core`, Clown and Conservative | Conservative matches Medley card for card on the fixed deals |
+| 1 | The game, Clown and Conservative | Conservative matches Medley card for card on the fixed deals |
 | 2 | The Expert | All cards and reasons match Medley for every seat on 6,000 deals |
-| 3 | `hearts_lab` | The benchmark tables reproduce from Python, and the speed gain is measured |
+| 3 | Experiments on the Python engine | The benchmark tables reproduce from Python, and the speed gain is measured |
 | 4 | Server, React client, one table against bots | Playable in a browser and on a phone, surviving a restart mid-game |
 | 5 | Accounts, lobby, matchmaking, hosting | Strangers can find each other and play, with many tables at once under a load test |
 | 6 | Ratings, reviews, LLM seats, bot API | Bots have ratings from real play |
 
 Steps 1-3 stand alone and already serve the research, even if the hosted game never ships. Step 2 is the one that could
 surprise us, so it's where to learn early.
-
-## Questions for you
-
-1. **Who is it for?** A public site changes moderation, privacy, and terms for using games as data. A research site for
-   invited players is much simpler.
-2. **Timing:** I'd start after the talk on the 11th. Step 1 could begin sooner if you'd like the speed for more experiments.

@@ -5,3 +5,13 @@ medley/*.png
 out/
 __pycache__/
 selfplay/.venv/
+
+# Python platform
+.venv/
+*.egg-info/
+.pytest_cache/
+node_modules/
+frontend/dist/
+.env
+*.db
+*.db-*

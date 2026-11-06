@@ -110,6 +110,24 @@ for **macOS** — the platform this revival was done on — with pointers for Li
 [interlisp.org](https://interlisp.org/). The Expert needs [LOOPS](https://github.com/Interlisp/loops),
 which is a separate download from the Medley release.
 
+## The Python platform
+
+The same game, in Python and React, for play over the web by invitation, against people and bots. Its Expert is the 1986
+one: the 97 rules are readable text, in [`expert.rules`](backend/hearts/players/expert/expert.rules), and on 6,000 deals it
+matches Medley card for card, reason for reason and rule firing for rule firing, about 750 times faster. The rule language
+is its own small package, [`rulebook`](backend/rulebook/README.md), which knows nothing of cards.
+
+```bash
+HEARTS_ADMIN_PASSWORD=choose-one ./hearts.sh start dev
+```
+
+```bash
+./hearts.sh invite dev "a note about who it's for"
+```
+
+The design is in [`docs/design/python-platform.md`](docs/design/python-platform.md). Medley stays the reference for the
+historical system.
+
 ## Documents (for the community)
 
 - **[HANDOFF.md](HANDOFF.md)** — start here: project state, how to run/rebuild, conventions, follow-ups, and the roadmap.

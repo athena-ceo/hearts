@@ -1,0 +1,44 @@
+# Copyright (c) 2026 Athena Decisions Systems SAS.
+#
+# Local full-stack run for Docker Desktop. Values come from a .env file in this
+# directory (copy .env.example to .env). Open http://localhost:3050 -- the
+# frontend proxies /api to the backend, including its WebSockets.
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8050}:8000"
+    environment:
+      ENVIRONMENT: development
+      HEARTS_DB: /data/db/hearts.db
+      HEARTS_ADMIN_PASSWORD: ${HEARTS_ADMIN_PASSWORD:-}
+    volumes:
+      - hearts-db:/data/db
+    networks:
+      - hearts-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_BASE_PATH: /
+        VITE_API_BASE: /api
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3050}:80"
+    depends_on:
+      - backend
+    networks:
+      - hearts-network
+
+volumes:
+  hearts-db:
+
+networks:
+  hearts-network:
+    driver: bridge

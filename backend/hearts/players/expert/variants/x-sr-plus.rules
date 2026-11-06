@@ -1,0 +1,44 @@
+# Copyright (c) 2026 Athena Decisions Systems SAS.
+#
+# bench/rules/x-sr-plus.lisp and the x-high-when-winning it loads, in full: rules from comparing the Expert with the
+# self-play network.  x-sr-combo, plus the non-shooting changes from x-combo: never eclipse, more spade protection, play
+# high when winning anyway.
+
+remove rule slead.non.op.void.loser
+remove rule sfol.little.over
+
+parameter TriggerHappiness = 999
+parameter SpadeProtLen = 5
+
+rule epx.follow.high.when.winning in follow.play weight 65
+  reason "EPX - must take it anyway, so play high."
+  when
+    the lead suit is not spades
+    the trick's points are 0
+    my legal cards in the lead suit lower than the trick's highest card are empty
+  then play the highest of my legal cards
+
+rule sr.lead.low in shoot.lead weight 125
+  reason "SR - shooting, leading lowest non-winner."
+  then play the lowest of (the non-winners among my legal cards) except my winner suits except the queen
+         except the void suits of hearty opponents
+
+rule sr.first.high in shoot.follow weight 110
+  reason "SR - shooting, taking the first trick."
+  when the trick number is 1
+  then play the highest of my legal cards
+
+rule sr.last.take in shoot.follow weight 85
+  reason "SR - shooting, taking this one cheaply."
+  when
+    the trick has 3 cards
+    the trick's points are 0
+  then play the lowest of my legal cards in the lead suit higher than the trick's highest card
+
+rule sr.little.over in shoot.follow weight 70
+  reason "SR - shooting, going a little over, keeping the queen."
+  when
+    let the cards above be my legal cards in the lead suit higher than the trick's highest card except the queen
+    the cards above are not empty
+    the number of the cards between the lowest of the cards above and the trick's highest card is at most 4
+  then play the lowest of the cards above

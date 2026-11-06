@@ -25,6 +25,8 @@ OLLAMA = "http://host.docker.internal:11434/v1"
 PLAYERS = {
     "expert": {"seat": "EP", "label": "Expert (1986 rules)"},
     "conservative": {"seat": "CP", "label": "Conservative (1986)"},
+    "conservative-table": {"seat": "CP", "opponents": "CP CP CP", "label": "Four Conservatives (1986)"},
+    "mixed-table": {"seat": "CP", "opponents": "EP CP EP", "label": "Conservatives and Experts in turn (1986)"},
     "clown": {"seat": "CLOWN", "label": "Clown (random legal)"},
     "stub": {"seat": "LP", "label": "Stub (first legal)", "provider": "anthropic", "model": "stub",
              "options": "--stub lowest", "price": (0, 0)},
@@ -75,7 +77,7 @@ def script_for(player, deals, budget, container_dir, first=1, trace=False):
     file without STOP is an error."""
     price_in, price_out = player.get("price", (0, 0))
     lines = [
-        f"(SETQ BM.Seats (QUOTE ({player['seat']} EP EP EP)))",
+        f"(SETQ BM.Seats (QUOTE ({player['seat']} {player.get('opponents', 'EP EP EP')})))",
         f"(SETQ BM.Count {deals})",
         f"(SETQ BM.First {first})",
         f"(SETQ BM.Extra {lisp_string(player['extra']) if player.get('extra') else 'NIL'})",

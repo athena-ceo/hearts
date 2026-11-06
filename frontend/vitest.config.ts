@@ -1,0 +1,11 @@
+// Copyright (c) 2026 Athena Decisions Systems SAS.
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+  },
+});
