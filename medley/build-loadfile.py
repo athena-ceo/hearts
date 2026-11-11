@@ -254,6 +254,16 @@ def build(text, dist=False):
         ")\n")
     assert text.count("(PUTPROPS HEARTS COPYRIGHT") == 1
     text = text.replace("(PUTPROPS HEARTS COPYRIGHT", maxcard_fix + "(PUTPROPS HEARTS COPYRIGHT")
+    # 2n. Revival FIX (H5): dealing by hand. In H.Shuffle the `finally` sits after the closing
+    #     paren of the `while` loop, so it is a separate form in the LET body and is evaluated
+    #     as a variable: "finally is an unbound variable" as soon as the dealing window opens.
+    #     Return the window's Deck after the loop instead. See HEARTS-BUGS.md H5.
+    manual_deal_bug = ("(while (WINDOWPROP DealWin (QUOTE NotReady)) do (DISMISS 2000))\n"
+                       "                  finally (RETURN (WINDOWPROP DealWin (QUOTE Deck]")
+    assert text.count(manual_deal_bug) == 1
+    text = text.replace(manual_deal_bug,
+                        "(while (WINDOWPROP DealWin (QUOTE NotReady)) do (DISMISS 2000))\n"
+                        "                  (WINDOWPROP DealWin (QUOTE Deck]")
     # 3. arrow -> underscore
     text = text.replace("←", "_")
     # collapse runs of >2 blank lines left by stripping

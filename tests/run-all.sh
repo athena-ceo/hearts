@@ -4,8 +4,9 @@
 cd "$(dirname "$0")/.." || exit 1
 run() {  # run NAME [medley-run options...] SCRIPT
   local name=$1; shift
-  tools/medley-headless --out "/hearts/out/test-$name" "$@" > "out/test-$name.log" 2>&1
-  printf '%-18s exit %s  %s\n' "$name" "$?" "$(grep -h '==HT-SUMMARY==' "out/test-$name.log" | sed 's/==HT-SUMMARY== //')"
+  local pre=(); if [ "${1:-}" = "--utf8" ]; then pre=(--utf8); shift; fi
+  tools/medley-headless ${pre[@]+"${pre[@]}"} --out "/hearts/out/test-$name" "$@" > "out/test-$name.log" 2>&1
+  printf '%-18s exit %s  %s\n' "$name" "$?" "$(grep -ah '==HT-SUMMARY==' "out/test-$name.log" | sed 's/==HT-SUMMARY== //')"
 }
 mkdir -p out
 printf '%-18s %s\n' llm-helper "$(python3 tests/test_llm_player.py 2>&1 | tail -1)"
@@ -21,6 +22,11 @@ run dealer                                  tests/dealer.lisp &
 run playhearts      --loops --timeout 900   tests/playhearts.lisp &
 run llmplayer       --timeout 900           tests/llmplayer.lisp &
 run nnplayer        --timeout 900           tests/nnplayer.lisp &
+wait
+# The players that name files and run commands, again under a UTF-8 locale, as on a Mac (M11).
+run llmplayer-utf8  --utf8 --timeout 900    tests/llmplayer.lisp &
+run nnplayer-utf8   --utf8 --timeout 900    tests/nnplayer.lisp &
+run playhearts-utf8 --utf8 --loops --timeout 1500 tests/playhearts.lisp &
 wait
 run expert-game     --loops --timeout 1800  tests/expert-game.lisp   # alone: it needs the CPU
 wait

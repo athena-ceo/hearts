@@ -1,6 +1,6 @@
 (DEFINE-FILE-INFO :PACKAGE "INTERLISP" :READTABLE "INTERLISP" :BASE 10)
 
-(FILECREATED "26-Sep-2026 12:00:00" LLMPLAYER.;1 17413)
+(FILECREATED "26-Sep-2026 12:00:00" LLMPLAYER.;1 18452)
 
 
 
@@ -253,7 +253,8 @@
 
 (LP.ReadProcessLine
   (LAMBDA (Command)
-    (LET ((S (CREATE-PROCESS-STREAM Command)))
+    (LET ((S (CREATE-PROCESS-STREAM (LP.Sys Command))))
+         (* ; "LP.Sys: a _ in LP.Python, LP.Helper and the like, read from a file, would reach the shell as an arrow on a Mac.")
          (if S
              then (CL:UNWIND-PROTECT
                       (LP.ReadLine S (ITIMES 1000 (IPLUS LP.TimeoutSeconds LP.GraceSeconds)))
@@ -286,7 +287,7 @@
                           "/hearts/dist"
                           (AND (UNIX-GETENV "HOME") (CONCAT (UNIX-GETENV "HOME") "/Development/hearts/dist")))
            when Dir
-           do (LET ((Path (CONCAT Dir "/llm_player.py")))
+           do (LET ((Path (CONCAT Dir (LP.Sys "/llm_player.py"))))
                    (if (INFILEP (CONCAT "{UNIX}" Path))
                        then (RETURN (SETQ LP.Helper Path))))))))
 
@@ -361,6 +362,16 @@
     (PRIN3 (if First? then "{" else ",") S)
     (LP.JString S Name)
     (PRIN3 ":" S)))
+
+(LP.Sys
+  (LAMBDA (Text)
+    (* ; "Text, with each _ in it made the underscore the operating system sees in a file name or command.  A _ read from a Lisp file is character 95, which Medley also shows as the left arrow; when the system's format is UTF-8 (a LANG or LC_CTYPE with UTF in it, as on a Mac), Medley turns character 95 in a file name or command into the arrow, U+2190, so the helper's name would be wrong.  The real underscore is whatever a 95 byte from the system reads as.  (What we write into a file goes out byte for byte, so the request's JSON keys need nothing.)")
+    (LET ((U (if (GETD (QUOTE SYSTOMSTRING))
+                 then (CADR (CHCON (SYSTOMSTRING "a_a")))
+               else 95)))
+         (if (OR (EQ U 95) (NOT (STRPOS (CHARACTER 95) Text)))
+             then Text
+           else (CONCATCODES (for C in (CHCON Text) collect (if (EQ C 95) then U else C)))))))
 
 (LP.JString
   (LAMBDA (S Text)

@@ -1,6 +1,6 @@
 (DEFINE-FILE-INFO :PACKAGE "INTERLISP" :READTABLE "INTERLISP" :BASE 10)
 
-(FILECREATED "26-Sep-2026 12:00:00" PLAYHEARTS.;1 13064)
+(FILECREATED "26-Sep-2026 12:00:00" PLAYHEARTS.;1 26280)
 
 
 
@@ -15,13 +15,33 @@
 (* "Show a closed-hand Expert's narration in a Thoughts window (like the Conservatives').")
 (RPAQ? PH.ExpertThoughts? T)
 
+(* "Lay the windows out by themselves: the card table in the middle of the screen, each player's
+    hand window beside their side of the table (seat 1 above, 2 right, 3 below, 4 left), and their
+    Thoughts window in the next corner clockwise.  NIL asks you to place every window, as in 1986.
+    Tidy on the table's menu bar lays them out again.")
+(RPAQ? PH.AutoPlace? T)
+(RPAQ? PH.Gap 8)
+(* "While PlayHearts makes the players, and while a game runs, PH.Placing is bound to the table's
+    region, and a window that asks to be placed (GETBOXREGION) opens over the table instead.
+    PH.Tidy then moves the players' windows to their places.  Outside those, PH.Placing is NIL and
+    GETBOXREGION asks as usual.")
+(RPAQ? PH.Placing NIL)
+(RPAQQ PH.PlaceAdvice (if PH.Placing then (RETURN (PH.CenterOn PH.Placing WIDTH HEIGHT))))
+(* "(The advice is compiled when it is attached, so it is attached at the end of this file, once
+    PH.CenterOn is defined, and PH.Placing is declared special: PlayHearts binds it.)")
+(CL:PROCLAIM (QUOTE (CL:SPECIAL PH.Placing)))
+
 (* "The only hooks into 1986 code, for Thoughts windows: they show no cards, and each message
     starts a new line (the 1986 code prints plays 'same line' because its narration area was a
     tiny prompt window).  Advice, not redefinitions: they act only on windows PlayHearts marked
-    PH.Thoughts, and (UNADVISE 'Open.RemakeWindow) / (UNADVISE 'Open.Print) remove them.")
+    PH.Thoughts (a Thoughts window) or PH.NewLines (a hand window whose narration goes to a
+    Thoughts window), and (UNADVISE 'Open.RemakeWindow) / (UNADVISE 'Open.Print) remove them.")
 (RPAQQ PH.ThoughtsAdvice (if (WINDOWPROP HWin (QUOTE PH.Thoughts)) then (RETURN NIL)))
-(RPAQQ PH.ThoughtsPrintAdvice (if (WINDOWPROP Win (QUOTE PH.Thoughts)) then (SETQ SameLine? NIL)))
+(RPAQQ PH.ThoughtsPrintAdvice (if (OR (WINDOWPROP Win (QUOTE PH.Thoughts)) (WINDOWPROP Win (QUOTE PH.NewLines)))
+                                  then (SETQ SameLine? NIL)))
 (ADVISE (QUOTE Open.RemakeWindow) (QUOTE BEFORE) PH.ThoughtsAdvice)
+(* "Open.Print's advice changed in 2026-11; take off an older copy loaded earlier in this session.")
+(if (GETPROP (QUOTE Open.Print) (QUOTE ADVISED)) then (UNADVISE (QUOTE Open.Print)))
 (ADVISE (QUOTE Open.Print) (QUOTE BEFORE) PH.ThoughtsPrintAdvice)
 (* "(Re-advising with the same advice doesn't add a second copy, so reloading is safe.)")
 
@@ -48,7 +68,7 @@
 (PlayHearts
   (LAMBDA (Config Open? ManualDeal? Region)
     (* ; "Set up a Hearts session and return its card table.  With no Config, ask for the players and options.  Seats left empty are filled with Conservatives.  Region (optional) places the table.")
-    (PROG (Answers Before Players Table)
+    (PROG (Answers Before Players Table PH.Placing)
           (if (NULL Config)
               then (SETQ Answers (PH.AskConfig))
                    (if (NULL Answers)
@@ -64,6 +84,9 @@
               then (FILESLOAD LLMPLAYER))
           (if (AND (FMEMB (QUOTE NP) Config) (NOT (GETD (QUOTE NP.Create))))
               then (FILESLOAD NNPLAYER))
+          (if PH.AutoPlace?
+              then (SETQ Region (OR Region (PH.TableRegion)))
+                   (SETQ PH.Placing Region))
           (SETQ Before (OPENWINDOWS))
           (SETQ Players (for Type in Config collect (PH.MakePlayer Type Open?)))
           (for P in Players as I from 1 do (replace Number of P with I))
@@ -73,6 +96,7 @@
           (WINDOWPROP Table (QUOTE PH.Open?) Open?)
           (WINDOWPROP Table (QUOTE PH.ManualDeal?) ManualDeal?)
           (WINDOWPROP Table (QUOTE PH.Before) Before)
+          (if PH.AutoPlace? then (PH.Tidy Table))
           (PROMPTPRINT "Hearts: choose Start Game on the card table to play.")
           (RETURN Table))))
 
@@ -122,17 +146,51 @@
       else (LET ((Player (H.MakePlayer Type Open?)))
                 (if (AND (EQ Type (QUOTE EP)) (NOT Open?) PH.ExpertThoughts?)
                     then (PH.GiveThoughtsWindow Player))
+                (if Open? then (PH.NarrateInThoughts Player Type))
                 Player))))
+
+(PH.NarrateInThoughts
+  (LAMBDA (Player Type)
+    (* ; "With open hands, the 1986 Expert and Conservative narrate in a strip attached above their hand window, and the 2026 players in their own Thoughts window.  Make them all alike: take the strip away, so the hand window shows only cards, and send what was printed there to the player's Thoughts window, making one if they have none.  GETPROMPTWINDOW of the hand window then returns the Thoughts window, so the 1986 code is untouched.")
+    (LET* ((Name (MKSTRING (fetch Name of Player)))
+           (Hand (PH.FindWindow "Hearts window for " Name))
+           (Thoughts (PH.FindWindow "Thoughts of " Name))
+           Strip)
+          (if Hand
+              then (if (AND (NULL Thoughts) (MEMB Type (QUOTE (EP CP))))
+                       then (SETQ Thoughts (PH.NewThoughtsWindow Name)))
+                   (SETQ Strip (GETPROMPTWINDOW Hand NIL NIL T))
+                   (if (AND Strip (NEQ Strip Thoughts))
+                       then (DETACHWINDOW Strip)
+                            (CLOSEW Strip))
+                   (if Thoughts
+                       then (WINDOWPROP Hand (QUOTE PROMPTWINDOW) (CONS Thoughts 1000))
+                            (WINDOWPROP Hand (QUOTE PH.NewLines) T))
+                   (* ; "Open.Reshape (more cards in a suit than fit) sets a hand window's height to OWinHeight, which counted the strip.")
+                   (SETQ OWinHeight (fetch (REGION HEIGHT) of (WINDOWPROP Hand (QUOTE REGION)))))
+          Player)))
+
+(PH.FindWindow
+  (LAMBDA (Prefix Name)
+    (* ; "The open window whose title starts with Prefix and ends with Name.")
+    (for W in (OPENWINDOWS) thereis (LET ((Title (WINDOWPROP W (QUOTE TITLE))))
+                                         (AND (STRINGP Title)
+                                              (STRPOS Prefix Title 1 NIL T)
+                                              (PH.TitleEndsWith? Title Name))))))
+
+(PH.NewThoughtsWindow
+  (LAMBDA (Name)
+    (LET ((W (CREATEW (GETBOXREGION 500 250 NIL NIL NIL
+                                    (CONCAT "Please find a place for the thinking window for " Name))
+                      (CONCAT "Thoughts of " Name))))
+         (WINDOWPROP W (QUOTE SCROLLFN) (FUNCTION SCROLLBYREPAINTFN))
+         (DSPSCROLL T (WINDOWPROP W (QUOTE DSP)))
+         W)))
 
 (PH.GiveThoughtsWindow
   (LAMBDA (Player)
     (* ; "Give a closed-hand Expert a Thoughts window.  The 1986 Expert narrates only into its hand window: (Open.Print HWin ...) prints in that window's prompt window, and (Open.RemakeWindow HWin Hand) draws the cards.  So hand it a window marked PH.Thoughts, that is its own prompt window (GETPROMPTWINDOW returns it), and whose hand drawing is skipped (PH.ThoughtsAdvice) and lines never run together (PH.ThoughtsPrintAdvice).  The Expert's code and rules are untouched.")
-    (LET* ((Name (fetch Name of Player))
-           (W (CREATEW (GETBOXREGION 500 250 NIL NIL NIL
-                              (CONCAT "Please find a place for the thinking window for " Name))
-                     (CONCAT "Thoughts of " Name))))
-          (WINDOWPROP W (QUOTE SCROLLFN) (FUNCTION SCROLLBYREPAINTFN))
-          (DSPSCROLL T (WINDOWPROP W (QUOTE DSP)))
+    (LET ((W (PH.NewThoughtsWindow (fetch Name of Player))))
           (WINDOWPROP W (QUOTE PH.Thoughts) T)
           (WINDOWPROP W (QUOTE PROMPTWINDOW) (CONS W 1000))
           (PUT.VALUE (fetch Object of Player) (QUOTE HandWindow) W)
@@ -148,6 +206,8 @@
                                                 "Play a game with these players")
                                           (LIST "Setup..." (LIST (QUOTE PH.Setup) Table)
                                                 "Choose new players and options")
+                                          (LIST "Tidy" (LIST (QUOTE PH.Tidy) Table)
+                                                "Put the players' windows back around the table")
                                           (LIST "Exit" (LIST (QUOTE PH.Exit) Table)
                                                 "Stop, and close all the Hearts windows"))
                             WHENSELECTEDFN _ (FUNCTION PH.MenuSelected)
@@ -185,7 +245,9 @@
 (PH.RunGame
   (LAMBDA (Table)
     (* ; "One game, in its own process, on the 1986 game loop.  Every game after the first gets a fresh table in the same place (CT.Open lays out and scores a new table).")
-    (LET ((Players (WINDOWPROP Table (QUOTE PH.Players))))
+    (LET ((Players (WINDOWPROP Table (QUOTE PH.Players)))
+          (PH.Placing (AND PH.AutoPlace? (WINDOWPROP Table (QUOTE REGION)))))
+         (* ; "PH.Placing: a dealing window opens over the table.")
          (if (WINDOWPROP Table (QUOTE PH.Played?))
              then (SETQ Table (PH.ReopenTable Table)))
          (WINDOWPROP Table (QUOTE PH.Played?) T)
@@ -203,8 +265,7 @@
   (LAMBDA (Old)
     (LET ((New (PH.OpenTable (WINDOWPROP Old (QUOTE PH.Players)) (WINDOWPROP Old (QUOTE REGION)))))
          (for P in PH.Props do (WINDOWPROP New P (WINDOWPROP Old P)))
-         (WINDOWPROP Old (QUOTE CLOSEFN) NIL)
-         (CLOSEW Old)
+         (PH.CloseWindow Old)
          New)))
 
 (PH.WinnerNames
@@ -237,18 +298,25 @@
          (if (AND Proc (NEQ Proc (THIS.PROCESS)))
              then (DEL.PROCESS Proc))
          (WINDOWPROP Table (QUOTE PH.Process) NIL)
-         (if (NOT TableClosing?)
-             then (WINDOWPROP Table (QUOTE CLOSEFN) NIL))
+         (if TableClosing?
+             then (* ; "The table is already closing; close its menu bar.")
+                  (for A in (ATTACHEDWINDOWS Table) do (DETACHWINDOW A) (CLOSEW A)))
          (for W in (OPENWINDOWS) when (AND (NOT (MEMB W Before))
                                            (NOT (AND TableClosing? (EQ W Table)))
                                            (PH.HeartsWindow? W))
-            do (WINDOWPROP W (QUOTE CLOSEFN) NIL)
-               (CLOSEW W))
+            do (PH.CloseWindow W))
          (PH.ForgetPlayers (WINDOWPROP Table (QUOTE PH.Players)))
          (SETQ CT.All NIL)
          (if (EQ PH.CurrentTable Table) then (SETQ PH.CurrentTable NIL))
          (PROMPTPRINT "Hearts: closed.")
          T)))
+
+(PH.CloseWindow
+  (LAMBDA (W)
+    (* ; "Close W without running its close handlers (the 1986 ones, and PH.TableClosed on the table), and close the windows attached to it (a menu bar, a hand window's narration), which those handlers would have done.")
+    (for A in (ATTACHEDWINDOWS W) do (DETACHWINDOW A) (CLOSEW A))
+    (WINDOWPROP W (QUOTE CLOSEFN) NIL)
+    (CLOSEW W)))
 
 (PH.HeartsWindow?
   (LAMBDA (W)
@@ -265,6 +333,154 @@
                         (for Slot in (QUOTE (history LeftPlayer RightPlayer AcrossPlayer))
                            do (UNITDELETE (GET.VALUE U Slot)))
                         (UNITDELETE U))))))
+
+(PH.TableRegion
+  (LAMBDA NIL
+    (* ; "The card table's region, in the middle of the screen; the menu bar goes on top of it.")
+    (CREATEREGION (IQUOTIENT (DIFFERENCE SCREENWIDTH CTWidth) 2)
+                  (IQUOTIENT (DIFFERENCE SCREENHEIGHT (PLUS CTHeight 16)) 2)
+                  CTWidth CTHeight)))
+
+(PH.CenterOn
+  (LAMBDA (Region Width Height)
+    (* ; "A Width x Height region centered on Region, kept on the screen.")
+    (PH.OnScreen (PLUS (fetch (REGION LEFT) of Region)
+                       (IQUOTIENT (DIFFERENCE (fetch (REGION WIDTH) of Region) Width) 2))
+                 (PLUS (fetch (REGION BOTTOM) of Region)
+                       (IQUOTIENT (DIFFERENCE (fetch (REGION HEIGHT) of Region) Height) 2))
+                 Width Height)))
+
+(PH.OnScreen
+  (LAMBDA (Left Bottom Width Height)
+    (CREATEREGION (IMAX 0 (IMIN Left (DIFFERENCE SCREENWIDTH Width)))
+                  (IMAX 0 (IMIN Bottom (DIFFERENCE SCREENHEIGHT Height)))
+                  Width Height)))
+
+(PH.Thoughts?
+  (LAMBDA (W)
+    (LET ((Title (WINDOWPROP W (QUOTE TITLE))))
+         (AND (STRINGP Title) (STRPOS "Thoughts of " Title 1 NIL T) T))))
+
+(PH.TitleEndsWith?
+  (LAMBDA (Title Name)
+    (AND (STRINGP Title)
+         (LET ((N (NCHARS Title))
+               (K (NCHARS Name)))
+              (AND (GREATERP N K)
+                   (STREQUAL (SUBSTRING Title (ADD1 (DIFFERENCE N K)) N) Name))))))
+
+(PH.Tidy
+  (LAMBDA (Table)
+    (* ; "Lay the players' windows out around the table.  A window belongs to the player whose name ends its title.  A player's hand window goes beside their side of the table, and their Thoughts window in the corner clockwise from it; a player with only a Thoughts window has it beside the table.")
+    (LET ((TR (WINDOWREGION Table))
+          (Before (WINDOWPROP Table (QUOTE PH.Before)))
+          Mine)
+         (SETQ Mine (for W in (OPENWINDOWS) when (AND (NEQ W Table) (NOT (MEMB W Before)) (PH.HeartsWindow? W))
+                       collect W))
+         (for P in (WINDOWPROP Table (QUOTE PH.Players)) as Seat from 1
+            do (LET* ((Name (MKSTRING (fetch Name of P)))
+                      (Ws (for W in Mine when (PH.TitleEndsWith? (WINDOWPROP W (QUOTE TITLE)) Name) collect W))
+                      (Hands (for W in Ws unless (PH.Thoughts? W) collect W))
+                      (Thoughts (for W in Ws when (PH.Thoughts? W) collect W)))
+                     (if Hands
+                         then (PH.Arrange (CAR Hands) Seat TR NIL)
+                              (if Thoughts then (PH.Arrange (CAR Thoughts) Seat TR T))
+                       elseif Thoughts
+                         then (PH.Arrange (CAR Thoughts) Seat TR NIL))))
+         (* ; "On a small screen a hand window's narration can reach the table: keep the table on top.")
+         (TOTOPW Table)
+         Table)))
+
+(PH.UnderPrompt?
+  (LAMBDA (XFrom XTo)
+    (* ; "Is the prompt window open in the top half of the screen, somewhere between XFrom and XTo?")
+    (AND (WINDOWP PROMPTWINDOW)
+         (OPENWP PROMPTWINDOW)
+         (LET ((P (WINDOWPROP PROMPTWINDOW (QUOTE REGION))))
+              (AND (GREATERP (fetch (REGION BOTTOM) of P) (IQUOTIENT SCREENHEIGHT 2))
+                   (LESSP (fetch (REGION LEFT) of P) XTo)
+                   (GREATERP (PLUS (fetch (REGION LEFT) of P) (fetch (REGION WIDTH) of P)) XFrom))))))
+
+(PH.Arrange
+  (LAMBDA (W Seat TR Corner?)
+    (* ; "Move W beside the table region TR, on Seat's side (1 above, 2 right, 3 below, 4 left), or with Corner? into the corner clockwise from that side.  A Thoughts window is made smaller if it doesn't fit; a hand window keeps its size.")
+    (LET* ((G (WINDOWREGION W))
+           (R (WINDOWPROP W (QUOTE REGION)))
+           (Gap PH.Gap)
+           (TL (fetch (REGION LEFT) of TR))
+           (TB (fetch (REGION BOTTOM) of TR))
+           (TW (fetch (REGION WIDTH) of TR))
+           (TH (fetch (REGION HEIGHT) of TR))
+           (TRight (PLUS TL TW))
+           (TTop (PLUS TB TH))
+           (Width (fetch (REGION WIDTH) of G))
+           (Height (fetch (REGION HEIGHT) of G))
+           (MaxW (if Corner?
+                     then (if (MEMB Seat (QUOTE (1 2)))
+                              then (DIFFERENCE SCREENWIDTH (PLUS TRight Gap))
+                            else (DIFFERENCE TL Gap))
+                   else (SELECTQ Seat
+                            ((1 3) TW)
+                            (2 (DIFFERENCE SCREENWIDTH (PLUS TRight Gap)))
+                            (DIFFERENCE TL Gap))))
+           (MaxH (if Corner?
+                     then (if (MEMB Seat (QUOTE (1 4)))
+                              then (DIFFERENCE SCREENHEIGHT (PLUS TTop Gap))
+                            else (DIFFERENCE TB Gap))
+                   else (SELECTQ Seat
+                            (1 (DIFFERENCE SCREENHEIGHT (PLUS TTop Gap)))
+                            (3 (DIFFERENCE TB Gap))
+                            TH)))
+           (Above (DIFFERENCE (fetch (REGION BOTTOM) of R) (fetch (REGION BOTTOM) of G)))
+           (MaxBottom NIL)
+           Left Bottom New)
+          (* ; "Above: how far the window itself is above the bottom of its group (its own menu or prompt window is attached on top).")
+          (if (AND (OR (AND Corner? (MEMB Seat (QUOTE (1 4)))) (AND (NOT Corner?) (EQ Seat 1)))
+                   (PH.UnderPrompt? (if (MEMB Seat (QUOTE (1 2))) then (if Corner? then TRight else TL) else 0)
+                                                              (if (MEMB Seat (QUOTE (1 2))) then SCREENWIDTH else TL)))
+              then (* ; "Keep a window above the table out from under the prompt window.")
+                   (SETQ MaxH (IMIN MaxH (DIFFERENCE (DIFFERENCE (fetch (REGION BOTTOM) of (WINDOWPROP PROMPTWINDOW (QUOTE REGION))) Gap)
+                                                     (PLUS TTop Gap)))))
+          (if (PH.Thoughts? W)
+              then (SETQ Width (IMIN Width (IMAX 200 MaxW)))
+                   (SETQ Height (IMIN Height (IMAX 100 MaxH))))
+          (if Corner?
+              then (SETQ Left (if (MEMB Seat (QUOTE (1 2)))
+                                  then (PLUS TRight Gap)
+                                else (DIFFERENCE TL (PLUS Gap Width))))
+                   (SETQ Bottom (if (MEMB Seat (QUOTE (1 4)))
+                                    then (PLUS TTop Gap)
+                                  else (DIFFERENCE TB (PLUS Gap Height))))
+            else (SELECTQ Seat
+                     (1 (SETQ Left (PLUS TL (IQUOTIENT (DIFFERENCE TW Width) 2)))
+                        (SETQ Bottom (PLUS TTop Gap))
+                        (if (PH.UnderPrompt? Left (PLUS Left Width))
+                            then (* ; "Slide right, out from under the prompt window, but stay above the table.")
+                                 (LET ((P (WINDOWPROP PROMPTWINDOW (QUOTE REGION))))
+                                      (SETQ Left (IMAX Left (IMIN (PLUS (fetch (REGION LEFT) of P) (fetch (REGION WIDTH) of P) Gap)
+                                                                  (DIFFERENCE TRight Width)))))))
+                     (3 (SETQ Left (PLUS TL (IQUOTIENT (DIFFERENCE TW Width) 2)))
+                        (SETQ Bottom (DIFFERENCE TB (PLUS Gap Height))))
+                     (2 (SETQ Left (PLUS TRight Gap))
+                        (SETQ Bottom (PLUS TB (IQUOTIENT (DIFFERENCE TH Height) 2))))
+                     (PROGN (SETQ Left (DIFFERENCE TL (PLUS Gap Width)))
+                            (SETQ Bottom (PLUS TB (IQUOTIENT (DIFFERENCE TH Height) 2))))))
+          (if (AND (NOT Corner?) (MEMB Seat (QUOTE (1 3))) (GREATERP Height MaxH))
+              then (* ; "A hand window too tall for the space above or below the table: keep the hand itself in full view, and let what is attached on top of it go off the top of the screen (seat 1) or under the table (seat 3).")
+                   (SETQ MaxBottom (DIFFERENCE SCREENHEIGHT (PLUS Above (fetch (REGION HEIGHT) of R)))))
+          (SETQ New (PH.OnScreen Left Bottom Width Height))
+          (if (AND MaxBottom (NEQ Bottom (fetch (REGION BOTTOM) of New)))
+              then (SETQ New (CREATEREGION (fetch (REGION LEFT) of New)
+                                           (IMAX 0 (IMIN Bottom MaxBottom))
+                                           Width Height)))
+          (if (OR (NEQ Width (fetch (REGION WIDTH) of G)) (NEQ Height (fetch (REGION HEIGHT) of G)))
+              then (* ; "Only a Thoughts window is resized, and it has nothing attached.")
+                   (SHAPEW W New)
+            else (MOVEW W (PLUS (fetch (REGION LEFT) of New) (DIFFERENCE (fetch (REGION LEFT) of R) (fetch (REGION LEFT) of G)))
+                        (PLUS (fetch (REGION BOTTOM) of New) (DIFFERENCE (fetch (REGION BOTTOM) of R) (fetch (REGION BOTTOM) of G)))))
+          W)))
 )
+
+(ADVISE (QUOTE GETBOXREGION) (QUOTE BEFORE) PH.PlaceAdvice)
 
 STOP

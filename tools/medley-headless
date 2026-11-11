@@ -1,7 +1,11 @@
 #!/bin/bash
 # Host-side wrapper for the headless Medley container (docker/).
 #
-#   tools/medley-headless [--build] [medley-run options] SCRIPT
+#   tools/medley-headless [--build] [--utf8] [medley-run options] SCRIPT
+#
+# --utf8 runs Medley under LANG=en_US.UTF-8, as on a Mac.  Medley then converts file names and
+# process commands to UTF-8, and a _ read from a source file reaches Unix as an arrow
+# (MEDLEY-ISSUES M11); without a locale the container passes bytes through and hides that.
 #
 # Mounts this repo at /hearts, so SCRIPT (and anything it LOADs) is addressed by its
 # repo-relative path, e.g.  tools/medley-headless --loops tests/ep-smoke.lisp
@@ -14,7 +18,12 @@ if [ "${1:-}" = "--build" ]; then
   docker build -t "$IMAGE" "$ROOT/docker"
   [ $# -gt 0 ] || exit 0
 fi
+LOCALE=()
+if [ "${1:-}" = "--utf8" ]; then
+  shift
+  LOCALE=(-e LANG=en_US.UTF-8)
+fi
 docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -t "$IMAGE" "$ROOT/docker"
 TTY=(); [ -t 0 ] && TTY=(-it)
 # Pass the LLM player's endpoint settings through (only those that are set).
-exec docker run --rm ${TTY[@]+"${TTY[@]}"} -e ANTHROPIC_API_KEY -e ANTHROPIC_AUTH_TOKEN -e ANTHROPIC_BASE_URL -e OPENAI_API_KEY -e OPENAI_BASE_URL -e LP_PROVIDER -e LP_MODEL -v "$ROOT:/hearts" -w /hearts "$IMAGE" "$@"
+exec docker run --rm ${TTY[@]+"${TTY[@]}"} ${LOCALE[@]+"${LOCALE[@]}"} -e ANTHROPIC_API_KEY -e ANTHROPIC_AUTH_TOKEN -e ANTHROPIC_BASE_URL -e OPENAI_API_KEY -e OPENAI_BASE_URL -e LP_PROVIDER -e LP_MODEL -v "$ROOT:/hearts" -w /hearts "$IMAGE" "$@"

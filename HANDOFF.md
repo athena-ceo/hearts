@@ -79,7 +79,7 @@ Expert's window narrates its strategy and reasons.
 
 The friendlier front door is **`(FILESLOAD PLAYHEARTS)` then `(PlayHearts)`**
 ([medley/playhearts.lisp](medley/playhearts.lisp), built into `dist/PLAYHEARTS`): menus for the
-players and options, a Start Game / Setup… / Exit menu bar on the card table, games in their own
+players and options, a Start Game / Setup… / Tidy / Exit menu bar on the card table, the players' windows laid out around it (`PH.Tidy`; it advises `GETBOXREGION`, active only while `PH.Placing` is bound), games in their own
 process, and Exit closes every Hearts window; closed-hand Experts narrate in their own
 "Thoughts of …" windows. It only adds `PH.*` functions plus two pieces of *advice* (not
 redefinitions) that act only on those Thoughts windows — `Open.RemakeWindow` draws no cards there,

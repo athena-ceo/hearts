@@ -1,6 +1,6 @@
 (DEFINE-FILE-INFO :PACKAGE "INTERLISP" :READTABLE "INTERLISP" :BASE 10)
 
-(FILECREATED "26-Sep-2026 12:00:00" NNPLAYER.;1 14674)
+(FILECREATED "26-Sep-2026 12:00:00" NNPLAYER.;1 14828)
 
 
 
@@ -323,7 +323,9 @@
 
 )
 
-(* "Compile the arithmetic: interpreted, a move takes far too long.")
+(* "Compile the arithmetic: interpreted, a move takes far too long.  NP.Scores reads the global NP.Net,
+    so declare it special first, or the compiler warns that it was unknown.")
+(CL:PROCLAIM (QUOTE (CL:SPECIAL NP.Net)))
 (NLSETQ (CL:COMPILE (QUOTE NP.Layer)))
 (NLSETQ (CL:COMPILE (QUOTE NP.Scores)))
 

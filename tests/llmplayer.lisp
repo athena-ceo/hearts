@@ -40,7 +40,7 @@
 (SETQ LT.Illegal NIL)
 
 (* "--- the helper is found and reports what it has")
-(HT.CHECK "helper found" (LP.FindHelper) "/hearts/dist/llm_player.py")
+(HT.CHECK "helper found" (LP.FindHelper) (LP.Sys "/hearts/dist/llm_player.py"))
 (SETQ LT.Check (LP.Check))
 (HT.CHECK "LP.Check reports" (CAR LT.Check) (QUOTE CHECK))
 (HT.CHECK "LP.Check names the model" (CAR (LAST LT.Check)) "claude-opus-5-5")
@@ -107,7 +107,7 @@
 (DEL.PROCESS LT.Ticker)
 
 (* "--- the real SDK and helper path, against the local mock server, for a whole game")
-(SETQ LT.Mock (CREATE-PROCESS-STREAM "python3 /hearts/tests/mock_llm.py 8765"))
+(SETQ LT.Mock (CREATE-PROCESS-STREAM (LP.Sys "python3 /hearts/tests/mock_llm.py 8765")))
 (DISMISS 2000)
 (SETQ LP.Python "ANTHROPIC_BASE_URL=http://127.0.0.1:8765 ANTHROPIC_API_KEY=test-key python3")
 (HT.CHECK "through the SDK: game finishes" (AND (LT.Game "" (QUOTE (LP LP CP CLOWN))) T))

@@ -26,11 +26,26 @@ the Conservatives'), where it narrates in its own 1986 words without showing its
 strategy ("My strategy is Shooting", "New strategy is: Minimizing"), the cards it passes and
 receives, a reason for every play ("l2 of Hearts Leading a heart. What the hey." — `l`/`f`/`d` =
 lead, follow, dump), and its hunches ("I think the player to my right is shooting.").
-Then the card table opens with a **menu bar: Start Game · Setup… · Exit**. Nothing happens until
+Then the card table opens with a **menu bar: Start Game · Setup… · Tidy · Exit**. Nothing happens until
 you choose **Start Game**; the game runs in its own process, so the Exec stays free. When it ends,
 the winner is announced in the prompt window and you can **Start Game** again (a fresh table, same
 players, same place), **Setup…** to change players, or **Exit** — which stops a game in progress
 and closes every Hearts window. Closing the card table does the same.
+
+You don't place the windows yourself: the card table opens in the middle of the screen, and each
+player's windows go next to their seat. Player 1 sits at the top of the table, 2 on the right, 3 at
+the bottom, 4 on the left. A player's hand window goes beside their side of the table, and their
+Thoughts window in the next corner clockwise; a player with only a Thoughts window has it beside
+the table. A Thoughts window is made smaller if the screen is too small for it, and the windows at
+the top stay clear of the prompt window; they can cover the Exec. If you move windows around,
+**Tidy** puts them back. To place every window yourself, as in 1986, `(SETQ PH.AutoPlace? NIL)`
+before `(PlayHearts)`.
+
+Every computer player says what it is thinking in its own Thoughts window, whatever kind it is.
+With open hands, the 1986 Expert and Conservative printed their reasoning in a strip above their
+hand window instead; `PlayHearts` sends it to their Thoughts window, so a hand window shows only
+cards. (The 1986 `LHearts` still uses the strips.) The Expert and the Conservative clear their
+Thoughts window at each new deal.
 
 You can skip the questions: `(PlayHearts '(HP EP EP CP) T)` — players, then open hands, then
 manual deal, as for `LHearts`. `PLAYHEARTS` loads HEARTS if needed, and EXPERT when you choose an

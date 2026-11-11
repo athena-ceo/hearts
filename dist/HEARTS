@@ -344,7 +344,7 @@
     (if ManualDeal?
         then [LET ((DealWin (Dealer.CreateWindow Deck)))
                   (while (WINDOWPROP DealWin (QUOTE NotReady)) do (DISMISS 2000))
-                  finally (RETURN (WINDOWPROP DealWin (QUOTE Deck]
+                  (WINDOWPROP DealWin (QUOTE Deck]
       else (first (RANDSET T) bind X Y TEMP for i from 1 to 100
               do (SETQ X (RAND 1 52))
                  (SETQ Y (RAND 1 52))

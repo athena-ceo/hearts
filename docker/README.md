@@ -11,8 +11,15 @@ its tests run. Nothing about it is HEARTS-specific.
 tools/medley-headless --build                       # build the image (first time / after edits here)
 tools/medley-headless tests/smoke.lisp              # run a script
 tools/medley-headless --loops tests/expert-game.lisp  # ...with LOOPS loaded first
+tools/medley-headless --utf8 tests/llmplayer.lisp   # ...under LANG=en_US.UTF-8, as on a Mac
 tests/run-all.sh                                    # the whole HEARTS suite, in parallel
 ```
+
+`--utf8` (first, or right after `--build`) matters for anything that names files or runs
+commands. The container has no locale, so Medley passes file names through byte for byte; on a
+Mac the locale is UTF-8, Medley converts them, and a `_` read from a source file reaches Unix as
+an arrow ([MEDLEY-ISSUES](../MEDLEY-ISSUES.md) M11). `run-all.sh` runs the LLM, network and
+PlayHearts tests both ways.
 
 Results land in `out/medley/`: `transcript.txt` (each form, then `= value` or `ERROR: ...`),
 `dribble.txt` (everything printed to the Lisp terminal), and any screenshots. The transcript is
