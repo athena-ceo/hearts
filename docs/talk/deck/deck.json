@@ -1,0 +1,84 @@
+{
+ "v": 4,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-11-06T17:30:00Z"
+ },
+ "lists": "css",
+ "title": "HEARTS, forty years on",
+ "order": [
+  "cover",
+  "agenda",
+  "arc",
+  "background",
+  "basics",
+  "hearts1986",
+  "question",
+  "survived",
+  "d-approach",
+  "approach",
+  "paper",
+  "mac",
+  "keeloops",
+  "bugs",
+  "experts",
+  "d-tools",
+  "headless",
+  "traps",
+  "lessons",
+  "d-ext",
+  "goal",
+  "llm",
+  "pilot",
+  "network",
+  "differential",
+  "fresh",
+  "propagation",
+  "d-python",
+  "conformance",
+  "language",
+  "governing",
+  "webtable",
+  "theme",
+  "limits",
+  "thanks"
+ ],
+ "cover": "cover",
+ "sections": {
+  "s1": {
+   "description": "The arc, who I am, the game, and what survived from 1986",
+   "start": "cover"
+  },
+  "s2": {
+   "description": "How the revival was done, and the challenges",
+   "start": "d-approach"
+  },
+  "s3": {
+   "description": "Tools and lessons for AI-assisted work on Medley",
+   "start": "d-tools"
+  },
+  "s4": {
+   "description": "Looking for a better player, and what was measured",
+   "start": "d-ext"
+  },
+  "s5": {
+   "description": "The Python platform and the rule language",
+   "start": "d-python"
+  },
+  "s6": {
+   "description": "What it adds up to",
+   "start": "theme"
+  }
+ },
+ "faces": {
+  "ibm-plex-sans": {
+   "family": "IBM Plex Sans",
+   "href": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap"
+  },
+  "ibm-plex-mono": {
+   "family": "IBM Plex Mono",
+   "href": "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap"
+  }
+ },
+ "designSystems": []
+}
