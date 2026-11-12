@@ -349,10 +349,14 @@ display. Output in `out/medley/`. Details and the Medley automation traps it wor
   certainty factors). The original `EP.*` code and all 97 rules run from the transcription; the lost
   KB (unit classes, handler wiring, personality thresholds) is reconstructed from the code and the
   1986 overview. See REVIVAL-LOG Challenges 17–20 and HEARTS-BUGS section K.
-- **Phase 2c — Networking.** The original 4-machine Ethernet design (`EVALSERVER`/PUP/XNS) is dead.
-  Plan: collapse to a single image running four processes (Medley multiprocessing already backs the
-  in-image multiplayer that works today), or a modern socket transport — optional, and mostly
-  interesting for period authenticity.
+- **Phase 2c — Networking. ✅ proved 2026-11-12.** The original Ethernet transport (`EVALSERVER`/PUP/XNS)
+  is dead, so `HNET` (medley/hnet.lisp) rebuilds `REMOTEVAL` and `EVALSERVER` on a WebSocket relay
+  (medley/hnetrelay.py) that each Medley reaches through a child process (medley/hnetlink.py, stdlib
+  only). The 1986 HNET code runs unchanged apart from 1986 bugs H6 and H7. A full game to 100 between two headless
+  Medleys passes, and both tables end on the same score (`tests/run-hnet.sh`). Each machine
+  evaluates only `HNET.Allowed` calls. Not done: a public relay (deploy behind TLS with the Python
+  platform), PlayHearts menu items, and a try on two real Macs. Guide for the Medley community:
+  [docs/medley-networking.md](docs/medley-networking.md).
 - **Phase 3 — Modern Common Lisp port.** Build against the language-neutral contract in
   [ARCHITECTURE.md](ARCHITECTURE.md) (six-message protocol, dispatch, data model, game loop).
 - **Phase 4 — Python port.** Same contract, for broad distribution.

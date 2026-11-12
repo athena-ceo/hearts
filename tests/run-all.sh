@@ -10,6 +10,7 @@ run() {  # run NAME [medley-run options...] SCRIPT
 }
 mkdir -p out
 printf '%-18s %s\n' llm-helper "$(python3 tests/test_llm_player.py 2>&1 | tail -1)"
+printf '%-18s %s\n' hnet-relay "$(python3 tests/test_hnet.py 2>&1 | tail -1)"
 printf '%-18s %s\n' simulator "$(python3 selfplay/test_sim.py 2>&1 | tail -1)"
 run smoke                                   tests/smoke.lisp &
 run expert-load     --loops                 tests/expert-load.lisp &
@@ -22,6 +23,7 @@ run dealer                                  tests/dealer.lisp &
 run playhearts      --loops --timeout 900   tests/playhearts.lisp &
 run llmplayer       --timeout 900           tests/llmplayer.lisp &
 run nnplayer        --timeout 900           tests/nnplayer.lisp &
+run netguide        --timeout 300           tests/netguide.lisp &
 wait
 # The players that name files and run commands, again under a UTF-8 locale, as on a Mac (M11).
 run llmplayer-utf8  --utf8 --timeout 900    tests/llmplayer.lisp &
@@ -30,3 +32,5 @@ run playhearts-utf8 --utf8 --loops --timeout 1500 tests/playhearts.lisp &
 wait
 run expert-game     --loops --timeout 1800  tests/expert-game.lisp   # alone: it needs the CPU
 wait
+# The network game: a relay and two Medleys, each in its own container (tests/run-hnet.sh).
+printf '%-18s %s\n' hnet "$(tests/run-hnet.sh 2>&1 | tail -1)"

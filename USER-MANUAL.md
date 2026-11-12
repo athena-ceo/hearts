@@ -212,6 +212,35 @@ preference among the legal cards, such as `play: D9 71% DK 20% D3 9%`. Those sha
 tell you: unlike the Expert or the LLM, it has no reasons to give. `(SETQ NP.Thoughts? NIL)` turns the
 window off for new players, and `(NP.Stats)` shows the moves made and the time they took.
 
+## Playing over the network (`HNET`)
+
+In 1986 the players could sit at different machines: the house ran the game and asked the other
+machines for their players' moves. `HNET` brings that back between Medleys anywhere, through a
+relay that every machine dials out to (`medley/hnetrelay.py`, on a server both can reach). The
+machines meet in a *room*, whose name you share like an invitation. The 1986 network code itself is
+unchanged.
+
+Copy `dist/HNET` and `dist/hnetlink.py` to `~/il` (Python 3 is all the link needs). On each machine:
+
+```
+(FILESLOAD HEARTS HNET)
+(HNET.Connect "ourgame" "bob" "wss://relay.example.org")    ; a room, your name, the relay
+```
+
+Then the guest offers players and the house starts a game with fewer than four. The rest come from
+the net, and anything still missing is filled with Conservatives:
+
+```
+(NetHearts (LIST (CP.Create) (HP.Create)))      ; on the guest: offer a Conservative and yourself
+(Hearts (LIST (HP.Create) (CP.Create)))         ; on the house: seats 1 and 2 here, 3 and 4 from the net
+```
+
+The guest gets a card table of its own, and its players' windows open there. So far this has been
+tested with Conservatives on both machines; a person at each one is the next thing to try. `(HNET.Disconnect)`
+leaves the room. A machine answers only the calls the game makes (`HNET.Allowed`), never an
+arbitrary form. For how it works, the gotchas and a general guide to networking in today's Medley,
+see [docs/medley-networking.md](docs/medley-networking.md).
+
 ## Starting a game — the 1986 way: `LHearts`
 
 At the Interlisp Exec:

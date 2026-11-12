@@ -415,6 +415,7 @@
                            (UNITMSG* (fetch Object of Player)
                                   Op OpArgs))
                           [(QUOTE Net)
+                            (HNET.KeepHand Player Op OpArgs
                             (if (FMEMB Op HNET.ResponseOps)
                                 then (REMOTEVAL (LIST (FUNCTION HNET.Apply)
                                                      (KWOTE (fetch Number of Player))
@@ -504,10 +505,10 @@
         ((QUOTE Results)
           (CT.Results HNET.CardTable (CAR OpArgs)))
         (SHOULDNT))
-    (if (AND (ELT Player.Array PlayerNum)
-             (NOT (FMEMB Op HNET.ResponseOps)))
+    (if (NOT (FMEMB Op HNET.ResponseOps))
         then (if (FMEMB Op (QUOTE (GiveHand PassIn)))
-                 then (HNET.Apply PlayerNum Op OpArgs)
+                 then (if (ELT Player.Array PlayerNum)
+                          then (HNET.Apply PlayerNum Op OpArgs))
                else (for Player in HNET.MyPlayers do (HNET.Apply Player Op OpArgs])
 
 (HNET.Hello
@@ -2912,6 +2913,21 @@
                                      (OR (NULL highest) (Card.Higher? c highest)))
                                 then (SETQ highest c)))
       highest)))
+)
+(* revival FIX H7 -- the house keeps its copy of a remote player's hand in step, as a local player does with its own: the deal finds the first leader in these hands)
+(RPAQ? HNET.Hands NIL)
+(DEFINEQ
+(HNET.KeepHand (LAMBDA (Player Op OpArgs Value)
+    (LET* ((Num (fetch Number of Player))
+           (Hand (CDR (FASSOC Num HNET.Hands))))
+      (SELECTQ Op
+          (GiveHand (SETQ HNET.Hands (CONS (CONS Num (CAR OpArgs))
+                                           (for X in HNET.Hands unless (EQ (CAR X) Num) collect X))))
+          (PassOut (if (AND Hand (LISTP Value)) then (Hand.RemoveCards Hand Value)))
+          (PassIn (if Hand then (for C in (CAR OpArgs) do (Hand.AddCard Hand C))))
+          (Play (if (AND Hand Value) then (Hand.RemoveCard Hand Value)))
+          NIL)
+      Value)))
 )
 (PUTPROPS HEARTS COPYRIGHT ("Harley Davis and Ramana Rao" 1986))
 STOP

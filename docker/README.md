@@ -15,6 +15,9 @@ tools/medley-headless --utf8 tests/llmplayer.lisp   # ...under LANG=en_US.UTF-8,
 tests/run-all.sh                                    # the whole HEARTS suite, in parallel
 ```
 
+`--network NAME` (after `--utf8`) joins a Docker network, and `HNET_RELAY` passes through:
+`tests/run-hnet.sh` uses them to put a relay and two Medleys on one private network.
+
 `--utf8` (first, or right after `--build`) matters for anything that names files or runs
 commands. The container has no locale, so Medley passes file names through byte for byte; on a
 Mac the locale is UTF-8, Medley converts them, and a `_` read from a source file reaches Unix as

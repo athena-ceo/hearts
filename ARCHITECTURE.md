@@ -249,6 +249,10 @@ run with no rules engine at all; the Expert can be added later.
   image with four `ADD.PROCESS` players** — the `Net` transport is simply not used; `Lisp`/`Kee`
   dispatch is unchanged. Phases 3–4 reintroduce real networking cleanly with WebSockets, keeping
   the same six-message protocol as the wire contract.
+- **2026-11-12: the original network game runs again, over the Internet.** `HNET` (medley/hnet.lisp)
+  supplies `REMOTEVAL` and `EVALSERVER` on a relay that every machine dials out to, so the 1986
+  `HNET.*` code above runs unchanged (except 1986 bugs H6 and H7). See
+  [docs/medley-networking.md](docs/medley-networking.md).
 
 ---
 
@@ -260,7 +264,7 @@ run with no rules engine at all; the Expert can be added later.
 | Records | `RECORD`/`DATATYPE` | unchanged | `defstruct`/`defclass` | `@dataclass` |
 | `←` assignment | `←` (= `_`) | `←`→`_` load copy | n/a | n/a |
 | Card Table | `CT.*` windows | native Medley windows | web UI (observer) | web UI (observer) |
-| Networking | `EVALSERVER`/`REMOTEVAL` | **dropped**; 4 `ADD.PROCESS` | WebSocket | WebSocket |
+| Networking | `EVALSERVER`/`REMOTEVAL` | 4 `ADD.PROCESS` in one image, or `HNET`: `REMOTEVAL` over a WebSocket relay | WebSocket | WebSocket |
 | Expert rules | KEE RuleSystem2 | reimpl. backward-chainer | LISA / custom | `experta` / custom |
 | UI toolkit | Interlisp-D windows | Interlisp-D windows | browser | browser |
 

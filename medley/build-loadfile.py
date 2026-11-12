@@ -264,6 +264,55 @@ def build(text, dist=False):
     text = text.replace(manual_deal_bug,
                         "(while (WINDOWPROP DealWin (QUOTE NotReady)) do (DISMISS 2000))\n"
                         "                  (WINDOWPROP DealWin (QUOTE Deck]")
+    # 2o. Revival FIX (H6): on a guest machine, HNET.Inform passed a trick's or a deal's
+    #     result to its players only when the seat it was about (PlayerNum) was one of its
+    #     own.  But CT.InformAll sends Trick and Results once, for seat 1, which is always the
+    #     house's, so a guest's players never heard either.  GiveHand and PassIn still go
+    #     only to the seat named; Trick and Results now go to all of this machine's players.
+    #     Found by the network game's first run; tested in tests/hnet-guest.lisp.  H6.
+    inform_bug = ("    (if (AND (ELT Player.Array PlayerNum)\n"
+                  "             (NOT (FMEMB Op HNET.ResponseOps)))\n"
+                  "        then (if (FMEMB Op (QUOTE (GiveHand PassIn)))\n"
+                  "                 then (HNET.Apply PlayerNum Op OpArgs)\n")
+    assert text.count(inform_bug) == 1
+    text = text.replace(inform_bug,
+                        "    (if (NOT (FMEMB Op HNET.ResponseOps))\n"
+                        "        then (if (FMEMB Op (QUOTE (GiveHand PassIn)))\n"
+                        "                 then (if (ELT Player.Array PlayerNum)\n"
+                        "                          then (HNET.Apply PlayerNum Op OpArgs))\n")
+    # 2p. Revival FIX (H7): the house never updated its copy of a remote player's hand.  A
+    #     local player changes the very Hand object the deal holds as it passes, takes a pass
+    #     and plays; for a Net player only the remote machine's copy changed.  H.PlayGame finds
+    #     the first leader in those hands, so when a remote player passed or was passed the
+    #     2 of clubs the house asked the wrong seat to lead, and the remote Conservative could
+    #     not (the game hung, or a NIL card broke the trick).  H.Apply's Net branch now keeps the
+    #     house's copy in step, through HNET.KeepHand.  Found by repeated network games;
+    #     tested in tests/run-hnet.sh.  H7.
+    net_apply = ("                          [(QUOTE Net)\n"
+                 "                            (if (FMEMB Op HNET.ResponseOps)\n")
+    assert text.count(net_apply) == 1
+    text = text.replace(net_apply,
+                        "                          [(QUOTE Net)\n"
+                        "                            (HNET.KeepHand Player Op OpArgs\n"
+                        "                            (if (FMEMB Op HNET.ResponseOps)\n")
+    keephand = (
+        "(* revival FIX H7 -- the house keeps its copy of a remote player's hand in step, as a"
+        " local player does with its own: the deal finds the first leader in these hands)\n"
+        "(RPAQ? HNET.Hands NIL)\n"
+        "(DEFINEQ\n"
+        "(HNET.KeepHand (LAMBDA (Player Op OpArgs Value)\n"
+        "    (LET* ((Num (fetch Number of Player))\n"
+        "           (Hand (CDR (FASSOC Num HNET.Hands))))\n"
+        "      (SELECTQ Op\n"
+        "          (GiveHand (SETQ HNET.Hands (CONS (CONS Num (CAR OpArgs))\n"
+        "                                           (for X in HNET.Hands unless (EQ (CAR X) Num) collect X))))\n"
+        "          (PassOut (if (AND Hand (LISTP Value)) then (Hand.RemoveCards Hand Value)))\n"
+        "          (PassIn (if Hand then (for C in (CAR OpArgs) do (Hand.AddCard Hand C))))\n"
+        "          (Play (if (AND Hand Value) then (Hand.RemoveCard Hand Value)))\n"
+        "          NIL)\n"
+        "      Value)))\n"
+        ")\n")
+    text = text.replace("(PUTPROPS HEARTS COPYRIGHT", keephand + "(PUTPROPS HEARTS COPYRIGHT")
     # 3. arrow -> underscore
     text = text.replace("←", "_")
     # collapse runs of >2 blank lines left by stripping
@@ -360,6 +409,15 @@ if __name__ == "__main__":
     (DIST / "llm_player.py").write_text((HERE / "llm_player.py").read_text(encoding="utf-8"),
                                         encoding="utf-8", newline="\n")
     print(f"wrote {DIST / 'LLMPLAYER'}  ({len(lp.splitlines())} lines) + llm_player.py")
+
+    # HNET: the 1986 network game over a relay (medley/hnet.lisp), and the link Medley runs to
+    # reach the relay.  The relay itself (medley/hnetrelay.py) runs on a server, not in Medley.
+    hn = with_header("HNET", lisp_src("hnet.lisp") + "\nSTOP\n")
+    check_code(hn)
+    (DIST / "HNET").write_text(hn, encoding="utf-8", newline="\n")
+    (DIST / "hnetlink.py").write_text((HERE / "hnetlink.py").read_text(encoding="utf-8"),
+                                      encoding="utf-8", newline="\n")
+    print(f"wrote {DIST / 'HNET'}  ({len(hn.splitlines())} lines) + hnetlink.py")
 
     # NNPLAYER: the neural network player (medley/nnplayer.lisp).  Its weights, dist/HEARTSNET, are
     # written by selfplay/export_lisp.py.
