@@ -1,6 +1,6 @@
 (DEFINE-FILE-INFO :PACKAGE "INTERLISP" :READTABLE "INTERLISP" :BASE 10)
 
-(FILECREATED "26-Sep-2026 12:00:00" PLAYHEARTS.;1 26280)
+(FILECREATED "26-Sep-2026 12:00:00" PLAYHEARTS.;1 31464)
 
 
 
@@ -45,6 +45,11 @@
 (ADVISE (QUOTE Open.Print) (QUOTE BEFORE) PH.ThoughtsPrintAdvice)
 (* "(Re-advising with the same advice doesn't add a second copy, so reloading is safe.)")
 
+(* "Playing online (seat type NET): the relay and room of the resident Medley, which plays every seat
+    from the first NET on.  HNET_RELAY, if set, overrides PH.NetRelay.")
+(RPAQ? PH.NetRelay "wss://apps.athenadecisions.com/hearts")
+(RPAQ? PH.NetRoom "athena")
+
 (RPAQQ PH.PlayerTypes (("Human (you)" (QUOTE HP)
                               "You play, clicking cards in your own window")
                        ("Expert" (QUOTE EP)
@@ -56,12 +61,14 @@
                        ("Conservative" (QUOTE CP)
                               "A fixed minimizing strategy in Lisp")
                        ("Clown" (QUOTE CLOWN)
-                              "Plays a random legal card")))
+                              "Plays a random legal card")
+                       ("The resident (online)" (QUOTE NET)
+                              "This seat and the rest: the resident Medley on apps.athenadecisions.com (an Expert, the network, a Conservative)")))
 
 (RPAQQ PH.WindowTitles ("Hearts Card Table" "Thoughts of " "Hearts window for " "Hearts Window for "
                         "Dealing Window"))
 
-(RPAQQ PH.Props (PH.Players PH.Config PH.Open? PH.ManualDeal? PH.Before PH.Process PH.Played?))
+(RPAQQ PH.Props (PH.Players PH.Config PH.Open? PH.ManualDeal? PH.Before PH.Process PH.Played? PH.Local))
 
 (DEFINEQ
 
@@ -77,7 +84,12 @@
                    (SETQ Open? (CADR Answers))
                    (SETQ ManualDeal? (CADDR Answers)))
           (SETQ Config (APPEND Config))
-          (while (LESSP (LENGTH Config) 4) do (SETQ Config (NCONC1 Config (QUOTE CP))))
+          (while (LESSP (LENGTH Config) 4) do (SETQ Config (NCONC1 Config (if (FMEMB (QUOTE NET) Config)
+                                                                                   then (QUOTE NET)
+                                                                                 else (QUOTE CP)))))
+          (if (AND (FMEMB (QUOTE NET) Config)
+                   (NOT (PH.NetConnect)))
+              then (RETURN NIL))
           (if (AND (FMEMB (QUOTE EP) Config) (NOT (GETD (QUOTE EP.Create))))
               then (FILESLOAD EXPERT))
           (if (AND (FMEMB (QUOTE LP) Config) (NOT (GETD (QUOTE LP.Create))))
@@ -88,9 +100,13 @@
               then (SETQ Region (OR Region (PH.TableRegion)))
                    (SETQ PH.Placing Region))
           (SETQ Before (OPENWINDOWS))
-          (SETQ Players (for Type in Config collect (PH.MakePlayer Type Open?)))
+          (SETQ Players (for Type in Config collect (if (EQ Type (QUOTE NET))
+                                                         then (create Player Name _ "(online)" Type _ (QUOTE Net))
+                                                       else (PH.MakePlayer Type Open?))))
+          (* ; "Online seats are placeholders until Start Game asks the resident for its players.")
           (for P in Players as I from 1 do (replace Number of P with I))
           (SETQ Table (PH.OpenTable Players Region))
+          (WINDOWPROP Table (QUOTE PH.Local) (for P in Players until (EQ (fetch Type of P) (QUOTE Net)) collect P))
           (WINDOWPROP Table (QUOTE PH.Players) Players)
           (WINDOWPROP Table (QUOTE PH.Config) Config)
           (WINDOWPROP Table (QUOTE PH.Open?) Open?)
@@ -113,6 +129,7 @@
           (if (NULL Type) then (RETURN NIL))
           (SETQ Config (NCONC1 Config Type))
           (SETQ I (ADD1 I))
+          (if (EQ Type (QUOTE NET)) then (GO OPTIONS))     (* ; "The resident plays the rest.")
           (GO SEAT)
       OPTIONS
           (SETQ Open? (PH.YesNo "Play with open hands?"))
@@ -246,15 +263,29 @@
   (LAMBDA (Table)
     (* ; "One game, in its own process, on the 1986 game loop.  Every game after the first gets a fresh table in the same place (CT.Open lays out and scores a new table).")
     (LET ((Players (WINDOWPROP Table (QUOTE PH.Players)))
-          (PH.Placing (AND PH.AutoPlace? (WINDOWPROP Table (QUOTE REGION)))))
+          (Online? (FMEMB (QUOTE NET) (WINDOWPROP Table (QUOTE PH.Config))))
+          (PH.Placing (AND PH.AutoPlace? (WINDOWPROP Table (QUOTE REGION))))
+          Hosts)
          (* ; "PH.Placing: a dealing window opens over the table.")
-         (if (WINDOWPROP Table (QUOTE PH.Played?))
+         (if Online?
+             then (* ; "Fresh players from the resident for every game (it offers new ones after each).")
+                  (SETQ Players (PH.NetPlayers (WINDOWPROP Table (QUOTE PH.Local))
+                                       (WINDOWPROP Table (QUOTE PH.Open?))))
+                  (SETQ Hosts (for H in CT.All unless (WINDOWP H) collect H))
+                  (WINDOWPROP Table (QUOTE PH.Players) Players))
+         (if (OR Online? (WINDOWPROP Table (QUOTE PH.Played?)))
              then (SETQ Table (PH.ReopenTable Table)))
          (WINDOWPROP Table (QUOTE PH.Played?) T)
          (WINDOWPROP Table (QUOTE PH.Process) (THIS.PROCESS))
-         (SETQ CT.All (LIST Table))
+         (if Hosts
+             then (* ; "The 1986 HNET.HelloAgain: the resident opens its card table for these players.")
+                  (SETQ CT.All Hosts)
+                  (HNET.HelloAgain Players))
+         (SETQ CT.All (CONS Table Hosts))
          (PROMPTPRINT "Hearts: new game.")
-         (H.PlayGame Players (WINDOWPROP Table (QUOTE PH.ManualDeal?)))
+         (CL:UNWIND-PROTECT
+             (H.PlayGame Players (WINDOWPROP Table (QUOTE PH.ManualDeal?)))
+             (if Hosts then (NLSETQ (HNET.GoodBye))))
          (SETQ H.GameList (NCONC1 H.GameList H.LastGame))
          (WINDOWPROP Table (QUOTE PH.Process) NIL)
          (PROMPTPRINT (CONCAT "Game over -- " (PH.WinnerNames H.LastGame Players)
@@ -274,6 +305,57 @@
          (if (CDR Names)
              then (CONCATLIST (CDR (for N in Names join (LIST " and " N))))
            else (MKSTRING (CAR Names))))))
+
+(PH.NetConnect
+  (LAMBDA NIL
+    (* ; "Join the resident's room, loading HNET if needed.  The name is the login name, made safe, with a number added if someone in the room already has it.  -> T, or NIL with a message.")
+    (if (NOT (GETD (QUOTE HNET.Connect)))
+        then (FILESLOAD HNET))
+    (if (AND (HNET.Connected?) (EQUAL HNET.Room PH.NetRoom))
+        then T
+      else (PROG ((Base (PH.NetName))
+                  (Relay (OR (HNET.EnvRelay) PH.NetRelay))
+                  Result)
+                 (for Try from 1 to 9
+                    do (SETQ Result (HNET.Connect PH.NetRoom (if (EQ Try 1) then Base else (CONCAT Base "-" Try)) Relay))
+                       (if (STRINGP Result) then (RETURN))
+                       (if (NOT (STRPOS "already" (CADR Result))) then (RETURN)))
+                 (if (STRINGP Result)
+                     then (PROMPTPRINT (CONCAT "Hearts: online as " Result " in room " PH.NetRoom "."))
+                          (RETURN T))
+                 (PROMPTPRINT (CONCAT "Hearts: can't go online: " (CADR Result)))
+                 (RETURN NIL)))))
+
+(PH.NetName
+  (LAMBDA NIL
+    (LET ((Name (CONCATCODES (for C in (CHCON (MKSTRING (OR (USERNAME) "player")))
+                                when (OR (AND (IGEQ C (CHARCODE A)) (ILEQ C (CHARCODE Z)))
+                                         (AND (IGEQ C (CHARCODE a)) (ILEQ C (CHARCODE z)))
+                                         (AND (IGEQ C (CHARCODE 0)) (ILEQ C (CHARCODE 9)))
+                                         (EQ C (CHARCODE -)))
+                                collect C))))
+         (if (AND (IGREATERP (NCHARS Name) 0) (ILEQ (NCHARS Name) 28))
+             then Name
+           else "player"))))
+
+(PH.NetPlayers
+  (LAMBDA (Local Open?)
+    (* ; "The local players, then the resident's for the rest of the seats (the 1986 HNET.Hello), then Conservatives for any seat still empty.  The resident offers new players a few seconds after a game, so ask a few times.  Leaves the resident's host in CT.All, as HNET.Hello does.")
+    (PROG ((First (ADD1 (LENGTH Local)))
+           Net Players)
+          (if (NOT (PH.NetConnect)) then (GO FILL))
+          (for Try from 1 to 4 until Net
+             do (SETQ CT.All NIL)
+                (SETQ Net (HNET.Hello First))
+                (if (NULL Net)
+                    then (PROMPTPRINT "Hearts: waiting for the resident...")
+                         (DISMISS 3000)))
+          (if (NULL Net) then (PROMPTPRINT "Hearts: the resident is busy; Conservatives take its seats."))
+      FILL
+          (SETQ Players (APPEND Local Net))
+          (SETQ Players (APPEND Players (for N from (ADD1 (LENGTH Players)) to 4 collect (CP.Create Open?))))
+          (for P in Players as I from 1 do (replace Number of P with I))
+          (RETURN Players))))
 
 (PH.Setup
   (LAMBDA (Table)
@@ -297,6 +379,10 @@
           (Before (WINDOWPROP Table (QUOTE PH.Before))))
          (if (AND Proc (NEQ Proc (THIS.PROCESS)))
              then (DEL.PROCESS Proc))
+         (if (FMEMB (QUOTE NET) (WINDOWPROP Table (QUOTE PH.Config)))
+             then (* ; "Let the resident go, and leave the room.")
+                  (NLSETQ (HNET.GoodBye))
+                  (NLSETQ (HNET.Disconnect)))
          (WINDOWPROP Table (QUOTE PH.Process) NIL)
          (if TableClosing?
              then (* ; "The table is already closing; close its menu bar.")

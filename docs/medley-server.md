@@ -16,13 +16,25 @@ Two services in `docker-compose.server.yml` put the 1986 network game on the dem
 
 ## Playing the resident from your Medley
 
-Put `HEARTS`, `ACTIVEREGIONS`, `HNET` and `hnetlink.py` from `dist/` in `~/il`. Then, at the Exec:
+`./hearts.sh medley` copies the HEARTS files to `~/il` and starts Medley. Then, at the Exec:
+
+```
+(FILESLOAD PLAYHEARTS)
+(PlayHearts)
+```
+
+Choose yourself for seat 1, then **The resident (online)** for seat 2: the resident plays seats 2
+to 4. `(PlayHearts '(HP NET))` does the same without the menus. Start Game claims the resident's
+players for each game, and Exit lets it go and leaves the room. Your name in the room is your login
+name; `PH.NetRoom` and `PH.NetRelay` say where the resident is.
+
+The same, the 1986 way, without PlayHearts:
 
 ```
 (FILESLOAD HEARTS HNET)
 (HNET.Connect "athena" "yourname" "wss://apps.athenadecisions.com/hearts")
 (SETQ Me (HP.Create))
-(ADD.PROCESS (LIST (QUOTE Hearts) (KWOTE (LIST Me))))
+(ADD.PROCESS '(Hearts (LIST Me)))
 ```
 
 You are seat 1, and the resident's three players take seats 2 to 4. Its card table shows the game

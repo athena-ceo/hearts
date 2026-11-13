@@ -1,14 +1,27 @@
-(* "A visitor to the resident Medley (docker/resident.lisp): joins room athena, plays a game with one
-    seat of its own, and the resident supplies the other three; then a second game, to check the
-    resident offered fresh players.  Run by tests/run-resident.sh.")
+(* "A visitor to the resident Medley (docker/resident.lisp): joins room athena and plays a game the
+    1986 way, with one seat of its own and the resident's three; then two through PlayHearts, as
+    (PlayHearts '(CP NET)), to check that each game gets fresh players and that Exit frees the
+    resident.  Run by tests/run-resident.sh.")
 (LOAD "{DSK}/hearts/medley/HEARTS")
 (LOAD "{DSK}/hearts/dist/HNET")
+(LOAD "{DSK}/hearts/dist/PLAYHEARTS")
 (HT.AUTOPLACE)
 (ADVISE (QUOTE CT.Open) (QUOTE AFTER) (QUOTE (WINDOWPROP !VALUE (QUOTE Delay) 0)))
 (DEFINEQ
 (RV.WaitFor (LAMBDA (Form Secs)
   (for I from 1 to (TIMES 2 Secs) until (EVAL Form) do (DISMISS 500))
   (EVAL Form)))
+(RV.Seats (LAMBDA (Players)
+  (for P in Players collect (if (EQ (fetch Type of P) (QUOTE Net))
+                                then (fetch HNP.Host of (fetch Object of P))
+                              else (fetch Type of P)))))
+(RV.PlayOnce (LAMBDA NIL
+  (* ; "Start Game on the PlayHearts table, and wait for the game to end.")
+  (SETQ H.LastGame NIL)
+  (PH.Start PH.CurrentTable)
+  (DISMISS 2000)
+  (for I from 1 to 1200 while (PH.Running? PH.CurrentTable) do (DISMISS 500))
+  (LIST (RV.Seats (WINDOWPROP PH.CurrentTable (QUOTE PH.Players))) (AND H.LastGame (fetch Winners of H.LastGame) T))))
 (RV.Game (LAMBDA NIL
   (SETQ H.LastGame NIL)
   (Hearts (LIST (CP.Create NIL)) NIL NIL)
@@ -25,6 +38,17 @@
 (LIST (QUOTE SECONDS) (IQUOTIENT (IDIFFERENCE (CLOCK 0) RV.Start) 1000) (QUOTE SCORE) (fetch Score of H.LastGame))
 (HT.SNAP "visitor-game1")
 (DISMISS 10000)
-(HT.CHECK "game 2: the resident offered fresh players" (RV.Game) (QUOTE (Lisp "athena" "athena" "athena")))
-(HT.CHECK "game 2 finished" (fetch Winners of H.LastGame))
-(HNET.Disconnect)
+(* "PlayHearts, as (PlayHearts '(CP NET)): the resident plays seats 2 to 4.")
+(DISMISS 8000)
+(SETQ PH.NetRelay NIL)
+(HT.CHECK "PlayHearts opens an online table" (WINDOWP (PlayHearts (QUOTE (CP NET)) NIL NIL)))
+(HT.CHECK "seats 2 to 4 wait for the resident" (WINDOWPROP PH.CurrentTable (QUOTE PH.Config)) (QUOTE (CP NET NET NET)))
+(HT.CHECK "PlayHearts game 1: the resident's players" (RV.PlayOnce) (QUOTE ((Lisp "athena" "athena" "athena") T)))
+(HT.CHECK "PlayHearts game 2: fresh players again" (RV.PlayOnce) (QUOTE ((Lisp "athena" "athena" "athena") T)))
+(HT.CHECK "Exit leaves the room" (PROGN (PH.Exit PH.CurrentTable) (LIST (HNET.Connected?))) (QUOTE (NIL)))
+(* "' and backquote in the Interlisp readtable, as typed at the Exec.")
+(SETQ RV.Me (QUOTE (Harley 1)))
+(HT.CHECK "' and backquote read as at the Exec"
+  (CL:WITH-INPUT-FROM-STRING (In "(LIST 'A `(Hearts ',(LIST RV.Me)))") (EVAL (READ In (FIND-READTABLE "INTERLISP"))))
+  (QUOTE (A (Hearts (QUOTE ((Harley 1)))))))
+(NLSETQ (HNET.Disconnect))
