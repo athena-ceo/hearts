@@ -36,33 +36,40 @@ network".
 
 ## Deploying
 
-On the server, in the checkout:
+On the server, in the checkout, `./hearts.sh deploy prod` pulls, rebuilds and restarts
+everything: the web platform, the relay and the resident Medley. Then it checks their health.
+To start or restart only the relay and the resident:
 
 ```bash
-git pull
-docker compose -f docker-compose.server.yml up -d --build relay medley
+./hearts.sh resident prod
 ```
 
 Then, once:
 
-1. Paste the new locations from `nginx/hearts-apps-location.conf` (`/hearts/hnet/` and
-   `/hearts/medley/...`) into the `apps.athenadecisions.com` server block.
-2. Make the control login:
+1. Make the control login (run it again to add someone):
 
    ```bash
-   sudo htpasswd -c /etc/nginx/hearts-medley.htpasswd harley
+   ./hearts.sh control-login harley
    ```
 
-   `htpasswd` is in `apache2-utils`.
-3. Reload nginx:
+   It writes `/etc/nginx/hearts-medley.htpasswd` with `htpasswd`, from `apache2-utils`.
+2. Add the new locations to nginx:
 
    ```bash
-   sudo nginx -t && sudo systemctl reload nginx
+   ./hearts.sh nginx-install
    ```
 
-The resident takes a minute or two to start: loading the Expert brings in LOOPS. Its status window
-at the top of the screen says when it is waiting for a game. `docker compose -f
-docker-compose.server.yml logs -f relay` shows machines joining and leaving rooms.
+   This puts the part of `nginx/hearts-apps-location.conf` between its `hearts-medley` markers
+   (`/hearts/hnet/` and `/hearts/medley/...`) just before the site's `location ^~ /hearts/ {`, so
+   it lands in the same server block. It keeps a dated backup of the site file, runs `nginx -t`,
+   and reloads, or puts the old file back if the test fails. Running it again after a change to
+   those locations replaces its earlier copy. The site file is
+   `/etc/nginx/sites-enabled/apps.athenadecisions.com`; set `NGINX_SITE` if yours is elsewhere.
+
+The resident takes a minute or two to start, because loading the Expert brings in LOOPS.
+`./hearts.sh health prod` checks the relay and both screens, and says whether the resident is in
+its room yet. `./hearts.sh resident-logs prod` shows machines joining and leaving rooms. Locally,
+`./hearts.sh resident dev` runs the same two services on this computer.
 
 ## How it's put together
 

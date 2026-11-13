@@ -62,8 +62,11 @@ Environment on this machine: repo at `~/Development/hearts`, Medley at `~/medley
 connected dir `~/il`.
 
 ```bash
-open -a XQuartz && cd ~/medley-260810/medley && export OSTYPE=darwin && ./medley --apps --interlisp --noscroll
+./hearts.sh medley        # copies dist/ to ~/il, then: open -a XQuartz; OSTYPE=darwin ./medley --apps --interlisp --noscroll
 ```
+
+`./hearts.sh help` lists the rest: the web platform, the resident Medley and relay, the headless
+tests (`medley-test`), a relay for the local network (`relay`).
 
 Then, in the Interlisp Exec:
 

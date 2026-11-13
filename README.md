@@ -125,6 +125,9 @@ HEARTS_ADMIN_PASSWORD=choose-one ./hearts.sh start dev
 ./hearts.sh invite dev "a note about who it's for"
 ```
 
+`./hearts.sh help` lists every command, including those for Medley on this computer
+(`./hearts.sh medley` starts it with the HEARTS files) and the server's resident Medley.
+
 The design is in [`docs/design/python-platform.md`](docs/design/python-platform.md). Medley stays the reference for the
 historical system.
 
