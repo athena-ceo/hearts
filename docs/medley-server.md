@@ -60,8 +60,9 @@ Then, once:
    ```
 
    This puts the part of `nginx/hearts-apps-location.conf` between its `hearts-medley` markers
-   (`/hearts/hnet/` and `/hearts/medley/...`) just before the site's `location ^~ /hearts/ {`, so
-   it lands in the same server block. It keeps a dated backup of the site file, runs `nginx -t`,
+   (`/hearts/hnet/` and `/hearts/medley/...`) into the site's server block. It goes just before
+   `location ^~ /hearts/ {` if the web platform is already served there. Otherwise it goes at
+   the end of the `apps.athenadecisions.com` block that listens on 443 (certbot's). It keeps a dated backup of the site file, runs `nginx -t`,
    and reloads, or puts the old file back if the test fails. Running it again after a change to
    those locations replaces its earlier copy. The site file is
    `/etc/nginx/sites-enabled/apps.athenadecisions.com`; set `NGINX_SITE` if yours is elsewhere.
