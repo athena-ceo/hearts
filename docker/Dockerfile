@@ -11,7 +11,7 @@
 # so nothing is compiled here.  LOOPS (Xerox's Lisp Object-Oriented Programming System)
 # is not part of Medley proper; it comes from github.com/Interlisp/loops, pinned below.
 
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim AS medley
 
 ARG MEDLEY_RELEASE=260810-634d092e_260319-9259716e
 ARG LOOPS_COMMIT=8508dd0d9af4b237c4f18c05d6655fefc621dfa3
@@ -47,12 +47,30 @@ RUN apt-get update \
  && pip3 install --break-system-packages --no-cache-dir anthropic openai websockets \
  && rm -rf /var/lib/apt/lists/*
 
-COPY harness.lisp /usr/local/share/hearts/harness.lisp
-COPY medley-run /usr/local/bin/medley-run
-RUN chmod +x /usr/local/bin/medley-run
-
 ENV MEDLEY_HOME=/opt/medley-full \
     LOOPSDIR=/opt/loops
 
+# --- The resident Medley for the demo server (docker-compose.server.yml, target "resident") ---
+# Medley on a virtual display that people can watch, or control, from a browser: two VNC
+# servers on the display (view-only and full) and noVNC for each.  docker/resident.lisp keeps
+# offering players on the network game's relay.  See docs/medley-server.md.
+FROM medley AS resident
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends x11vnc novnc websockify \
+ && rm -rf /var/lib/apt/lists/*
+RUN useradd --create-home --shell /bin/bash medley
+COPY resident.lisp /usr/local/share/hearts/resident.lisp
+COPY resident-run /usr/local/bin/resident-run
+RUN chmod +x /usr/local/bin/resident-run
+USER medley
+WORKDIR /home/medley
+EXPOSE 6080 6081
+ENTRYPOINT ["/usr/local/bin/resident-run"]
+
+# --- The test harness: the default target, built by tools/medley-headless ---
+FROM medley AS harness
+COPY harness.lisp /usr/local/share/hearts/harness.lisp
+COPY medley-run /usr/local/bin/medley-run
+RUN chmod +x /usr/local/bin/medley-run
 WORKDIR /hearts
 ENTRYPOINT ["/usr/local/bin/medley-run"]

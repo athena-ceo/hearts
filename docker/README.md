@@ -15,6 +15,10 @@ tools/medley-headless --utf8 tests/llmplayer.lisp   # ...under LANG=en_US.UTF-8,
 tests/run-all.sh                                    # the whole HEARTS suite, in parallel
 ```
 
+The Dockerfile has three stages: `medley` (Medley, LOOPS, Python), `harness` (this test runner,
+the default) and `resident` (the demo server's resident Medley with VNC and noVNC, built by
+`docker-compose.server.yml`; see [docs/medley-server.md](../docs/medley-server.md)).
+
 `--network NAME` (after `--utf8`) joins a Docker network, and `HNET_RELAY` passes through:
 `tests/run-hnet.sh` uses them to put a relay and two Medleys on one private network.
 

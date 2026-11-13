@@ -241,6 +241,10 @@ leaves the room. A machine answers only the calls the game makes (`HNET.Allowed`
 arbitrary form. For how it works, the gotchas and a general guide to networking in today's Medley,
 see [docs/medley-networking.md](docs/medley-networking.md).
 
+Once the demo server runs it, there is always someone to play: a **resident Medley** in room
+`athena` at `wss://apps.athenadecisions.com/hearts` offers an Expert, the neural network and a
+Conservative, and you can watch its screen in a browser. See [docs/medley-server.md](docs/medley-server.md).
+
 ## Starting a game — the 1986 way: `LHearts`
 
 At the Interlisp Exec:

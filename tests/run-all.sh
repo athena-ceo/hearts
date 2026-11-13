@@ -34,3 +34,5 @@ run expert-game     --loops --timeout 1800  tests/expert-game.lisp   # alone: it
 wait
 # The network game: a relay and two Medleys, each in its own container (tests/run-hnet.sh).
 printf '%-18s %s\n' hnet "$(tests/run-hnet.sh 2>&1 | tail -1)"
+# The demo server's relay and resident Medley, with a visitor playing it twice (tests/run-resident.sh).
+printf '%-18s %s\n' resident "$(tests/run-resident.sh 2>&1 | tail -1)"

@@ -2,7 +2,8 @@
 #
 # Production stack for apps.athenadecisions.com.
 # Ports: backend 8050, frontend 3050 (distinct from golden-path 8020/3020,
-# xcape 8030/3030, advent 8040/3040).
+# xcape 8030/3030, advent 8040/3040); the network game's relay 8051, and the resident
+# Medley's screen 8052 (watch) and 8053 (control).  All on 127.0.0.1: nginx is the way in.
 
 services:
   backend:
@@ -40,6 +41,53 @@ services:
       - "${FRONTEND_PORT:-3050}:80"
     depends_on:
       - backend
+    networks:
+      - hearts-network
+
+  # The network game's relay (medley/hnetrelay.py): Medleys anywhere meet here, through nginx at
+  # wss://apps.athenadecisions.com/hearts.  It passes messages and evaluates nothing.
+  relay:
+    build:
+      context: ./docker
+      target: resident
+    image: hearts-resident
+    restart: unless-stopped
+    entrypoint: ["python3", "-u", "/opt/hearts/hnetrelay.py"]
+    command: ["--port", "8765", "--max-room", "32"]
+    ports:
+      - "127.0.0.1:${RELAY_PORT:-8051}:8765"
+    volumes:
+      - ./medley/hnetrelay.py:/opt/hearts/hnetrelay.py:ro
+    networks:
+      - hearts-network
+
+  # The resident Medley (docker/resident.lisp): offers an Expert, the neural network and a
+  # Conservative in room "athena".  Its screen: watch on 8052 (public), control on 8053 (nginx
+  # login).  No secrets in here: whoever controls it has a Lisp that can run shell commands.
+  medley:
+    build:
+      context: ./docker
+      target: resident
+    image: hearts-resident
+    restart: unless-stopped
+    depends_on:
+      - relay
+    environment:
+      HNET_RELAY: ws://relay:8765
+      HEARTSDIR: /hearts/dist
+      RESIDENTROOM: ${RESIDENT_ROOM:-athena}
+      RESIDENTNAME: ${RESIDENT_NAME:-athena}
+      RESIDENTPLAYERS: ${RESIDENT_PLAYERS:-EP NP CP}
+    ports:
+      - "127.0.0.1:${MEDLEY_WATCH_PORT:-8052}:6080"
+      - "127.0.0.1:${MEDLEY_CONTROL_PORT:-8053}:6081"
+    volumes:
+      - ./dist:/hearts/dist:ro
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
     networks:
       - hearts-network
 

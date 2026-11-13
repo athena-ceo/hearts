@@ -48,6 +48,8 @@
 (RPAQ? HNET.Served 0)
 (RPAQ? HNET.Sent 0)
 (RPAQ? HNET.Refused NIL)
+(RPAQ? HNET.LastFrom NIL)
+(RPAQ? HNET.LastCallAt NIL)
 (RPAQ HNET.Lock (CREATE.MONITORLOCK (QUOTE HNET)))
 
 (* "What comes over the wire is read with this readtable: the file readtable with # made an ordinary character.  Medley's Common Lisp readtables evaluate #. and #, while reading, and there is no *READ-EVAL* to stop them; the file readtable doesn't, but this makes sure.")
@@ -120,9 +122,11 @@
   (LAMBDA (WaitMS)
     (* ; "The other machines in the room, in the order they joined, fresh from the relay.")
     (if (HNET.Connected?)
-        then (LET ((Asked (CLOCK 0)))
+        then (LET ((Asked (CLOCK 0))
+                   (Seen HNET.PeersAt))
+                  (* ; "HNET.PeersAt counts the PEERS answers: wait for the next one.  (Not a time: CLOCK can be negative.)")
                   (HNET.Write HNET.Stream "PEERS")
-                  (for I from 1 while (AND (ILESSP HNET.PeersAt Asked)
+                  (for I from 1 while (AND (EQ HNET.PeersAt Seen)
                                            (NOT HNET.Closed)
                                            (ILESSP (IDIFFERENCE (CLOCK 0) Asked) (OR WaitMS 5000)))
                      do (BLOCK 20))
@@ -200,7 +204,7 @@
                                then (push HNET.Replies (CONS Id (QUOTE NOPEER)))))
                    (PEERS (SETQ HNET.Peers (for W in (HNET.Words (OR (HNET.Rest Line 1) ""))
                                               collect W))
-                          (SETQ HNET.PeersAt (CLOCK 0)))
+                          (SETQ HNET.PeersAt (ADD1 HNET.PeersAt)))
                    (CLOSED (SETQ HNET.Closed (OR (HNET.Rest Line 1) "closed")))
                    NIL)))))
 
@@ -219,13 +223,21 @@
            (Call (HNET.Check Form))
            Result)
           (add HNET.Served 1)
-          (SETQ Result (if Call
-                           then (LET ((V (NLSETQ (APPLY (CAR Call) (CDR Call)))))
-                                     (if V
-                                         then (CONS T (CAR V))
-                                       else (CONS NIL "an error")))
-                         else (push HNET.Refused (LIST From Form))
-                              (CONS NIL "not an HNET call")))
+          (if Call
+              then (SETQ HNET.LastFrom From)
+                   (SETQ HNET.LastCallAt (CLOCK 0)))
+          (SETQ Result (COND
+                          ((NULL Call)
+                           (push HNET.Refused (LIST From Form))
+                           (CONS NIL "not an HNET call"))
+                          ((AND (EQ (CAR Call) (QUOTE HNET.DoIWantToPlay?))
+                                (NOT (AND (BOUNDP (QUOTE H.WaitingToPlay)) H.WaitingToPlay)))
+                           (* ; "No players waiting: say no without asking.  In 1986 only a machine running EVALSERVER heard this; here every machine in the room does, and HNET.DoIWantToPlay? resets Player.Array, which would break a game this machine is running as the house.")
+                           (CONS T NIL))
+                          (T (LET ((V (NLSETQ (APPLY (CAR Call) (CDR Call)))))
+                                  (if V
+                                      then (CONS T (CAR V))
+                                    else (CONS NIL "an error"))))))
           (if (AND (NUMBERP Id) (NOT (EQ Id 0)) (NOT HNET.Closed))
               then (HNET.Write S (CONCAT "REPLY " From " " Id " " (HNET.Encode Result)))))))
 

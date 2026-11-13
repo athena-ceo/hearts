@@ -38,7 +38,7 @@ import websockets
 
 NAME = re.compile(r"^[A-Za-z0-9.-]{1,32}$")
 MAX_MESSAGE = 1 << 20          # a hand or a trick is a few hundred bytes
-MAX_ROOM = 8                   # four seats, plus watchers
+MAX_ROOM = 8                   # a room's machines; --max-room changes it
 
 rooms = {}                     # room -> {name: websocket}, in joining order
 log = logging.getLogger("hnetrelay")
@@ -116,9 +116,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8765)
+    ap.add_argument("--max-room", type=int, default=MAX_ROOM, help="machines per room (default 8)")
     ap.add_argument("--cert", help="TLS certificate (PEM), for wss://")
     ap.add_argument("--key", help="its private key (PEM)")
     args = ap.parse_args()
+    MAX_ROOM = args.max_room
     tls = None
     if args.cert:
         tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

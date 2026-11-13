@@ -1,0 +1,37 @@
+#!/bin/bash
+# resident-run -- the resident HEARTS Medley for the demo server.
+#
+# Starts Medley on a virtual display and keeps it running.  Two VNC servers show that display,
+# and noVNC serves each to a browser:
+#   port 6080  watch:   view only (public)
+#   port 6081  control: keyboard and mouse.  No password here: publish it only behind nginx's
+#                       login (nginx/hearts-apps-location.conf).
+# docker/resident.lisp then joins the relay's room and keeps offering players there.
+#
+# Settings (environment): HNET_RELAY (the relay, ws://relay:8765 in docker-compose.server.yml),
+# RESIDENTROOM (athena), RESIDENTNAME (athena), RESIDENTPLAYERS ("EP NP CP"), GEOMETRY (1280x900).
+set -u
+GEOMETRY="${GEOMETRY:-1280x900}"
+export DISPLAY=:0 TERM=dumb
+mkdir -p "$HOME/il"
+
+Xvfb :0 -screen 0 "${GEOMETRY}x24" -nolisten tcp >/dev/null 2>&1 &
+for _ in $(seq 1 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done 2>/dev/null
+
+x11vnc -display :0 -localhost -rfbport 5901 -viewonly -shared -forever -nopw -quiet >/dev/null 2>&1 &
+x11vnc -display :0 -localhost -rfbport 5900 -shared -forever -nopw -quiet >/dev/null 2>&1 &
+websockify --web /usr/share/novnc 6080 localhost:5901 >/dev/null 2>&1 &
+websockify --web /usr/share/novnc 6081 localhost:5900 >/dev/null 2>&1 &
+
+# The exec stuffs a REM.CM that starts with a double quote into its type-ahead (see medley-run).
+export RESIDENTLISP="{DSK}/usr/local/share/hearts/resident.lisp"
+CM="$HOME/resident.cm"
+printf '"(EXEC_INTERLISP) (LOAD (UNIX-GETENV (QUOTE RESIDENTLISP)))"\n' > "$CM"
+
+# Run Medley; if it stops (a crash, or someone typed LOGOUT), start it again.
+while :; do
+  echo "$(date -u +%FT%TZ) starting Medley"
+  "$MEDLEY_HOME/medley/medley" -a -n -i resident -g "$GEOMETRY" -s "$GEOMETRY" -x "$HOME/il" -cm "$CM"
+  echo "$(date -u +%FT%TZ) Medley stopped ($?); restarting in 5 seconds"
+  sleep 5
+done

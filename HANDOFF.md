@@ -354,8 +354,11 @@ display. Output in `out/medley/`. Details and the Medley automation traps it wor
   (medley/hnetrelay.py) that each Medley reaches through a child process (medley/hnetlink.py, stdlib
   only). The 1986 HNET code runs unchanged apart from 1986 bugs H6 and H7. A full game to 100 between two headless
   Medleys passes, and both tables end on the same score (`tests/run-hnet.sh`). Each machine
-  evaluates only `HNET.Allowed` calls. Not done: a public relay (deploy behind TLS with the Python
-  platform), PlayHearts menu items, and a try on two real Macs. Guide for the Medley community:
+  evaluates only `HNET.Allowed` calls. For apps.athenadecisions.com, `docker-compose.server.yml` adds the relay
+  and a **resident Medley** (docker/resident.lisp) that is always in room `athena` offering an
+  Expert, the network and a Conservative, with its screen in the browser to watch (public) or control
+  (nginx login): [docs/medley-server.md](docs/medley-server.md); tested locally by
+  `tests/run-resident.sh`. Not done: deploying it, PlayHearts menu items, and a try on two real Macs. Guide for the Medley community:
   [docs/medley-networking.md](docs/medley-networking.md).
 - **Phase 3 — Modern Common Lisp port.** Build against the language-neutral contract in
   [ARCHITECTURE.md](ARCHITECTURE.md) (six-message protocol, dispatch, data model, game loop).
