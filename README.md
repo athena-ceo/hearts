@@ -205,6 +205,11 @@ python/          Phase 4 — a Python port for distribution (planned).
   [HEARTS-BUGS.md](HEARTS-BUGS.md); Medley-side gotchas in [MEDLEY-ISSUES.md](MEDLEY-ISSUES.md).
   **Phase 2b — the KEE Expert — runs** (headless-verified): its original code and 97 original rules
   on KEELOOPS, a KEE compatibility layer on LOOPS ([REVIVAL-LOG.md](REVIVAL-LOG.md) Challenges
-  17–20). **Remaining:** interactive play of the Expert on the Mac, the original Ethernet
-  networking (deferred — collapse to one image), and minor window-cleanup polish.
+  17–20). The original networking runs again, between Medleys anywhere on the Internet
+  ([docs/medley-networking.md](docs/medley-networking.md)), and a resident Medley plays online
+  ([docs/medley-server.md](docs/medley-server.md)).
 - **Phases 3–4 (modern Lisp / Python ports) — planned.**
+
+## License
+
+MIT: see [LICENSE](LICENSE). The 1986 source keeps its original notice; the license covers it too.

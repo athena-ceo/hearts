@@ -46,13 +46,21 @@
     (SETQ HNET.CardTable NIL)
     (SETQ R.NextSlot 0)))
 
+(R.Make
+  (LAMBDA (Type)
+    (* ; "A player, with its Thoughts window.  The Conservative and the network make their own; a closed-hand Expert narrates only into its hand window, so give it one as PlayHearts does.")
+    (LET ((Player (H.MakePlayer Type NIL)))
+         (if (EQ Type (QUOTE EP))
+             then (PH.GiveThoughtsWindow Player))
+         Player)))
+
 (R.Offer
   (LAMBDA NIL
     (* ; "Fresh players, offered on the net.")
     (R.Tidy)
     (SETQ HNET.MyPlayers NIL)
     (SETQ H.WaitingToPlay NIL)
-    (NetHearts (for X in R.Players collect (H.MakePlayer X NIL)))
+    (NetHearts (for X in R.Players collect (R.Make X)))
     (SETQ R.OfferedAt (CLOCK 0))
     (SETQ R.State "waiting for someone to start a game")))
 
@@ -131,8 +139,13 @@
 (SETQ R.Slots (QUOTE ((10 530 455 250) (935 530 335 250) (10 270 455 250) (935 270 335 250) (10 10 455 250) (935 10 335 250))))
 (SETQ ThinkFlag? T)
 (if (FMEMB (QUOTE EP) R.Players) then (FILESLOAD EXPERT))
+(* "PLAYHEARTS, for the Expert's Thoughts window (PH.GiveThoughtsWindow and its advice).")
+(FILESLOAD PLAYHEARTS)
 (ADVISE (QUOTE GETBOXREGION) (QUOTE BEFORE) (QUOTE (RETURN (R.Place WIDTH HEIGHT))))
 (ADVISE (QUOTE GETREGION) (QUOTE BEFORE) (QUOTE (RETURN (R.Place (OR MINWIDTH 300) (OR MINHEIGHT 200)))))
+(* "The Exec goes under the card table, out of the way of the players' Thoughts windows.")
+(LET ((Exec (WFROMDS (TTYDISPLAYSTREAM))))
+     (if Exec then (SHAPEW Exec (CREATEREGION 475 10 450 370))))
 (R.Show)
 (ADD.PROCESS (QUOTE (R.Loop)) (QUOTE NAME) (QUOTE Resident))
 STOP

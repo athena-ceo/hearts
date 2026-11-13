@@ -114,7 +114,9 @@ its room yet. `./hearts.sh resident-logs prod` shows machines joining and leavin
   - `autocutsel` keeps the X selections and the cut buffer in step. x11vnc uses only the cut
     buffer, while Medley pastes and copies through `xclip`.
 - **`docker/resident.lisp`** loads `dist/` (mounted read-only), turns the Exec's page hold off,
-  places windows itself, joins the room, and runs a process that keeps offering players. Settings:
+  places windows itself (the players' Thoughts windows beside the card table, the Exec under it;
+  the closed-hand Expert gets its Thoughts window as in PlayHearts), joins the room, and runs a
+  process that keeps offering players. Settings:
   `RESIDENT_ROOM`, `RESIDENT_NAME`, `RESIDENT_PLAYERS` (e.g. `EP NP CP`) in the server's `.env`.
 - Ports 8051 (relay), 8052 (watch) and 8053 (control) are published on 127.0.0.1 only, so nginx is
   the only way in.
@@ -126,7 +128,7 @@ its room yet. `./hearts.sh resident-logs prod` shows machines joining and leavin
   keys, no `.env`), mounts only `dist/` read-only, runs as a non-root user with no Linux
   capabilities, and is limited to 1 GB. It can still reach the network.
 - **Watching shows the resident's Thoughts windows.** A visitor who also watches can read what the
-  Conservative and the network are thinking, so this is a demo, not a tournament.
+  Expert, the Conservative and the network are thinking, so this is a demo, not a tournament.
 - **The relay's only access control is the room name.** A machine evaluates only the game's own
   calls (`HNET.Allowed`), so a stranger in a room can't run code. They could disrupt a game,
   though, and the relay has no rate limits yet.
