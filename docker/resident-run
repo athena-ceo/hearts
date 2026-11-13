@@ -15,6 +15,9 @@ GEOMETRY="${GEOMETRY:-1280x900}"
 export DISPLAY=:0 TERM=dumb
 mkdir -p "$HOME/il"
 
+# A restarted container keeps /tmp: clear the last display's lock, or Xvfb won't start and
+# Medley can't open its display.
+rm -f /tmp/.X0-lock /tmp/.X11-unix/X0
 Xvfb :0 -screen 0 "${GEOMETRY}x24" -nolisten tcp >/dev/null 2>&1 &
 for _ in $(seq 1 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done 2>/dev/null
 

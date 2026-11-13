@@ -39,11 +39,15 @@ network".
 Click a window to type into it. Any keyboard layout works: on a French keyboard, `(` and `)`
 reach Medley as they would from a US one.
 
-**To paste from your computer:**
-1. Open noVNC's side panel (the small tab at the left edge of the screen) and choose the
-   clipboard.
-2. Paste your text into its box.
-3. In Medley, press Option-V (Alt-V, Medley's Meta-V) where it should go.
+**To paste from your computer:** noVNC can't read your computer's clipboard, so Cmd-V on the
+screen finds nothing ("Error: target STRING not available"). The text has to go through noVNC's
+own box:
+1. Copy the text on your computer as usual.
+2. Open noVNC's side panel (the small tab at the left edge) and choose the clipboard
+   (Presse-papiers in French).
+3. Paste into its box with Cmd-V, and close the panel.
+4. Click on Medley's screen, so the keyboard goes back to Medley.
+5. Press Option-V (Alt-V, Medley's Meta-V) where the text should go.
 
 Text Medley copies (Meta-C in SEdit) appears in that same box, to copy from.
 
