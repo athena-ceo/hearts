@@ -34,6 +34,19 @@ missing seats are filled with Conservatives on your own machine. Two people can 
 other through the relay: use a room of your own, as in the USER-MANUAL's "Playing over the
 network".
 
+## Using the control screen
+
+Click a window to type into it. Any keyboard layout works: on a French keyboard, `(` and `)`
+reach Medley as they would from a US one.
+
+**To paste from your computer:**
+1. Open noVNC's side panel (the small tab at the left edge of the screen) and choose the
+   clipboard.
+2. Paste your text into its box.
+3. In Medley, press Option-V (Alt-V, Medley's Meta-V) where it should go.
+
+Text Medley copies (Meta-C in SEdit) appears in that same box, to copy from.
+
 ## Deploying
 
 On the server, in the checkout, `./hearts.sh deploy prod` pulls, rebuilds and restarts
@@ -80,6 +93,10 @@ its room yet. `./hearts.sh resident-logs prod` shows machines joining and leavin
 - **`docker/resident-run`** starts Xvfb, two VNC servers on that display (view-only on 5901, full
   on 5900, both local to the container), and noVNC for each: 6080 to watch, 6081 to control. It
   then starts Medley, and starts it again if it stops.
+  - The VNC servers skip Xvfb's extra `(` and `)` keys (keycodes 187 and 188), which Medley
+    ignores. Without that, parentheses typed through the browser were lost.
+  - `autocutsel` keeps the X selections and the cut buffer in step. x11vnc uses only the cut
+    buffer, while Medley pastes and copies through `xclip`.
 - **`docker/resident.lisp`** loads `dist/` (mounted read-only), turns the Exec's page hold off,
   places windows itself, joins the room, and runs a process that keeps offering players. Settings:
   `RESIDENT_ROOM`, `RESIDENT_NAME`, `RESIDENT_PLAYERS` (e.g. `EP NP CP`) in the server's `.env`.

@@ -52,11 +52,13 @@ ENV MEDLEY_HOME=/opt/medley-full \
 
 # --- The resident Medley for the demo server (docker-compose.server.yml, target "resident") ---
 # Medley on a virtual display that people can watch, or control, from a browser: two VNC
-# servers on the display (view-only and full) and noVNC for each.  docker/resident.lisp keeps
+# servers on the display (view-only and full) and noVNC for each.  xclip is how Medley's
+# CLIPBOARD library pastes (Meta-V) and copies; autocutsel carries text between those X
+# selections and the cut buffer, which is all x11vnc uses for the browser's clipboard.  docker/resident.lisp keeps
 # offering players on the network game's relay.  See docs/medley-server.md.
 FROM medley AS resident
 RUN apt-get update \
- && apt-get install -y --no-install-recommends x11vnc novnc websockify \
+ && apt-get install -y --no-install-recommends x11vnc novnc websockify xclip autocutsel \
  && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --shell /bin/bash medley
 COPY resident.lisp /usr/local/share/hearts/resident.lisp

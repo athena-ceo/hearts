@@ -18,8 +18,17 @@ mkdir -p "$HOME/il"
 Xvfb :0 -screen 0 "${GEOMETRY}x24" -nolisten tcp >/dev/null 2>&1 &
 for _ in $(seq 1 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done 2>/dev/null
 
-x11vnc -display :0 -localhost -rfbport 5901 -viewonly -shared -forever -nopw -quiet >/dev/null 2>&1 &
-x11vnc -display :0 -localhost -rfbport 5900 -shared -forever -nopw -quiet >/dev/null 2>&1 &
+# -skip_keycodes 187,188: Xvfb's keyboard has extra keys for ( and ), which x11vnc prefers
+# because they need no Shift, but Medley ignores them; skipped, ( and ) go as Shift-9 and Shift-0.
+# So does every ( and ) from a keyboard that types them unshifted, like the French one.
+KEYS=(-xkb -skip_keycodes 187,188)
+x11vnc -display :0 -localhost -rfbport 5901 -viewonly -shared -forever -nopw -quiet "${KEYS[@]}" -nosel >/dev/null 2>&1 &
+x11vnc -display :0 -localhost -rfbport 5900 -shared -forever -nopw -quiet "${KEYS[@]}" >/dev/null 2>&1 &
+# The clipboard: x11vnc puts what noVNC's clipboard panel sends into the X cut buffer and sends
+# the cut buffer back; Medley pastes from, and copies to, the CLIPBOARD selection (with xclip).
+# autocutsel keeps the selections and the cut buffer the same.  (The watchers' x11vnc has -nosel.)
+autocutsel -selection CLIPBOARD >/dev/null 2>&1 &
+autocutsel -selection PRIMARY >/dev/null 2>&1 &
 websockify --web /usr/share/novnc 6080 localhost:5901 >/dev/null 2>&1 &
 websockify --web /usr/share/novnc 6081 localhost:5900 >/dev/null 2>&1 &
 
