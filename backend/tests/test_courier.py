@@ -375,3 +375,26 @@ def test_the_hub_passes_nothing_between_machines_and_survives_rubbish(house):
     closed, opponents, delivered = run(intrude())
     assert closed and "expert" in dict(opponents)
     assert delivered == []  # Every frame the machine got came from the house.
+
+
+def test_a_routing_question_is_answered_so_medley_does_not_wait_for_a_router(house):
+    client, door = house
+
+    async def ask():
+        reader, writer = await asyncio.open_connection("127.0.0.1", door.port)
+        me = bytes.fromhex("1000AA000055")
+        request = b"\x00\x01" + b"\xff\xff\xff\xff" + b"\x00\x10"   # What networks are there?
+        idp = b"\xff\xff" + (30 + len(request)).to_bytes(2, "big") + b"\x00\x01" + bytes(4) + xns.BROADCAST + b"\x00\x01" \
+            + bytes(4) + me + b"\x00\x01" + request
+        frame = xns.BROADCAST + me + xns.XNS + idp
+        writer.write(len(frame).to_bytes(2, "big") + frame)
+        size = int.from_bytes(await asyncio.wait_for(reader.readexactly(2), 5), "big")
+        answer = await reader.readexactly(size)
+        writer.close()
+        return answer
+
+    answer = run(ask())
+    packet = answer[14:]
+    assert answer[0:6] == bytes.fromhex("1000AA000055") and answer[6:12] == courier.HOUSE_MAC and len(answer) % 2 == 0
+    assert packet[5] == 1 and int.from_bytes(packet[2:4], "big") == 38
+    assert packet[30:38] == b"\x00\x02" + bytes(4) + b"\x00\x00"   # A response: network 0, no hops.

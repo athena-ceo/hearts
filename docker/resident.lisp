@@ -144,6 +144,8 @@
 (SETQ R.Misses 0)
 (SETQ R.CheckedAt NIL)
 (SETQ R.IdleMinutes 20)
+(* "A finished trick stays on the card table for a second (the 1986 table held it for two): long enough to watch, and half the time of a deal.")
+(SETQ HC.TrickPause 1000)
 (SETQ R.Games 0)
 (SETQ R.Status NIL)
 (SETQ R.State "starting")

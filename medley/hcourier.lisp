@@ -62,6 +62,8 @@
 (RPAQ? HC.House "0#10000.44105.40522#")
 (* "Show the 1986 card table while a game is played here.")
 (RPAQ? HC.ShowTable T)
+(* "How long the card table shows a finished trick, in milliseconds.  NIL: the 1986 table's own 2000.")
+(RPAQ? HC.TrickPause NIL)
 (* "A function of the four seats' players that opens the card table and returns it, in place of HC.OpenTable.")
 (RPAQ? HC.OpenTableFn NIL)
 
@@ -202,6 +204,7 @@
                                                   (for Name in Names as Seat from 1
                                                      collect (OR (HC.Player Seat)
                                                                  (create Player Name _ Name Number _ Seat))))))
+    (if (AND HC.TrickPause HNET.CardTable) then (WINDOWPROP HNET.CardTable (QUOTE Delay) HC.TrickPause))
     (SETQ HC.Playing T)
     (SETQ HC.Winners NIL)
     (SETQ HC.Scores NIL)

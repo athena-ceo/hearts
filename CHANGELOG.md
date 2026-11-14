@@ -42,6 +42,12 @@
   location, `./hearts.sh relay`, and the tests `run-hnet.sh`, `test_hnet.py`, `hnet-*.lisp`. They
   are at tag `revival-1986`. On the server the `/hearts/hnet/` location stays in nginx until
   `./hearts.sh nginx-install` is run again.
+- **Online play is quicker.** Measured on the live server: the line and the house cost one round
+  trip a call (7 ms). Two delays were elsewhere. A Medley's first call to the house waited 8
+  seconds for a router that isn't there: the house now answers Medley's routing information
+  request (`backend/hearts/xns.py`), and the first call is immediate, also after five idle
+  minutes. And the resident's card table held each trick for 2 seconds, most of a deal's 29:
+  `HC.TrickPause` (`medley/hcourier.lisp`) sets it, and the resident uses 1 second.
 - **`./hearts.sh nginx-install` installs the web game too**: the page, its API and its health
   address, with the resident's screens, between new `hearts` markers; it replaces a copy from the
   earlier `hearts-medley` markers (`scripts/nginx_install.py`, `backend/tests/test_nginx_install.py`).

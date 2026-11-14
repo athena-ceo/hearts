@@ -8,7 +8,8 @@ such connection.  It answers only frames addressed to the house, so machines on 
 What is here follows Medley's own implementation (sources/SPP, sources/COURIER, lispusers/COURIERSERVE in the
 260810 release), which is the only other end it has been run against:
 
-- IDP: no checksum (65535, which Medley accepts), network 0 on both sides.
+- IDP: no checksum (65535, which Medley accepts), network 0 on both sides.  A routing information request is
+  answered with "network 0 is no hop away", which is all Medley needs to stop waiting for a router.
 - SPP: both directions of opening, acknowledgements, the allocation window, retransmission, the END exchange.
   No attention packets and no bulk data.
 - Courier version 3: calls in both directions, RETURN, ABORT and REJECT.  No expedited (single packet) calls.
@@ -24,7 +25,8 @@ log = logging.getLogger("hearts.xns")
 
 XNS = b"\x06\x00"  # The Ethernet type of an IDP packet.
 BROADCAST = b"\xff" * 6
-TYPE_SPP = 5
+TYPE_ROUTING, TYPE_SPP = 1, 5
+ROUTING_SOCKET = 1
 COURIER_SOCKET = 5
 SYSTEM, SEND_ACK, ATTENTION, EOM = 0x80, 0x40, 0x20, 0x10
 DS_COURIER, DS_END, DS_END_REPLY = 0, 254, 255
@@ -383,7 +385,7 @@ class Wire:
             return
         packet = frame[14:]
         length = int.from_bytes(packet[2:4], "big")
-        if length < 30 or length > len(packet) or packet[10:16] != self.mac:
+        if length < 30 or length > len(packet) or packet[10:16] not in (self.mac, BROADCAST):
             return
         src_host, src_socket = packet[22:28], int.from_bytes(packet[28:30], "big")
         dst_socket = int.from_bytes(packet[16:18], "big")
@@ -391,9 +393,15 @@ class Wire:
             self.peer = bytes(src_host)
         elif src_host != self.peer:
             return
-        if packet[5] != TYPE_SPP:
-            return
         body = bytes(packet[30:length])
+        if packet[5] == TYPE_ROUTING and dst_socket == ROUTING_SOCKET and body[:2] == b"\x00\x01":
+            # Medley asking what networks there are.  Before its first connection it waits for an answer, four
+            # times two seconds if none comes (NSNET.DISTANCE in sources/LLNS).  The answer: network 0, this one,
+            # is no hop away.
+            self.send_idp(TYPE_ROUTING, src_socket, ROUTING_SOCKET, struct.pack(">HIH", 2, 0, 0))
+            return
+        if packet[5] != TYPE_SPP or packet[10:16] != self.mac:
+            return
         spp = self.outgoing.get(dst_socket)
         if spp is None and dst_socket == COURIER_SOCKET:
             spp = self.incoming.get(src_socket)

@@ -118,6 +118,10 @@ Medley's own `SPP`, `COURIER` and `COURIERSERVE` sources):
 - **Maiko joins the hub once, as it starts.** If the hub isn't there, or goes away, the emulator
   does not try again: Medley has to be restarted. A hub that doesn't answer at all (a firewall
   that drops packets) delays the start by the TCP timeout.
+- **With no router on the hub, Medley's first connection waits 8 seconds.** `SPP.OPEN` asks
+  `NSNET.DISTANCE` for the way to network 0, which broadcasts a routing information request and
+  waits four times two seconds for an answer. A hub that answers one such request with "network
+  0, no hops" (38 bytes) removes the wait for the rest of the session.
 - **On a hub with no PUP service, `(ETHERHOSTNUMBER)` never returns.** It waits for a PUP host
   number from a gateway. The 1986 HEARTS file called it as it loaded, so loading hung
   (HEARTS-BUGS H8). `\MY.NSADDRESS` is the address to use.
