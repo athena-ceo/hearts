@@ -33,7 +33,7 @@ def what_if(kind, deal, seat, seats, totals):
     other = "expert" if "expert" in BOT_KINDS else "network"
     players = []
     for i, s in enumerate(seats):
-        chosen = kind if i + 1 == seat else (s["kind"] if s["kind"] != "person" else other)
+        chosen = kind if i + 1 == seat else (s["kind"] if s["kind"] in BOT_KINDS else other)
         players.append(make_bot(chosen, None, i))
     game = Game(deals=iter([(deal.dealt, deal.direction)]), over_score=-1000)
     game.totals = list(totals)

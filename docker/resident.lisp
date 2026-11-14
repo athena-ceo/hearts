@@ -2,28 +2,42 @@
 
 (* "The resident HEARTS Medley (docs/medley-server.md).  Started by docker/resident-run.
 
-    It joins a room on the network game's relay and offers players there, so anyone with a Medley
-    can play it: connect to the same room and start a game with fewer than four players, and the
-    rest come from here.  When a game ends, or the house leaves, or nothing happens for
-    R.IdleMinutes, it offers fresh players.  Its screen is on the web: watch it, or control it.")
+    It keeps offering players to the house, over Courier (HCOURIER): anyone opening a table there,
+    from a browser or from a Medley, can take them as opponents, and they play here, on this
+    Medley.  When a game ends, or nothing happens for R.IdleMinutes, it offers fresh players.  Its
+    screen is on the web: watch it, or control it.")
 
 (* "Nobody is at the keyboard to release a page hold, so the Exec never holds.")
 (ADVISE (QUOTE PAGEFULLFN) (QUOTE (RETURN)))
 (CNDIR "{DSK}/hearts/dist/")
-(FILESLOAD ACTIVEREGIONS HEARTS HNET NNPLAYER)
+(FILESLOAD ACTIVEREGIONS HEARTS HCOURIER NNPLAYER)
 
 (DEFINEQ
 
 (R.Env
   (LAMBDA (Name Default)
-    (LET ((V (UNIX-GETENV (HNET.Sys Name))))
+    (* ; "An environment variable.  The names have no underscore: one read from a file reaches Unix as an arrow under a UTF-8 locale (MEDLEY-ISSUES M11).")
+    (LET ((V (UNIX-GETENV Name)))
          (if (AND V (IGREATERP (NCHARS V) 0))
              then V
            else Default))))
 
 (R.Words
   (LAMBDA (Text)
-    (for W in (HNET.Words Text) when (IGREATERP (NCHARS W) 0) collect (MKATOM (U-CASE W)))))
+    (* ; "The words of TEXT, as upper-case atoms: EP NP CP.")
+    (for W in (CL:WITH-INPUT-FROM-STRING (In (CONCAT "(" Text ")")) (READ In))
+       collect (MKATOM (U-CASE W)))))
+
+(R.Label
+  (LAMBDA (Type)
+    (* ; "What the house calls a player of this type in its list of opponents.")
+    (CONCAT (SELECTQ Type
+                (EP "Expert")
+                (NP "Neural network")
+                (CP "Conservative")
+                (CLOWN "Clown")
+                (MKSTRING Type))
+            " on Medley")))
 
 (R.Place
   (LAMBDA (W H)
@@ -56,19 +70,24 @@
 
 (R.Offer
   (LAMBDA NIL
-    (* ; "Fresh players, offered on the net.")
+    (* ; "Fresh players, offered to the house.  If the house can't be reached three times running, stop Medley: the emulator joins the NetHub only as it starts, and resident-run starts it again.")
     (R.Tidy)
-    (SETQ HNET.MyPlayers NIL)
-    (SETQ H.WaitingToPlay NIL)
-    (NetHearts (for X in R.Players collect (R.Make X)))
-    (SETQ R.OfferedAt (CLOCK 0))
-    (SETQ R.State "waiting for someone to start a game")))
+    (LET ((Result (HC.Offer (for X in R.Players collect (R.Make X))
+                         R.Key
+                         (for X in R.Players collect (R.Label X)))))
+         (if (EQ (CAR (LISTP Result)) (QUOTE ERROR))
+             then (R.Lost (CADDR Result))
+           else (SETQ R.Misses 0)
+                (SETQ R.CheckedAt (CLOCK 0))
+                (SETQ R.State "waiting for someone to choose these players")))))
 
-(R.GameOver?
-  (LAMBDA NIL
-    (AND HNET.CardTable
-         (OPENWP HNET.CardTable)
-         (for S in (WINDOWPROP HNET.CardTable (QUOTE Score)) thereis (AND (NUMBERP S) (IGREATERP S Game.OverScore))))))
+(R.Lost
+  (LAMBDA (Why)
+    (add R.Misses 1)
+    (SETQ R.State (CONCAT "can't reach the house: " Why))
+    (R.Show)
+    (if (IGEQ R.Misses 3) then (LOGOUT T))
+    (DISMISS 20000)))
 
 (R.Minutes
   (LAMBDA (Since)
@@ -81,41 +100,34 @@
     (if (NOT (AND R.Status (OPENWP R.Status)))
         then (SETQ R.Status (CREATEW (CREATEREGION 475 798 450 96) "The resident HEARTS Medley")))
     (CLEARW R.Status)
-    (printout R.Status "Room " R.Room " as " R.Name " on " R.Relay T)
-    (printout R.Status "Offering: " R.Players T)
+    (printout R.Status "At the house " HC.House T)
+    (printout R.Status "Offering: " (for X in R.Players collect (R.Label X)) T)
     (printout R.Status (OR R.State "") T)
     (printout R.Status "Games played here: " R.Games T)))
 
 (R.Step
   (LAMBDA NIL
     (COND
-       ((NOT (HNET.Connected?))
-        (LET ((Name (HNET.Connect R.Room R.Name R.Relay)))
-             (if (STRINGP Name)
-                 then (R.Offer)
-               else (SETQ R.State (CONCAT "can't reach the relay: " (CADR Name) "; trying again"))
-                    (R.Show)
-                    (DISMISS 30000))))
-       ((AND HNET.MyPlayers (R.GameOver?))
-        (add R.Games 1)
-        (SETQ R.State "game over; new players in a moment")
-        (R.Show)
-        (DISMISS 3000)
+       (HC.Winners (* ; "A game ended here.")
+              (add R.Games 1)
+              (SETQ R.State "game over; new players in a moment")
+              (R.Show)
+              (DISMISS 3000)
+              (R.Offer))
+       ((AND HC.Playing (IGREATERP (R.Minutes HC.LastCallAt) R.IdleMinutes))
+        (* ; "A game nobody is playing any more.  Offering again takes the players away from it.")
         (R.Offer))
-       ((AND HNET.MyPlayers HNET.LastFrom (NOT (MEMBER HNET.LastFrom (HNET.PeerNames))))
-        (* ; "The house left.  Often it just finished: give the last scores a moment to arrive, and count the game if it ended.")
-        (SETQ R.State (CONCAT HNET.LastFrom " left; new players"))
-        (R.Show)
-        (DISMISS 2000)
-        (if (R.GameOver?) then (add R.Games 1))
+       (HC.Playing (SETQ R.State (CONCAT "playing seats " (for P in HNET.MyPlayers collect (fetch Number of P))
+                                        " at a table of the house")))
+       ((NULL HC.Players)
         (R.Offer))
-       ((AND HNET.MyPlayers (IGREATERP (R.Minutes HNET.LastCallAt) R.IdleMinutes))
-        (R.Offer))
-       ((AND (NULL HNET.MyPlayers) (NULL H.WaitingToPlay))
-        (* ; "The house said goodbye before the game ended, or someone took the players from the Exec.")
-        (R.Offer))
-       (HNET.MyPlayers (SETQ R.State (CONCAT "playing seats " (for P in HNET.MyPlayers collect (fetch Number of P))
-                                             " for " (OR HNET.LastFrom "?")))))
+       ((IGEQ (R.Minutes R.CheckedAt) 1)
+        (* ; "Waiting to be chosen: is the house still there?")
+        (LET ((Answer (HC.Tables)))
+             (if (EQ (CAR (LISTP Answer)) (QUOTE ERROR))
+                 then (R.Lost (CADDR Answer))
+               else (SETQ R.Misses 0)
+                    (SETQ R.CheckedAt (CLOCK 0))))))
     (R.Show)))
 
 (R.Loop
@@ -127,10 +139,10 @@
                 (DISMISS 2000))))
 )
 
-(SETQ R.Room (R.Env "RESIDENTROOM" "athena"))
-(SETQ R.Name (R.Env "RESIDENTNAME" "athena"))
-(SETQ R.Relay (OR (HNET.EnvRelay) HNET.Relay))
 (SETQ R.Players (R.Words (R.Env "RESIDENTPLAYERS" "EP NP CP")))
+(SETQ R.Key (R.Env "RESIDENTKEY" ""))
+(SETQ R.Misses 0)
+(SETQ R.CheckedAt NIL)
 (SETQ R.IdleMinutes 20)
 (SETQ R.Games 0)
 (SETQ R.Status NIL)

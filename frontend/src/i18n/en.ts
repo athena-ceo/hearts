@@ -72,6 +72,7 @@ export const en = {
     noOpenTables: "No tables are looking for players right now.",
     openSeat: "Open seat",
     sitHere: "Sit here",
+    medleyTaken: "Those Medley players have just been taken. Choose again.",
     sitAtTable: "Sit at {who}'s table",
     studyUnrated: "Study table, thoughts open, unrated.",
   },
@@ -81,6 +82,7 @@ export const en = {
     expert: "Expert, 1986",
     network: "Neural network",
     claude: "Claude",
+    medley: "On Medley",
   },
   kindsShort: {
     expert: "Expert",

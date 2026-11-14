@@ -12,10 +12,13 @@ services:
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-8050}:8000"
+      - "127.0.0.1:${NETHUB_PORT:-3333}:3333"      # The house's NetHub, for Medleys on this computer.
     environment:
       ENVIRONMENT: development
       HEARTS_DB: /data/db/hearts.db
       HEARTS_ADMIN_PASSWORD: ${HEARTS_ADMIN_PASSWORD:-}
+      HEARTS_NETHUB_PORT: "3333"
+      HEARTS_OFFER_KEY: ${HEARTS_OFFER_KEY:-}
     volumes:
       - hearts-db:/data/db
     networks:

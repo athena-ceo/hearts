@@ -1,0 +1,274 @@
+(DEFINE-FILE-INFO :PACKAGE "INTERLISP" :READTABLE "INTERLISP" :BASE 10)
+
+(FILECREATED "26-Sep-2026 12:00:00" HCOURIER.;1 11802)
+
+
+
+
+(* "HCOURIER -- HEARTS over Courier (2026).  Load HEARTS first.")
+
+(FILESLOAD COURIERSERVE)
+
+(COURIERPROGRAM HEARTSPLAYERS (19861 1)
+    TYPES ((SUIT (ENUMERATION (C 0) (D 1) (H 2) (S 3)))
+           (CARD (RECORD (SUIT SUIT) (VALUE CARDINAL)))
+           (CARDS (SEQUENCE CARD))
+           (DIRECTION (ENUMERATION (Hold 0) (Left 1) (Across 2) (Right 3)))
+           (NAMES (SEQUENCE STRING))
+           (SEATS (SEQUENCE CARDINAL))
+           (SCORES (SEQUENCE INTEGER)))
+    PROCEDURES ((TABLE 0 (NAMES SEATS) RETURNS NIL REPORTS NIL IMPLEMENTEDBY HC.Table)
+                (DEAL 1 (CARDINAL CARDINAL DIRECTION CARDS SCORES) RETURNS NIL REPORTS NIL IMPLEMENTEDBY HC.Deal)
+                (PASS 2 (CARDINAL DIRECTION CARDS) RETURNS (CARDS) REPORTS (NO.PLAYER) IMPLEMENTEDBY HC.Pass)
+                (RECEIVED 3 (CARDINAL CARDS) RETURNS NIL REPORTS NIL IMPLEMENTEDBY HC.Received)
+                (PLAY 4 (CARDINAL CARDINAL CARDS CARDS BOOLEAN BOOLEAN) RETURNS (CARD) REPORTS (NO.PLAYER) IMPLEMENTEDBY HC.Play)
+                (CARD 5 (CARDINAL CARD) RETURNS NIL REPORTS NIL IMPLEMENTEDBY HC.Card)
+                (TRICK 6 (CARDINAL CARDS CARDINAL CARDINAL) RETURNS NIL REPORTS NIL IMPLEMENTEDBY HC.Trick)
+                (SCORES 7 (SCORES SCORES) RETURNS NIL REPORTS NIL IMPLEMENTEDBY HC.Scores)
+                (GAME.OVER 8 (SEATS) RETURNS NIL REPORTS NIL IMPLEMENTEDBY HC.GameOver))
+    ERRORS ((NO.PLAYER 0 (CARDINAL))))
+
+(COURIERPROGRAM HEARTSHOUSE (19860 1)
+    TYPES ((NAMES (SEQUENCE STRING))
+           (TABLE (RECORD (ID STRING) (SEATED NAMES) (FREE CARDINAL)))
+           (OPPONENT (RECORD (KIND STRING) (LABEL STRING))))
+    PROCEDURES ((OFFER 0 (STRING NAMES) RETURNS NIL REPORTS (NOT.ALLOWED BAD.REQUEST))
+                (SIT 1 (STRING NAMES) RETURNS (STRING) REPORTS (NO.SUCH.TABLE NO.SEATS BAD.REQUEST))
+                (NEW.TABLE 2 (NAMES NAMES) RETURNS (STRING) REPORTS (BAD.REQUEST))
+                (LEAVE 3 NIL RETURNS NIL REPORTS NIL)
+                (TABLES 4 NIL RETURNS ((SEQUENCE TABLE)) REPORTS NIL)
+                (OPPONENTS 5 NIL RETURNS ((SEQUENCE OPPONENT)) REPORTS NIL))
+    ERRORS ((NO.SUCH.TABLE 0 (STRING))
+            (NO.SEATS 1 (STRING))
+            (NOT.ALLOWED 2 (STRING))
+            (BAD.REQUEST 3 (STRING))))
+
+(* "The house's address on the hub: the host number backend/hearts/courier.py answers to.")
+(RPAQ? HC.House "0#10000.44105.40522#")
+(* "Show the 1986 card table while a game is played here.")
+(RPAQ? HC.ShowTable T)
+(* "A function of the four seats' players that opens the card table and returns it, in place of HC.OpenTable.")
+(RPAQ? HC.OpenTableFn NIL)
+
+(* "State")
+(RPAQ? HC.Stream NIL)
+(RPAQ? HC.Players NIL)
+(RPAQ? HC.TableId NIL)
+(RPAQ? HC.Playing NIL)
+(RPAQ? HC.Winners NIL)
+(RPAQ? HC.Scores NIL)
+(RPAQ? HC.LastCallAt NIL)
+(RPAQ? HC.Calls 0)
+
+(DEFINEQ
+
+(HC.Offer
+  (LAMBDA (Players Key Names)
+    (* ; "Offer PLAYERS to everyone at the house: anyone opening a table may choose them as opponents.  KEY is the house's key for that, if it has one.  NAMES, if given, is what the house calls them in its list.  -> T, or (ERROR ...).")
+    (HC.Ask Players (QUOTE OFFER) (LIST (OR Key "") (OR Names (HC.Names Players))))))
+
+(HC.Sit
+  (LAMBDA (Players TableId)
+    (* ; "Sit PLAYERS at an open table.  The game starts when its last seat is taken.  -> the table's name, or (ERROR ...).")
+    (HC.Ask Players (QUOTE SIT) (LIST (MKSTRING TableId) (HC.Names Players)))))
+
+(HC.NewTable
+  (LAMBDA (Players Kinds)
+    (* ; "A new table: PLAYERS in the first seats, then one of the house's players of each of KINDS (strings from HC.Opponents; person leaves the seat open for someone to join).  -> the table's name, or (ERROR ...).")
+    (HC.Ask Players (QUOTE NEW.TABLE) (LIST (HC.Names Players) (for K in Kinds collect (MKSTRING K))))))
+
+(HC.Leave
+  (LAMBDA NIL
+    (* ; "Take this machine's players away from their table.  A game goes on without them: the house plays their seats.")
+    (PROG1 (if (HC.Connected?) then (HC.Call (QUOTE LEAVE)))
+           (SETQ HC.Players NIL)
+           (SETQ HC.Playing NIL)
+           (SETQ HNET.MyPlayers NIL))))
+
+(HC.Tables
+  (LAMBDA NIL
+    (* ; "The tables waiting for players: a list of (name (the people seated) free-seats).")
+    (HC.Call (QUOTE TABLES))))
+
+(HC.Opponents
+  (LAMBDA NIL
+    (* ; "The kinds of player the house can put in a seat now: a list of (kind label).")
+    (HC.Call (QUOTE OPPONENTS))))
+
+(HC.Ask
+  (LAMBDA (Players Procedure Arguments)
+    (* ; "Start answering the house, then make one of the calls that puts PLAYERS at a table.")
+    (COURIER.START.SERVER)
+    (LET ((Result (HC.Call Procedure Arguments)))
+         (if (EQ (CAR (LISTP Result)) (QUOTE ERROR))
+             then Result
+           else (SETQ HC.Players Players)
+                (SETQ HC.Playing NIL)
+                (SETQ HC.Winners NIL)
+                (SETQ HC.TableId (AND (STRINGP Result) Result))
+                (OR Result T)))))
+
+(HC.Call
+  (LAMBDA (Procedure Arguments)
+    (* ; "Call the house.  -> the result (NIL for a procedure with none), or (ERROR name text) for a refusal, or (ERROR NO.HOUSE text) if it can't be reached.")
+    (if (NOT (HC.Connected?))
+        then (SETQ HC.Stream (COURIER.OPEN (\COERCE.TO.NSADDRESS HC.House) NIL T (QUOTE HEARTS))))
+    (if (HC.Connected?)
+        then (LET ((Answer (NLSETQ (APPLY (FUNCTION COURIER.CALL)
+                                          (APPEND (LIST HC.Stream (QUOTE HEARTSHOUSE) Procedure)
+                                                 Arguments
+                                                 (LIST (QUOTE RETURNERRORS)))))))
+                  (if Answer
+                      then (CAR Answer)
+                    else (SETQ HC.Stream NIL)
+                         (LIST (QUOTE ERROR) (QUOTE NO.HOUSE) "The house stopped answering.")))
+      else (LIST (QUOTE ERROR) (QUOTE NO.HOUSE) "The house isn't answering.  Is this Medley on its NetHub?"))))
+
+(HC.Connected?
+  (LAMBDA NIL
+    (AND HC.Stream (OPENP HC.Stream) T)))
+
+(HC.Names
+  (LAMBDA (Players)
+    (for P in Players collect (MKSTRING (fetch Name of P)))))
+
+(HC.FromWire
+  (LAMBDA (C)
+    (* ; "A card as Courier sends it, (suit value) with a value of 2 to 14, to a 1986 Card, whose values are those of CardValues: 2 to 10, then J Q K A.")
+    (create Card Suit _ (CAR C) Value _ (CAR (NTH CardValues (SUB1 (CADR C)))))))
+
+(HC.ToWire
+  (LAMBDA (Card)
+    (LIST (fetch Suit of Card)
+          (for Value in CardValues as N from 2 when (EQUAL Value (fetch Value of Card)) do (RETURN N)))))
+
+(HC.MakeTrick
+  (LAMBDA (Leader Cards)
+    (LET ((Trick (create Trick LeadPlayerNum _ Leader)))
+         (for C in Cards do (Trick.Play Trick (HC.FromWire C)))
+         Trick)))
+
+(HC.OpenTable
+  (LAMBDA (Players)
+    (* ; "The 1986 card table for a game: a new one each game, in the place of the last.  HC.OpenTableFn, if set, is called instead (PLAYHEARTS puts its own table there).")
+    (if (AND HNET.CardTable (OPENWP HNET.CardTable)) then (CLOSEW HNET.CardTable))
+    (CT.Open Players HNET.CTReg)))
+
+(HC.Player
+  (LAMBDA (Seat)
+    (* ; "This machine's player in SEAT, or NIL.")
+    (AND (IGEQ Seat 1) (ILEQ Seat 4) (ELT Player.Array Seat))))
+
+(HC.Heard
+  (LAMBDA NIL
+    (SETQ HC.LastCallAt (CLOCK 0))
+    (add HC.Calls 1)))
+
+(HC.CardTable
+  (LAMBDA NIL
+    (AND HC.ShowTable HNET.CardTable (OPENWP HNET.CardTable) HNET.CardTable)))
+
+)
+
+(* "HEARTSPLAYERS: what the house calls here.  Each gets the Courier stream, the program and the procedure, then the procedure's arguments.")
+
+(DEFINEQ
+
+(HC.Table
+  (LAMBDA (Stream Program Procedure Names Seats)
+    (* ; "A game is starting.  NAMES are the four seats' players; SEATS gives, for each player this machine put forward, its seat, or 0.")
+    (HC.Heard)
+    (SETQ Player.Array (ARRAY 4))
+    (SETQ HNET.MyPlayers (for P in HC.Players as Seat in Seats unless (EQ Seat 0)
+                            collect (replace Number of P with Seat)
+                                    (SETA Player.Array Seat P)
+                                    P))
+    (SETQ HNET.CardTable (AND HC.ShowTable (APPLY* (OR HC.OpenTableFn (FUNCTION HC.OpenTable))
+                                                  (for Name in Names as Seat from 1
+                                                     collect (OR (HC.Player Seat)
+                                                                 (create Player Name _ Name Number _ Seat))))))
+    (SETQ HC.Playing T)
+    (SETQ HC.Winners NIL)
+    (SETQ HC.Scores NIL)
+    (QUOTE (RETURN))))
+
+(HC.Deal
+  (LAMBDA (Stream Program Procedure Seat Number Direction Cards Totals)
+    (* ; "A new deal for the player in SEAT.  The 1986 house sent PassOut on a deal with no pass too, and the Expert chooses its strategy there, so that is done here.")
+    (HC.Heard)
+    (LET ((Player (HC.Player Seat))
+          (Pass (if (NEQ Direction (QUOTE Hold)) then Direction))
+          (Table (HC.CardTable)))
+         (if Table
+             then (CT.GiveHand Table)
+                  (CT.PassOut Table Pass))
+         (if Player
+             then (HNET.Apply Seat (QUOTE GiveHand) (LIST (Hand.Create (for C in Cards collect (HC.FromWire C)) Player)
+                                                         Seat))
+                  (if (NULL Pass) then (HNET.Apply Seat (QUOTE PassOut) (LIST NIL)))))
+    (QUOTE (RETURN))))
+
+(HC.Pass
+  (LAMBDA (Stream Program Procedure Seat Direction Cards)
+    (HC.Heard)
+    (if (HC.Player Seat)
+        then (LIST (QUOTE RETURN) (for Card in (HNET.Apply Seat (QUOTE PassOut) (LIST Direction))
+                                     collect (HC.ToWire Card)))
+      else (LIST (QUOTE ABORT) (QUOTE NO.PLAYER) Seat))))
+
+(HC.Received
+  (LAMBDA (Stream Program Procedure Seat Cards)
+    (HC.Heard)
+    (if (HC.Player Seat)
+        then (HNET.Apply Seat (QUOTE PassIn) (LIST (for C in Cards collect (HC.FromWire C)))))
+    (QUOTE (RETURN))))
+
+(HC.Play
+  (LAMBDA (Stream Program Procedure Seat Leader Cards Legal HeartsBroken? FirstTrick?)
+    (* ; "The card SEAT plays on this trick.  LEGAL is what the house will accept; the 1986 players work that out themselves.")
+    (HC.Heard)
+    (if (HC.Player Seat)
+        then (LIST (QUOTE RETURN) (HC.ToWire (HNET.Apply Seat (QUOTE Play)
+                                                    (LIST (HC.MakeTrick Leader Cards) HeartsBroken? FirstTrick?))))
+      else (LIST (QUOTE ABORT) (QUOTE NO.PLAYER) Seat))))
+
+(HC.Card
+  (LAMBDA (Stream Program Procedure Seat Card)
+    (* ; "A card played by anyone, as it is played.")
+    (HC.Heard)
+    (LET ((Table (HC.CardTable)))
+         (if Table then (CT.Play Table Seat (HC.FromWire Card))))
+    (QUOTE (RETURN))))
+
+(HC.Trick
+  (LAMBDA (Stream Program Procedure Leader Cards Winner Points)
+    (HC.Heard)
+    (LET ((Trick (HC.MakeTrick Leader Cards))
+          (Table (HC.CardTable)))
+         (replace Winner of Trick with Winner)
+         (if Table then (CT.Trick Table Trick))
+         (for P in HNET.MyPlayers do (HNET.Apply P (QUOTE Trick) (LIST Trick))))
+    (QUOTE (RETURN))))
+
+(HC.Scores
+  (LAMBDA (Stream Program Procedure Deal Totals)
+    (* ; "A deal is over: its scores, and the game's so far.")
+    (HC.Heard)
+    (SETQ HC.Scores Totals)
+    (LET ((Table (HC.CardTable)))
+         (if Table then (CT.Results Table Totals)))
+    (for P in HNET.MyPlayers do (HNET.Apply P (QUOTE Results) (LIST Totals)))
+    (QUOTE (RETURN))))
+
+(HC.GameOver
+  (LAMBDA (Stream Program Procedure Winners)
+    (* ; "The game is over, or stopped (no winners).  The players are nobody's now: offer or sit new ones for another game.")
+    (HC.Heard)
+    (SETQ HC.Winners (OR Winners (QUOTE (0))))
+    (SETQ HC.Playing NIL)
+    (SETQ HC.Players NIL)
+    (SETQ HNET.MyPlayers NIL)
+    (QUOTE (RETURN))))
+)
+
+STOP

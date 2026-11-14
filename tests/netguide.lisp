@@ -15,18 +15,12 @@
 (Pipe.ReadLine
   (LAMBDA (S LimitMS)
     (* ; "One line, or NIL after LimitMS.  EOFP is true whenever nothing is waiting, so poll, and BLOCK so that other processes run.")
-    (PROG ((Start (CLOCK 0)) Codes B)
-      LOOP
-          (if (IGREATERP (IDIFFERENCE (CLOCK 0) Start) LimitMS)
-              then (RETURN NIL))
-          (if (EOFP S)
+    (bind (Start _ (CLOCK 0)) Codes B until (IGREATERP (IDIFFERENCE (CLOCK 0) Start) LimitMS)
+       do (if (EOFP S)
               then (BLOCK 20)
-                   (GO LOOP))
-          (SETQ B (BIN S))
-          (if (EQ B 10)
-              then (RETURN (CONCATCODES (REVERSE Codes))))
-          (push Codes B)
-          (GO LOOP))))
+            elseif (EQ (SETQ B (BIN S)) 10)
+              then (RETURN (CONCATCODES (REVERSE Codes)))
+            else (push Codes B)))))
 )
 (SETQ Upper (CREATE-PROCESS-STREAM "python3 -u -c 'import sys
 for line in sys.stdin: sys.stdout.write(line.upper())'"))

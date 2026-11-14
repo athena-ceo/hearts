@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
+from .courier import Door
 from .game import IllegalMove
 from .players import BOT_KINDS
 from .review import review
@@ -77,7 +78,16 @@ def create_app(db_path: str | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         await tables.restore()
+        if not logging.getLogger().handlers:  # uvicorn sets up only its own loggers.
+            logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s: %(message)s")
+        door = None
+        if os.environ.get("HEARTS_NETHUB_PORT"):  # The Courier door, for Medleys (hearts.courier).
+            door = Door(tables)
+            await door.start(int(os.environ["HEARTS_NETHUB_PORT"]))
+            app.state.door = door
         yield
+        if door:
+            await door.stop()
         await tables.stop()
 
     app = FastAPI(title="Hearts", lifespan=lifespan)
@@ -107,7 +117,9 @@ def create_app(db_path: str | None = None) -> FastAPI:
 
     @app.get("/health")
     def health():
-        return {"status": "ok", "tables": len(tables.tables), "opponents": sorted(BOT_KINDS)}
+        door = getattr(app.state, "door", None)
+        return {"status": "ok", "tables": len(tables.tables), "opponents": sorted(BOT_KINDS),
+                "medleys": len(door.links) if door else None, "offered": len(door.offers()) if door else None}
 
     # Accounts
     @app.post("/api/auth/register")
@@ -138,7 +150,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
     # Tables
     @app.get("/api/opponents")
     def opponents(user: dict = Depends(player)):
-        return {"opponents": [{"kind": kind, "label": cls.label} for kind, cls in BOT_KINDS.items()]}
+        return {"opponents": tables.opponents()}
 
     @app.get("/api/tables")
     def list_tables(user: dict = Depends(player)):

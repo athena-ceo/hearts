@@ -32,7 +32,10 @@ export function moveTime(t: Dict, seconds: number | null): string {
   return fmt(t.lobby.secondsAMove, { n: seconds });
 }
 
-function StartGame({ opponents }: { opponents: Opponent[] }) {
+/** Players a Medley offers to everyone, for one game at a time: they come and go. */
+const isOffered = (kind: string) => kind.startsWith("medley:");
+
+function StartGame({ opponents, refresh }: { opponents: Opponent[]; refresh: () => void }) {
   const { t } = useT();
   const [seats, setSeats] = useState<string[]>(() => defaultSeats(opponents));
   const [fill, setFill] = useState(true);
@@ -55,7 +58,14 @@ function StartGame({ opponents }: { opponents: Opponent[] }) {
       });
       go(tablePath(table.id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : t.common.unreachable);
+      if (seats.some(isOffered) && e instanceof ApiError && e.status === 400) {
+        // Someone took the Medley's players first: show who can be chosen now.
+        setError(t.lobby.medleyTaken);
+        setSeats((s) => s.map((kind, i) => (isOffered(kind) ? defaultSeats(opponents.filter((o) => !isOffered(o.kind)))[i] : kind)));
+        refresh();
+      } else {
+        setError(e instanceof Error ? e.message : t.common.unreachable);
+      }
       setBusy(false);
     }
   };
@@ -108,7 +118,7 @@ function Strength({ opponents }: { opponents: Opponent[] }) {
   const { t } = useT();
   const known = t.strength.rows as Record<string, { how: string; points: string }>;
   const order = Object.keys(known);
-  const rows = [...opponents].sort((a, b) => {
+  const rows = opponents.filter((o) => !isOffered(o.kind)).sort((a, b) => {
     const rank = (o: Opponent) => { const i = order.indexOf(o.kind); return i < 0 ? order.length : i; };
     return rank(a) - rank(b);
   });
@@ -248,7 +258,7 @@ export function Lobby({ scrollToGames }: { scrollToGames: boolean }) {
         <h2 id="start-title">{t.lobby.startTitle}</h2>
         {opponents ? (
           <>
-            <StartGame opponents={opponents} />
+            <StartGame opponents={opponents} refresh={retry} />
             <Strength opponents={opponents} />
           </>
         ) : (

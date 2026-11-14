@@ -212,39 +212,48 @@ preference among the legal cards, such as `play: D9 71% DK 20% D3 9%`. Those sha
 tell you: unlike the Expert or the LLM, it has no reasons to give. `(SETQ NP.Thoughts? NIL)` turns the
 window off for new players, and `(NP.Stats)` shows the moves made and the time they took.
 
-## Playing over the network (`HNET`)
+## Playing online
 
-In 1986 the players could sit at different machines: the house ran the game and asked the other
-machines for their players' moves. `HNET` brings that back between Medleys anywhere, through a
-relay that every machine dials out to (`medley/hnetrelay.py`, on a server both can reach). The
-machines meet in a *room*, whose name you share like an invitation. The 1986 network code itself is
-unchanged.
+Online, HEARTS is played at a **table of the house**: the web platform on
+apps.athenadecisions.com, which deals, keeps the score and records the game. Your Medley brings
+players to the table (you, or any computer player), people can sit there from a browser, and the
+house fills the other seats. It talks to your Medley over Courier, through its NetHub.
 
-Copy `dist/HNET` and `dist/hnetlink.py` to `~/il` (Python 3 is all the link needs). On each machine:
+**Once:** the released Medley emulators have no NetHub support, so build one that has, beside your
+Medley release (which is left as it is). It needs a C compiler and the X11 headers: on a Mac, the
+Xcode command line tools and XQuartz.
 
-```
-(FILESLOAD HEARTS HNET)
-(HNET.Connect "ourgame" "bob" "wss://relay.example.org")    ; a room, your name, the relay
-```
-
-Then the guest offers players and the house starts a game with fewer than four. The rest come from
-the net, and anything still missing is filled with Conservatives:
-
-```
-(NetHearts (LIST (CP.Create) (HP.Create)))      ; on the guest: offer a Conservative and yourself
-(Hearts (LIST (HP.Create) (CP.Create)))         ; on the house: seats 1 and 2 here, 3 and 4 from the net
+```bash
+./hearts.sh maiko-nethub
 ```
 
-The guest gets a card table of its own, and its players' windows open there. So far this has been
-tested with Conservatives on both machines; a person at each one is the next thing to try. `(HNET.Disconnect)`
-leaves the room. A machine answers only the calls the game makes (`HNET.Allowed`), never an
-arbitrary form. For how it works, the gotchas and a general guide to networking in today's Medley,
-see [docs/medley-networking.md](docs/medley-networking.md).
+**Then** `./hearts.sh medley` starts Medley on the house's NetHub, and says so. In `PlayHearts`,
+choose yourself for a seat and **Online (the house's players)** for the next: Start Game opens a
+table at the house, with your players in the first seats and the house's in the rest. They are the
+**resident Medley's** players when it is free (the 1986 Expert, the neural network and a
+Conservative, running on a Medley you can watch in a browser), and the house's own Experts
+otherwise. `(PlayHearts '(HP NET))` does the same without the menus.
 
-There is always someone to play online: the **resident Medley** on the demo server, in room
-`athena`, offers an Expert, the neural network and a Conservative. In `PlayHearts`, choose **The
-resident (online)** for a seat, and it plays that seat and the rest; or `(PlayHearts '(HP NET))`.
-You can watch its screen in a browser. See [docs/medley-server.md](docs/medley-server.md).
+Without PlayHearts, the calls are in `HCOURIER`:
+
+```
+(FILESLOAD HEARTS HCOURIER)
+(HC.Opponents)                                                   ; who the house can seat now
+(HC.NewTable (LIST (HP.Create)) '("expert" "network" "person"))  ; you, two of the house's, one seat left open
+(HC.Tables)                                                      ; tables waiting for players
+(HC.Sit (LIST (HP.Create)) "the-table's-name")                   ; a seat at one of them
+(HC.Leave)
+```
+
+A seat left open can be taken by a person in a browser or by another Medley. The 1986 card table
+opens on your screen when the game starts, and your players' windows work as in a local game. If
+your Medley goes away, the house plays your seats, so the others can finish.
+
+Tested with Conservatives from a headless Medley on Linux and on a Mac, and with the resident's
+players; a person at a Medley is the next thing to try. More: [docs/medley-server.md](docs/medley-server.md),
+and for how it works, [docs/medley-networking.md](docs/medley-networking.md).
+
+The 1986 way of playing between machines (`HNET`, a relay and remote evaluation of the game's own calls) was retired on 2026-11-14; it is kept at git tag `revival-1986`.
 
 ## Starting a game — the 1986 way: `LHearts`
 

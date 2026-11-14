@@ -70,7 +70,7 @@ target language. (Exact fields as transcribed.)
 
 | Record | Fields | Notes |
 |---|---|---|
-| `Card` | `Suit . Value` | Suit ∈ `C D H S`; Value 2–14 (J=11…A=14). A cons pair. (line 2119) |
+| `Card` | `Suit . Value` | Suit ∈ `C D H S`; Value is one of `CardValues`: the numbers 2–10, then the atoms `J Q K A`. A cons pair. (line 2119) |
 | `Hand` | `C D H S Owner` | Cards held, **split into four per-suit lists** + owning player. (2121) |
 | `Trick` | `LeadPlayerNum Cards Winner` | One trick in progress/complete. (2123) |
 | `Deal` | `Hands Tricks D.Score D.CumScore PassDir PassOut PassIn D.RealHands` | One deal (hand). (2117) |
@@ -83,7 +83,8 @@ target language. (Exact fields as transcribed.)
 Design notes for ports:
 - **`Hand` is suit-bucketed** (`C/D/H/S` lists), not one flat list — many helpers (`Hand.CardsInSuit`,
   `Hand.Void?`, `Card.MaxCard … LeadSuit`) rely on this. Keep the shape or provide equivalents.
-- `Card` as `(Suit . Value)` — a 2-field immutable value. Comparison is within-suit by Value.
+- `Card` as `(Suit . Value)` — a 2-field immutable value. Comparison is within-suit, by the Value's
+  place in `CardValues` (a face card's Value is an atom, not a number).
 - `Player.Object` is the per-player opaque state (a `CP`, `Clown`, KEE unit, or `HN.Player`);
   `Player.Mapping` and `Player.Type` drive dispatch.
 
@@ -136,6 +137,40 @@ until broken. **The game loop does not check the card it gets back:** `H.PlayGam
 to `Trick.Play`, so each player is responsible for answering legally. `Play` also receives
 `heartsBroken?` and `firstTrick?` from the loop, which the table above omits. Ports should validate in
 the Administrator; the [LLM player](medley/llmplayer.lisp) validates its own answers for this reason.
+
+### 4.2 The 2026 protocol: events, and requests with the legal cards
+
+Since 2026-11-14 the house is the Python platform (`backend/hearts`), and its players can be
+anywhere: in its own process, in a browser, on a Medley. One protocol serves them all, in two
+encodings: JSON over a WebSocket for a browser or a program (`backend/hearts/web.py`), and Courier
+calls for a Medley (`HEARTSPLAYERS`, `backend/hearts/courier.py` and `medley/hcourier.lisp`). It
+differs from the six messages in three ways:
+
+- **Every event reaches every seat that may see it, as it happens**: the deal (your own hand), the
+  cards passed to you, each card as it is played, each trick with its winner and points, the deal's
+  scores and the totals, the end of the game with its winners. In 1986 a player learned of the
+  other seats' cards only from the `Trick` message, and the card table was told separately.
+- **A request carries what the player may answer.** `PLAY` gives the trick so far and the legal
+  cards; `PASS` gives the hand. A player needs no memory to answer legally, and the house checks
+  every answer (`hearts.game`): one it may not accept is replaced by a stand-in's choice.
+- **The game survives a player that goes away.** A stand-in that answers from the view alone takes
+  the seat at once.
+
+| Courier call (house → a machine with players) | Arguments | Returns |
+|---|---|---|
+| `TABLE` | the four seats' names; for each player the machine offered, its seat or 0 | — |
+| `DEAL` | seat, deal number, direction, hand, totals | — |
+| `PASS` | seat, direction, hand | 3 cards |
+| `RECEIVED` | seat, the 3 cards passed to it | — |
+| `PLAY` | seat, leader, cards so far, legal cards, hearts broken?, first trick? | 1 card |
+| `CARD` | seat, the card it played (every seat's, as played) | — |
+| `TRICK` | leader, cards, winner, points | — |
+| `SCORES` | the deal's scores, the totals | — |
+| `GAME.OVER` | the winners' seats (none: the game was stopped) | — |
+
+`PASS` is sent only on a deal with a pass. The 1986 players on Medley are behind an adapter
+(`HC.Deal` … `HC.GameOver`) that turns these calls into the six messages, including the `PassOut`
+the 1986 house sent on a deal with no pass, where the Expert chooses its strategy.
 
 ---
 
@@ -249,6 +284,11 @@ run with no rules engine at all; the Expert can be added later.
   image with four `ADD.PROCESS` players** — the `Net` transport is simply not used; `Lisp`/`Kee`
   dispatch is unchanged. Phases 3–4 reintroduce real networking cleanly with WebSockets, keeping
   the same six-message protocol as the wire contract.
+- **2026-11-14: one house for everyone, over Courier.** On Nick Briggs's advice the network game
+  moved to Medley's own Courier packages. The house is the Python platform; a Medley's players sit
+  at its tables through two Courier programs with typed arguments and no remote evaluation
+  (§4.2), on a NetHub that the house itself runs. People in a browser sit at the same tables. See
+  [docs/medley-server.md](docs/medley-server.md) and [docs/medley-networking.md](docs/medley-networking.md).
 - **2026-11-12: the original network game runs again, over the Internet.** `HNET` (medley/hnet.lisp)
   supplies `REMOTEVAL` and `EVALSERVER` on a relay that every machine dials out to, so the 1986
   `HNET.*` code above runs unchanged (except 1986 bugs H6 and H7). See
@@ -264,7 +304,7 @@ run with no rules engine at all; the Expert can be added later.
 | Records | `RECORD`/`DATATYPE` | unchanged | `defstruct`/`defclass` | `@dataclass` |
 | `←` assignment | `←` (= `_`) | `←`→`_` load copy | n/a | n/a |
 | Card Table | `CT.*` windows | native Medley windows | web UI (observer) | web UI (observer) |
-| Networking | `EVALSERVER`/`REMOTEVAL` | 4 `ADD.PROCESS` in one image, or `HNET`: `REMOTEVAL` over a WebSocket relay | WebSocket | WebSocket |
+| Networking | `EVALSERVER`/`REMOTEVAL` | 4 `ADD.PROCESS` in one image; `HCOURIER`: Courier calls from the Python house | WebSocket | WebSocket, and Courier for Medleys |
 | Expert rules | KEE RuleSystem2 | reimpl. backward-chainer | LISA / custom | `experta` / custom |
 | UI toolkit | Interlisp-D windows | Interlisp-D windows | browser | browser |
 

@@ -70,7 +70,9 @@ CM="$WORK/run.cm"
 printf '"(EXEC_INTERLISP) (LOAD (UNIX-GETENV (QUOTE HTHARNESS))) (HT.BOOT)"\n' > "$CM"
 
 MEDLEY="$MEDLEY_HOME/medley/medley"
-"$MEDLEY" -a -n -i headless -g "$GEOMETRY" -s "$GEOMETRY" -x "$HOME/il" -cm "$CM" \
+# MEDLEY_NETHUB=host:port:mac joins an XNS NetHub (the image's emulator is built for it: docker/Dockerfile).
+NH=(); [ -n "${MEDLEY_NETHUB:-}" ] && NH=(-nh "$MEDLEY_NETHUB")
+"$MEDLEY" -a -n -i headless -g "$GEOMETRY" -s "$GEOMETRY" -x "$HOME/il" -cm "$CM" ${NH[@]+"${NH[@]}"} \
     > "$WORK/medley.log" 2>&1 &
 MPID=$!
 

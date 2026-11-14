@@ -7,9 +7,24 @@
 #   docker build -t hearts-medley docker/          (or: tools/medley-headless --build)
 #   tools/medley-headless path/to/script.lisp      (see docker/README.md)
 #
-# The Medley "full" release tarball bundles Maiko (the VM) and the loadups (sysouts),
-# so nothing is compiled here.  LOOPS (Xerox's Lisp Object-Oriented Programming System)
-# is not part of Medley proper; it comes from github.com/Interlisp/loops, pinned below.
+# The Medley "full" release tarball bundles Maiko (the VM) and the loadups (sysouts).  Its
+# emulators are built with no network, so the same Maiko release is rebuilt here with
+# -DMAIKO_ENABLE_NETHUB and put in their place: `medley --nethub HOST:PORT:MAC` then joins an
+# XNS NetHub, which is how HEARTS reaches the house (medley/hcourier.lisp).  LOOPS (Xerox's
+# Lisp Object-Oriented Programming System) is not part of Medley proper; it comes from
+# github.com/Interlisp/loops, pinned below.
+
+FROM debian:bookworm-slim AS maiko
+ARG MAIKO_TAG=maiko-260319-9259716e
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates git build-essential clang libx11-dev pkg-config libbsd-dev bc \
+ && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 --branch "${MAIKO_TAG}" https://github.com/Interlisp/maiko.git /opt/maiko-src
+# Built as the release is (bin/makeright x), not with cmake: a cmake Release build of this tag
+# with MAIKO_NETWORK_TYPE=NETHUB crashed at startup on linux aarch64 (2026-11-14, cause not looked for).
+RUN cd /opt/maiko-src/bin \
+ && ADDITIONAL_DFLAGS=-DMAIKO_ENABLE_NETHUB ./makeright x \
+ && mkdir /opt/maiko-build && cp "$(dirname "$(find /opt/maiko-src -name ldex -type f)")"/lde* /opt/maiko-build/
 
 FROM debian:bookworm-slim AS medley
 
@@ -34,6 +49,11 @@ RUN set -eux; \
     curl -fsSL "$url" | tar -xz -C /opt/medley-full; \
     ls /opt/medley-full
 
+# The emulators with NetHub support, over the release's.
+COPY --from=maiko /opt/maiko-build/ldex /opt/maiko-build/lde /tmp/nh/
+RUN set -eux; d="$(dirname "$(find /opt/medley-full/maiko -name ldex -type f)")"; \
+    cp /tmp/nh/ldex /tmp/nh/lde "$d/"; rm -rf /tmp/nh; "$d/ldex" -help 2>&1 | grep -i "nh-host"
+
 # LOOPS.
 RUN git clone https://github.com/Interlisp/loops.git /opt/loops \
  && if [ "${LOOPS_COMMIT}" != "HEAD" ]; then git -C /opt/loops checkout -q "${LOOPS_COMMIT}"; fi \
@@ -41,10 +61,9 @@ RUN git clone https://github.com/Interlisp/loops.git /opt/loops \
  && rm -rf /opt/loops/.git
 
 # Python and the Anthropic and OpenAI SDKs, for the LLM player's helper (medley/llm_player.py);
-# websockets, for the network game's relay (medley/hnetrelay.py; the Medley side needs none).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 python3-pip \
- && pip3 install --break-system-packages --no-cache-dir anthropic openai websockets \
+ && pip3 install --break-system-packages --no-cache-dir anthropic openai \
  && rm -rf /var/lib/apt/lists/*
 
 ENV MEDLEY_HOME=/opt/medley-full \
@@ -55,7 +74,7 @@ ENV MEDLEY_HOME=/opt/medley-full \
 # servers on the display (view-only and full) and noVNC for each.  xclip is how Medley's
 # CLIPBOARD library pastes (Meta-V) and copies; autocutsel carries text between those X
 # selections and the cut buffer, which is all x11vnc uses for the browser's clipboard.  docker/resident.lisp keeps
-# offering players on the network game's relay.  See docs/medley-server.md.
+# offering players to the house, over Courier.  See docs/medley-server.md.
 FROM medley AS resident
 RUN apt-get update \
  && apt-get install -y --no-install-recommends x11vnc novnc websockify xclip autocutsel \

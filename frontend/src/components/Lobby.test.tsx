@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Athena Decision Systems SAS.
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TABLE } from "../test/fixtures";
@@ -58,6 +58,40 @@ describe("the seat menus", () => {
     await screen.findByLabelText("Across");
     expect(screen.getByText("Taught itself by self-play. Gives no reasons.")).toBeInTheDocument();
     expect(screen.queryByText("97 rules, and it tells you which one it used.")).not.toBeInTheDocument();
+  });
+});
+
+describe("players a Medley offers", () => {
+  const OFFERED = [...FOUR, { kind: "medley:ab12:0", label: "Expert on Medley" }];
+
+  it("are in the seat menus under the Medley's name for them, and not in the strength table", async () => {
+    serve(OFFERED, []);
+    lobby();
+    const across = await screen.findByLabelText("Across");
+    expect(within(across).getAllByRole("option").map((o) => o.textContent)).toContain("Expert on Medley");
+    expect(within(screen.getByRole("table")).queryByText("Expert on Medley")).not.toBeInTheDocument();
+  });
+
+  it("when someone else took them first: say so, ask again who is offered, and put a house player back", async () => {
+    let listed = OFFERED;
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push(`${init?.method ?? "GET"} ${url.replace(/^.*\/api/, "")}`);
+      if (url.endsWith("/opponents")) return new Response(JSON.stringify({ opponents: listed }));
+      if (init?.method === "POST") {
+        listed = FOUR;
+        return new Response(JSON.stringify({ detail: "Those Medley players have just been taken. Choose again." }), { status: 400 });
+      }
+      return new Response(JSON.stringify({ tables: [] }));
+    }));
+    lobby();
+    const across = await screen.findByLabelText("Across") as HTMLSelectElement;
+    fireEvent.change(across, { target: { value: "medley:ab12:0" } });
+    fireEvent.click(screen.getByRole("button", { name: en.lobby.dealMeIn }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(en.lobby.medleyTaken);
+    await waitFor(() => expect(within(screen.getByLabelText("Across")).queryByText("Expert on Medley")).not.toBeInTheDocument());
+    expect((screen.getByLabelText("Across") as HTMLSelectElement).value).not.toContain("medley:");
+    expect(calls.filter((c) => c === "GET /opponents")).toHaveLength(2);
   });
 });
 

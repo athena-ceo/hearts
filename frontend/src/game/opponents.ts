@@ -9,7 +9,7 @@ let cached: Opponent[] | null = null;
 
 export function forgetOpponents() { cached = null; }
 
-/** The bots the server offers now. Nothing else may appear in a seat menu. */
+/** The players the server offers now: its own, and any a Medley is offering to everyone. Nothing else may appear in a seat menu. */
 export function useOpponents(): { opponents: Opponent[] | null; failed: boolean; retry: () => void } {
   const [opponents, setOpponents] = useState<Opponent[] | null>(cached);
   const [failed, setFailed] = useState(false);
@@ -24,7 +24,7 @@ export function useOpponents(): { opponents: Opponent[] | null; failed: boolean;
     return () => { live = false; };
   }, [attempt]);
 
-  return { opponents, failed, retry: () => setAttempt((a) => a + 1) };
+  return { opponents, failed, retry: () => { cached = null; setAttempt((a) => a + 1); } };
 }
 
 /** A bot's name in the reader's language, or the server's label for a kind we don't know yet. */

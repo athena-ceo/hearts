@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Athena Decision Systems SAS.
 #
 # Control script for HEARTS (mirrors advent.sh / xcape.sh / golden-path): the Python web
-# platform, Medley on this computer, and the resident Medley and relay on the server.
+# platform, Medley on this computer, and the resident Medley on the server.
 #   ./hearts.sh <command> [dev|prod] [args]
 #   ./hearts.sh help
 set -euo pipefail
@@ -15,21 +15,25 @@ shift || true
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
 BACKEND_PORT="${BACKEND_PORT:-8050}"
 FRONTEND_PORT="${FRONTEND_PORT:-3050}"
-RELAY_PORT="${RELAY_PORT:-8051}"
 MEDLEY_WATCH_PORT="${MEDLEY_WATCH_PORT:-8052}"
 MEDLEY_CONTROL_PORT="${MEDLEY_CONTROL_PORT:-8053}"
+NETHUB_PORT="${NETHUB_PORT:-3333}"
 PUBLIC="https://apps.athenadecisions.com/hearts"
 # Medley on this computer: the release directory and the folder Medley loads files from.
 IL_DIR="${HEARTS_IL:-$HOME/il}"
 MEDLEY_DIR="${MEDLEY_DIR:-$(ls -d "$HOME"/medley-*/medley 2>/dev/null | sort | tail -1 || true)}"
+# An emulator built with NetHub support, for online play (./hearts.sh maiko-nethub).
+NETHUB_MAIKO="${NETHUB_MAIKO:-${MEDLEY_DIR:+$(dirname "$MEDLEY_DIR")/maiko-nethub}}"
 
 # The commands that take dev|prod read it here.
 environ() {
   ENVIRON="${1:-dev}"
   case "$ENVIRON" in
     dev)  COMPOSE="docker compose -p hearts-dev -f docker-compose.dev.yml"
-          # The resident Medley and relay are only in the server file: locally they run as
-          # their own project, beside the dev stack.
+          # The resident Medley is only in the server file: locally it runs as its own
+          # project, beside the dev stack, and reaches the dev backend's NetHub through
+          # this computer.
+          export MEDLEY_NETHUB="${MEDLEY_NETHUB:-host.docker.internal:${NETHUB_PORT}:10-00-AA-00-00-10}"
           RESIDENT="docker compose -p hearts-resident -f docker-compose.server.yml" ;;
     prod) COMPOSE="docker compose -p hearts -f docker-compose.server.yml"
           RESIDENT="$COMPOSE" ;;
@@ -51,25 +55,33 @@ print_urls() {
 
 print_resident_urls() {
   if [ "$ENVIRON" = "prod" ]; then
-    echo "  Relay:      wss://apps.athenadecisions.com/hearts   (room athena: the resident Medley)"
+    echo "  NetHub:     apps.athenadecisions.com:${NETHUB_PORT}   (medley --nethub apps.athenadecisions.com:${NETHUB_PORT}:YOUR-MAC)"
     echo "  Watch:      ${PUBLIC}/medley/watch/"
     echo "  Control:    ${PUBLIC}/medley/control/   (nginx login)"
   else
-    echo "  Relay:      ws://localhost:${RELAY_PORT}"
+    echo "  NetHub:     localhost:${NETHUB_PORT}"
     echo "  Watch:      http://localhost:${MEDLEY_WATCH_PORT}/vnc.html?autoconnect=1&view_only=1&resize=scale"
     echo "  Control:    http://localhost:${MEDLEY_CONTROL_PORT}/vnc.html?autoconnect=1&resize=scale"
   fi
 }
 
-# Is the resident Medley in its room?  Reads the relay's log: the last thing it said about it.
+# Is the resident Medley at the house?  The backend's health says how many Medleys are on its
+# NetHub and how many players they offer to everyone.
 resident_state() {
-  local name="${RESIDENT_NAME:-athena}" last
-  last="$($RESIDENT logs relay 2>/dev/null | grep -E " ${name} (joined|left) " | tail -1 || true)"
-  case "$last" in
-    *joined*) echo "in its room" ;;
-    *left*)   echo "left its room (restarting?)" ;;
-    *)        echo "not in its room yet (it takes a minute or two to load the Expert)" ;;
-  esac
+  curl -s --max-time 5 "http://localhost:${BACKEND_PORT}/health" | python3 -c '
+import json, sys
+try:
+    h = json.load(sys.stdin)
+except Exception:
+    print("no answer from the backend"); sys.exit()
+if h.get("medleys") is None:
+    print("the backend has no NetHub (HEARTS_NETHUB_PORT is not set)")
+elif h.get("offered"):
+    print("offering %d players (%d Medley(s) on the NetHub)" % (h["offered"], h["medleys"]))
+elif h["medleys"]:
+    print("%d Medley(s) on the NetHub, none offering players now (in a game, or still loading)" % h["medleys"])
+else:
+    print("no Medley on the NetHub yet (the resident takes a minute or two to load the Expert)")'
 }
 
 check() {  # check LABEL URL [EXPECTED-CODE]
@@ -79,8 +91,7 @@ check() {  # check LABEL URL [EXPECTED-CODE]
 
 health() {
   check backend "http://localhost:${BACKEND_PORT}/health"
-  if [ "$ENVIRON" = "prod" ] || [ -n "$($RESIDENT ps -q relay 2>/dev/null)" ]; then
-    check relay "http://localhost:${RELAY_PORT}/" 426      # a WebSocket server: plain HTTP gets 426
+  if [ "$ENVIRON" = "prod" ] || [ -n "$($RESIDENT ps -q medley 2>/dev/null)" ]; then
     check watch "http://localhost:${MEDLEY_WATCH_PORT}/vnc.html"
     check control "http://localhost:${MEDLEY_CONTROL_PORT}/vnc.html"
     printf '  %-10s %s\n' resident "$(resident_state)"
@@ -133,12 +144,12 @@ case "$CMD" in
     $COMPOSE cp backend:/tmp/backup.db "$OUT"
     echo "$OUT" ;;
   deploy)
-    # Run on the server, from the checked-out repo: the web platform, the relay and the
-    # resident Medley.
+    # Run on the server, from the checked-out repo: the web platform (with its NetHub) and
+    # the resident Medley.
     environ "${1:-}"
     [ "$ENVIRON" = "prod" ] || { echo "deploy is for prod; use start for dev"; exit 1; }
     git pull --ff-only
-    $COMPOSE up -d --build
+    $COMPOSE up -d --build --remove-orphans
     echo "==> waiting for health"
     for i in $(seq 1 30); do
       if curl -fsS "http://localhost:${BACKEND_PORT}/health" >/dev/null 2>&1; then
@@ -148,15 +159,15 @@ case "$CMD" in
     done
     echo "health check failed"; $COMPOSE logs --tail 50 backend; exit 1 ;;
 
-  # --- The resident Medley and the relay (docker-compose.server.yml) -----------------------
+  # --- The resident Medley (docker-compose.server.yml) -------------------------------------
   resident)
     environ "${1:-}"
-    $RESIDENT up -d --build relay medley
+    $RESIDENT up -d --build --no-deps medley
     echo ""; print_resident_urls; echo ""
-    echo "  The resident takes a minute or two to load; ./hearts.sh health $ENVIRON says when it's in its room." ;;
-  resident-stop)    environ "${1:-}"; $RESIDENT stop medley relay ;;
-  resident-restart) environ "${1:-}"; $RESIDENT restart medley relay ;;
-  resident-logs)    environ "${1:-}"; $RESIDENT logs -f relay medley ;;
+    echo "  The resident takes a minute or two to load; ./hearts.sh health $ENVIRON says when it is offering players." ;;
+  resident-stop)    environ "${1:-}"; $RESIDENT stop medley ;;
+  resident-restart) environ "${1:-}"; $RESIDENT restart medley ;;
+  resident-logs)    environ "${1:-}"; $RESIDENT logs -f medley ;;
   control-login)
     # The login for the resident's control screen (nginx basic auth), on the server.
     USER_NAME="${1:-${USER:-harley}}"
@@ -166,7 +177,7 @@ case "$CMD" in
     echo "Now: sudo nginx -t && sudo systemctl reload nginx" ;;
 
   nginx-install)
-    # On the server: add the relay and resident Medley locations to the site's server block
+    # On the server: add the resident Medley locations to the site's server block
     # (scripts/nginx_install.py), check the result with nginx -t, then reload, or put the old
     # file back.  Safe to run again: it replaces its earlier copy.
     SITE="${NGINX_SITE:-/etc/nginx/sites-enabled/apps.athenadecisions.com}"
@@ -195,24 +206,61 @@ case "$CMD" in
     install_medley_files
     ARGS=(--apps --interlisp --noscroll)
     [ -n "${1:-}" ] && ARGS+=(--id "$1")
+    # Online play needs an emulator with NetHub support (./hearts.sh maiko-nethub builds one
+    # beside the release).  With it, Medley joins the house's NetHub; HEARTS_NETHUB=HOST:PORT
+    # names another house, e.g. localhost:3333 for ./hearts.sh start dev.
+    HUB="${HEARTS_NETHUB:-apps.athenadecisions.com:${NETHUB_PORT}}"
+    if [ -x "$NETHUB_MAIKO/bin/osversion" ]; then
+      # The emulator joins the hub only as it starts, and waits a long time for one that
+      # doesn't answer: so look first.
+      if python3 -c 'import socket, sys; socket.create_connection((sys.argv[1], int(sys.argv[2])), 3)' "${HUB%:*}" "${HUB##*:}" 2>/dev/null; then
+        MAC="10-00-$(printf '%s' "$(hostname)${1:-}" | cksum | awk '{printf "%08X", $1}' | sed 's/../&-/g; s/-$//')"
+        ARGS+=(--maikodir "$NETHUB_MAIKO" --nethub "${HUB}:${MAC}")
+        echo "Online play: on the NetHub at ${HUB} as ${MAC}"
+      else
+        echo "Online play is off: no NetHub answers at ${HUB}.  (HEARTS_NETHUB=HOST:PORT names another.)"
+      fi
+    else
+      echo "Online play is off: this emulator has no NetHub support.  ./hearts.sh maiko-nethub builds one that has."
+    fi
     if [ "$(uname)" = Darwin ]; then open -a XQuartz; export OSTYPE=darwin; fi
     echo "Starting Medley from $MEDLEY_DIR.  At the Exec: (FILESLOAD PLAYHEARTS) (PlayHearts)"
     cd "$MEDLEY_DIR" && exec ./medley "${ARGS[@]}" ;;
+  maiko-nethub)
+    # Build Maiko, Medley's emulator, with NetHub support, into maiko-nethub/ beside the Medley
+    # release, which is left as it is.  The released emulators are built without it.  Needs a
+    # C compiler and the X11 headers (on a Mac: the Xcode command line tools and XQuartz).
+    [ -n "$MEDLEY_DIR" ] || { echo "no Medley found: set MEDLEY_DIR to the release's medley/ directory"; exit 1; }
+    TAG="${MAIKO_TAG:-maiko-260319-9259716e}"     # The Maiko of Medley release 260810.
+    SRC="$NETHUB_MAIKO.src"
+    rm -rf "$SRC"
+    git clone --depth 1 --branch "$TAG" https://github.com/Interlisp/maiko.git "$SRC"
+    ( cd "$SRC/bin"
+      if [ "$(uname)" = Darwin ]; then
+        # The Darwin makefiles take no extra flags from the environment.
+        sed -i '' 's/^DEBUGFLAGS *=.*/DEBUGFLAGS = -DMAIKO_ENABLE_NETHUB/' makefile-darwin.*-x
+        ./makeright x
+      else
+        ADDITIONAL_DFLAGS=-DMAIKO_ENABLE_NETHUB ./makeright x
+      fi )
+    BUILT="$SRC/$("$SRC/bin/osversion").$("$SRC/bin/machinetype")"
+    case "$("$BUILT/ldex" -help 2>&1 || true)" in
+      *nh-host*) ;;
+      *) echo "the build has no NetHub option"; exit 1 ;;
+    esac
+    rm -rf "$NETHUB_MAIKO"; mkdir -p "$NETHUB_MAIKO"
+    cp -R "$SRC/bin" "$BUILT" "$NETHUB_MAIKO/"
+    rm -rf "$SRC"
+    echo "Built $NETHUB_MAIKO.  ./hearts.sh medley now starts Medley on the house's NetHub." ;;
   medley-install) install_medley_files ;;
   medley-build)   python3 medley/build-loadfile.py && install_medley_files ;;
   medley-test)
     # ./hearts.sh medley-test [all|net|SCRIPT]   The headless tests, in Docker.
     case "${1:-all}" in
       all) tests/run-all.sh ;;
-      net) python3 tests/test_hnet.py && tests/run-hnet.sh && tools/medley-headless tests/netguide.lisp ;;
+      net) tests/run-courier.sh && tests/courier/run.sh ;;
       *)   tools/medley-headless "$@" ;;
     esac ;;
-  relay)
-    # ./hearts.sh relay [PORT]   A relay on this computer, for Medleys on the same network.
-    PORT="${1:-8765}"
-    ADDR="$( (ipconfig getifaddr en0 || hostname -I | awk '{print $1}') 2>/dev/null || true)"
-    echo "Medleys on this network connect with (HNET.Connect \"ROOM\" \"NAME\" \"ws://${ADDR:-THIS-COMPUTER}:${PORT}\")"
-    exec python3 medley/hnetrelay.py --port "$PORT" ;;
 
   help|*)
     cat <<EOF
@@ -221,24 +269,24 @@ HEARTS ops — ./hearts.sh <command> [dev|prod] [args]
 The Python web platform (in prod: everything on the server)
   start | stop | restart | build | status | urls [dev|prod]
   logs [dev|prod] [SERVICE...]
-  health [dev|prod]          backend, and the relay and resident Medley when they run
+  health [dev|prod]          backend, and the resident Medley when it runs
   smoke | test               smoke tests against the running stack | backend and frontend tests
   invite [dev|prod] [NOTE]   a code and link for one new player
   backup-db [dev|prod]       copy the SQLite database to ./backups
   deploy prod                on the server: pull, rebuild, restart everything, check health
 
-The resident Medley and the relay (docs/medley-server.md)
-  resident [dev|prod]        start the relay and the resident Medley (dev: on this computer)
+The resident Medley (docs/medley-server.md)
+  resident [dev|prod]        start the resident Medley (dev: on this computer)
   resident-stop | resident-restart | resident-logs [dev|prod]
   control-login [USER]       on the server: the login for the resident's control screen
-  nginx-install              on the server: add the relay and screen locations to nginx, check, reload
+  nginx-install              on the server: add the resident's screen locations to nginx, check, reload
 
 Medley on this computer (Medley found: ${MEDLEY_DIR:-none; set MEDLEY_DIR})
   medley [ID]                copy the HEARTS files to ${IL_DIR} and start Medley
+  maiko-nethub               build an emulator with NetHub support beside the release, for online play
   medley-install             copy the HEARTS files (dist/) to ${IL_DIR}
   medley-build               rebuild dist/ from medley/ and copy it to ${IL_DIR}
-  medley-test [all|net|SCRIPT]  headless tests in Docker: all, the network game, or one script
-  relay [PORT]               a relay here, for Medleys on the same network (default 8765)
+  medley-test [all|net|SCRIPT]  headless tests in Docker: all, the Courier game, or one script
 EOF
     ;;
 esac

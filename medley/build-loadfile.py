@@ -269,7 +269,7 @@ def build(text, dist=False):
     #     own.  But CT.InformAll sends Trick and Results once, for seat 1, which is always the
     #     house's, so a guest's players never heard either.  GiveHand and PassIn still go
     #     only to the seat named; Trick and Results now go to all of this machine's players.
-    #     Found by the network game's first run; tested in tests/hnet-guest.lisp.  H6.
+    #     Found by the network game's first run; then tested by the relay game (tag revival-1986).  H6.
     inform_bug = ("    (if (AND (ELT Player.Array PlayerNum)\n"
                   "             (NOT (FMEMB Op HNET.ResponseOps)))\n"
                   "        then (if (FMEMB Op (QUOTE (GiveHand PassIn)))\n"
@@ -280,6 +280,14 @@ def build(text, dist=False):
                         "        then (if (FMEMB Op (QUOTE (GiveHand PassIn)))\n"
                         "                 then (if (ELT Player.Array PlayerNum)\n"
                         "                          then (HNET.Apply PlayerNum Op OpArgs))\n")
+    # 2q. Revival FIX (H8): the file asked for this machine's PUP host number as it loaded,
+    #     (RPAQ HNET.Address (PORTSTRING (ETHERHOSTNUMBER))).  With no network Medley answers 0
+    #     at once.  On a NetHub with no PUP gateway (the Courier game, docs/medley-networking.md)
+    #     ETHERHOSTNUMBER waits for a PUP number that never comes, and the load never ends.
+    #     Nothing uses the PUP address now: HNET sets HNET.Address when it connects.  H8.
+    pup_address = "(RPAQ HNET.Address (PORTSTRING (ETHERHOSTNUMBER)))"
+    assert text.count(pup_address) == 1
+    text = text.replace(pup_address, "(RPAQ? HNET.Address NIL)")
     # 2p. Revival FIX (H7): the house never updated its copy of a remote player's hand.  A
     #     local player changes the very Hand object the deal holds as it passes, takes a pass
     #     and plays; for a Net player only the remote machine's copy changed.  H.PlayGame finds
@@ -287,7 +295,7 @@ def build(text, dist=False):
     #     2 of clubs the house asked the wrong seat to lead, and the remote Conservative could
     #     not (the game hung, or a NIL card broke the trick).  H.Apply's Net branch now keeps the
     #     house's copy in step, through HNET.KeepHand.  Found by repeated network games;
-    #     tested in tests/run-hnet.sh.  H7.
+    #     then tested by the relay game (tag revival-1986).  H7.
     net_apply = ("                          [(QUOTE Net)\n"
                  "                            (if (FMEMB Op HNET.ResponseOps)\n")
     assert text.count(net_apply) == 1
@@ -410,14 +418,11 @@ if __name__ == "__main__":
                                         encoding="utf-8", newline="\n")
     print(f"wrote {DIST / 'LLMPLAYER'}  ({len(lp.splitlines())} lines) + llm_player.py")
 
-    # HNET: the 1986 network game over a relay (medley/hnet.lisp), and the link Medley runs to
-    # reach the relay.  The relay itself (medley/hnetrelay.py) runs on a server, not in Medley.
-    hn = with_header("HNET", lisp_src("hnet.lisp") + "\nSTOP\n")
-    check_code(hn)
-    (DIST / "HNET").write_text(hn, encoding="utf-8", newline="\n")
-    (DIST / "hnetlink.py").write_text((HERE / "hnetlink.py").read_text(encoding="utf-8"),
-                                      encoding="utf-8", newline="\n")
-    print(f"wrote {DIST / 'HNET'}  ({len(hn.splitlines())} lines) + hnetlink.py")
+    # HCOURIER: HEARTS over Courier (medley/hcourier.lisp): this Medley's players at the house's tables.
+    hc = with_header("HCOURIER", lisp_src("hcourier.lisp") + "\nSTOP\n")
+    check_code(hc)
+    (DIST / "HCOURIER").write_text(hc, encoding="utf-8", newline="\n")
+    print(f"wrote {DIST / 'HCOURIER'}  ({len(hc.splitlines())} lines)")
 
     # NNPLAYER: the neural network player (medley/nnplayer.lisp).  Its weights, dist/HEARTSNET, are
     # written by selfplay/export_lisp.py.

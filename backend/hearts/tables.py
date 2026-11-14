@@ -14,11 +14,24 @@ import uuid
 from collections import deque
 
 from .game import Game, IllegalMove, visible_to
-from .players import BOT_KINDS, make_bot
+from .players import BOT_KINDS, Player, make_bot
 
 log = logging.getLogger("hearts.tables")
 FALLBACK = "conservative"  # Who plays for someone whose time runs out.
 ADVISERS = ("expert", "network")
+
+
+class StandIn(Player):
+    """Plays a seat whose own player has gone (a Medley that left).  It answers from the view alone and keeps
+    nothing, so it can take over a game at any point, and a game replayed from its record."""
+
+    kind = FALLBACK
+
+    def pass_out(self, view):
+        return make_bot(FALLBACK, self.name, 0).decide(view)[0] if view["direction"] else []
+
+    def play(self, view):
+        return make_bot(FALLBACK, self.name, 0).decide(view)[0]
 
 
 class Table:
@@ -42,6 +55,7 @@ class Table:
         self.created = time.time()
         self.caught_up = asyncio.Event()
         self.advice = {}  # The latest advice for each seat, sent again when someone connects.
+        self.watchers = []  # Called with every new event, whole: the Courier door tells its Medleys from here.
 
     # Seats ----------------------------------------------------------------------------------------------------
     @property
@@ -89,6 +103,15 @@ class Table:
         self.maybe_start()
         return seat
 
+    def seat_medley(self, link, index, name):
+        """Seat a player that lives on a Medley (hearts.courier) in the first free seat."""
+        seat = next((i + 1 for i in range(4) if self.is_open(i + 1)), None)
+        if seat is None:
+            raise IllegalMove("That table has no free seat.")
+        self.seats[seat - 1] = {"kind": "medley", "name": name, "link": link, "index": index}
+        self.save()
+        return seat
+
     def fill_empty_seats(self):
         for i in range(4):
             if self.is_open(i + 1):
@@ -111,6 +134,8 @@ class Table:
             self.manager.store.append_event(self.id, self.seq, event)
             self.persisted = self.seq
             self._broadcast(event, self.seq)
+            for watch in list(self.watchers):
+                watch(event)
         if self.seq >= self.persisted:
             self.caught_up.set()
 
@@ -261,6 +286,19 @@ class Table:
         if seat in people:
             self._apply(kind, seat, value, None)
 
+    def _recorded(self, kind, seat):
+        """This seat's next recorded move, taken out of the record, or None.  Cards were played in order.  Passes
+        were not: a Medley's pass can come after a person's, so look through the passes at the head of the record."""
+        for i, (k, s, value) in enumerate(self.script):
+            if k != kind:
+                return None
+            if s == seat:
+                del self.script[i]
+                return value
+            if kind == "card":
+                return None
+        return None
+
     async def _time_out(self, seat):
         deal = self.game.deal
         view = deal.view(seat)
@@ -284,31 +322,40 @@ class Table:
         bot.thought = None
         forced = len(view["legal"]) == 1 and not getattr(bot, "plays_forced_cards", False)
         card = view["legal"][0] if forced else await self._think(bot, "play", view)
-        if self.script and self.script[0][:2] == ("card", seat):
-            card = self.script.popleft()[2]
+        card = self._recorded("card", seat) or card
         self._apply("card", seat, card, bot.thought.as_dict() if bot.thought else None)
+
+    async def _bot_pass(self, seat):
+        deal = self.game.deal
+        cards = await self._think(self.bots[seat], "pass_out", deal.view(seat))
+        cards = self._recorded("pass", seat) or cards
+        if deal.direction:
+            self._apply("pass", seat, cards, None)
 
     async def run(self):
         try:
-            self.bots = {i + 1: make_bot(s["kind"], s.get("name"), self.seed + i)
+            self.bots = {i + 1: self.manager.make_player(self, i + 1, s)
                          for i, s in enumerate(self.seats) if s["kind"] != "person"}
+            here = [s for s, bot in self.bots.items() if not getattr(bot, "remote", False)]
+            away = [s for s in self.bots if s not in here]  # On a Medley: they answer in their own time.
             while not self.game.finished:
                 deal = self.game.next_deal()
                 self._emit(self._new_game_events())
                 for seat, bot in self.bots.items():
                     bot.give_hand(deal.dealt[seat - 1], seat)
+                # H.Deal sends PassOut on a deal with no pass too, and the Expert picks its strategy there.
+                for seat in here:
+                    await self._bot_pass(seat)
                 if deal.direction:
-                    for seat, bot in self.bots.items():
-                        cards = await self._think(bot, "pass_out", deal.view(seat))
-                        if self.script and self.script[0][:2] == ("pass", seat):
-                            cards = self.script.popleft()[2]
-                        self._apply("pass", seat, cards, None)
-                    await self._wait_for_people(lambda: deal.phase != "pass")
+                    passing = [asyncio.create_task(self._bot_pass(seat)) for seat in away]
+                    try:
+                        await self._wait_for_people(lambda: deal.phase != "pass")
+                        await asyncio.gather(*passing)
+                    finally:
+                        for task in passing:
+                            task.cancel()
                     for seat, bot in self.bots.items():
                         bot.pass_in(deal.received[seat - 1])
-                else:  # H.Deal sends PassOut on a deal with no pass too, and the Expert picks its strategy there.
-                    for seat, bot in self.bots.items():
-                        bot.pass_out(deal.view(seat))
                 told = 0
                 while deal.phase == "play":
                     seat = deal.to_play
@@ -334,6 +381,8 @@ class Table:
             self.caught_up.set()
             self.status = "failed"
             self.save()
+            for watch in list(self.watchers):
+                watch({"type": "stopped"})
             for send in list(self.connections):
                 self._send(send, {"type": "error", "message": "This table stopped because of an error."})
 
@@ -368,20 +417,47 @@ class Tables:
     def __init__(self, store):
         self.store = store
         self.tables = {}
+        self.remote = None  # The Courier door (hearts.courier.Door), when it is open.
+
+    def make_player(self, table, seat, info):
+        """The automated player for a seat as its game starts."""
+        if info["kind"] == "medley":
+            if self.remote:
+                return self.remote.player(table, seat, info)
+            return StandIn(info.get("name"))
+        return make_bot(info["kind"], info.get("name"), table.seed + seat - 1)
+
+    def opponents(self):
+        """Who can be put in a seat now: the house's own players, and any a Medley is offering to everyone."""
+        offered = self.remote.offers() if self.remote else []
+        return [{"kind": kind, "label": cls.label} for kind, cls in BOT_KINDS.items()] + offered
+
+    def seat_for(self, kind, claimed=None):
+        if kind == "person":
+            return {"kind": "person"}
+        if claimed and kind in claimed:
+            return dict(claimed[kind])
+        if kind not in BOT_KINDS:
+            raise IllegalMove(f"There's no player called {kind}.")
+        return {"kind": kind, "name": None}
 
     def adviser(self, kind):
         """A new player of this kind, for one decide: each rebuilds its own memory from the view."""
         return make_bot(kind, None, 0)
 
     def create(self, player, seats, config):
-        for kind in seats:
-            if kind != "person" and kind not in BOT_KINDS:
-                raise IllegalMove(f"There's no player called {kind}.")
+        offered = [kind for kind in seats if kind.startswith("medley:")]
+        if offered and not self.remote:
+            raise IllegalMove("No Medley is offering players.")
+        claimed = self.remote.claim(offered) if offered else {}
         table_seats = [{"kind": "person", "player_id": player["id"], "name": player["name"]}]
-        for index, kind in enumerate(seats):
-            table_seats.append({"kind": kind} if kind == "person" else {"kind": kind, "name": None})
+        table_seats += [self.seat_for(kind, claimed) for kind in seats]
+        return self.create_table(table_seats, config)
+
+    def create_table(self, table_seats, config):
+        """A new table with these seats.  It starts at once if none of them is open."""
         for index, seat in enumerate(table_seats):
-            if seat["kind"] != "person":
+            if seat["kind"] not in ("person", "medley"):
                 seat["name"] = _bot_name(table_seats, index)
         table_id = uuid.uuid4().hex[:10]
         table = Table(self, table_id, random.randrange(2 ** 31), config, table_seats)

@@ -6,10 +6,11 @@
 #   port 6080  watch:   view only (public)
 #   port 6081  control: keyboard and mouse.  No password here: publish it only behind nginx's
 #                       login (nginx/hearts-apps-location.conf).
-# docker/resident.lisp then joins the relay's room and keeps offering players there.
+# docker/resident.lisp then keeps offering players to the house, over Courier on its NetHub.
 #
-# Settings (environment): HNET_RELAY (the relay, ws://relay:8765 in docker-compose.server.yml),
-# RESIDENTROOM (athena), RESIDENTNAME (athena), RESIDENTPLAYERS ("EP NP CP"), GEOMETRY (1280x900).
+# Settings (environment): MEDLEY_NETHUB (the house's NetHub and this machine's address on it,
+# HOST:PORT:MAC, backend:3333:10-00-AA-00-00-10 in docker-compose.server.yml), RESIDENTKEY (the
+# house's key for offering players to everyone), RESIDENTPLAYERS ("EP NP CP"), GEOMETRY (1280x900).
 set -u
 GEOMETRY="${GEOMETRY:-1280x900}"
 export DISPLAY=:0 TERM=dumb
@@ -40,10 +41,24 @@ export RESIDENTLISP="{DSK}/usr/local/share/hearts/resident.lisp"
 CM="$HOME/resident.cm"
 printf '"(EXEC_INTERLISP) (LOAD (UNIX-GETENV (QUOTE RESIDENTLISP)))"\n' > "$CM"
 
-# Run Medley; if it stops (a crash, or someone typed LOGOUT), start it again.
+# Wait until the NetHub answers: the emulator joins it only as it starts, and never tries again.
+wait_for_hub() {
+  local host port
+  [ -n "${MEDLEY_NETHUB:-}" ] || return 0
+  host="${MEDLEY_NETHUB%%:*}"; port="${MEDLEY_NETHUB#*:}"; port="${port%%:*}"
+  until (exec 3<>"/dev/tcp/$host/$port") 2>/dev/null; do
+    echo "$(date -u +%FT%TZ) waiting for the NetHub at $host:$port"
+    sleep 3
+  done
+}
+
+# Run Medley; if it stops (a crash, someone typed LOGOUT, or the house went away and
+# resident.lisp logged out to join its NetHub again), start it again.
 while :; do
+  wait_for_hub
   echo "$(date -u +%FT%TZ) starting Medley"
-  "$MEDLEY_HOME/medley/medley" -a -n -i resident -g "$GEOMETRY" -s "$GEOMETRY" -x "$HOME/il" -cm "$CM"
+  "$MEDLEY_HOME/medley/medley" -a -n -i resident -g "$GEOMETRY" -s "$GEOMETRY" -x "$HOME/il" -cm "$CM" \
+    ${MEDLEY_NETHUB:+-nh "$MEDLEY_NETHUB"}
   echo "$(date -u +%FT%TZ) Medley stopped ($?); restarting in 5 seconds"
   sleep 5
 done

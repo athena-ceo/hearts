@@ -564,7 +564,7 @@
 
 (RPAQQ HNET.MyPlayers NIL)
 
-(RPAQ HNET.Address (PORTSTRING (ETHERHOSTNUMBER)))
+(RPAQ? HNET.Address NIL)
 
 (RPAQQ HNET.ResponseOps (PassOut Play))
 

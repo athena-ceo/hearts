@@ -19,8 +19,10 @@ The Dockerfile has three stages: `medley` (Medley, LOOPS, Python), `harness` (th
 the default) and `resident` (the demo server's resident Medley with VNC and noVNC, built by
 `docker-compose.server.yml`; see [docs/medley-server.md](../docs/medley-server.md)).
 
-`--network NAME` (after `--utf8`) joins a Docker network, and `HNET_RELAY` passes through:
-`tests/run-hnet.sh` uses them to put a relay and two Medleys on one private network.
+`--network NAME` (after `--utf8`) joins a Docker network (`tests/run-resident.sh`).
+`MEDLEY_NETHUB=HOST:PORT:MAC` passes through, and puts the Medley on an XNS NetHub: the
+image's emulator is the release's Maiko rebuilt with NetHub support (`docker/Dockerfile`), since
+the released one has none. `tests/run-courier.sh` and `tests/courier/run.sh` use it.
 
 `--utf8` (first, or right after `--build`) matters for anything that names files or runs
 commands. The container has no locale, so Medley passes file names through byte for byte; on a

@@ -73,6 +73,7 @@ export const fr: Dict = {
     noOpenTables: "Aucune table ne cherche de joueurs pour l’instant.",
     openSeat: "Place libre",
     sitHere: "S’asseoir ici",
+    medleyTaken: "Ces joueurs Medley viennent d’être pris. Choisissez à nouveau.",
     sitAtTable: "S’asseoir à la table de {who}",
     studyUnrated: "Table d’étude, raisonnements visibles, sans classement.",
   },
@@ -82,6 +83,7 @@ export const fr: Dict = {
     expert: "Expert, 1986",
     network: "Réseau neuronal",
     claude: "Claude",
+    medley: "Sur Medley",
   },
   kindsShort: {
     expert: "Expert",

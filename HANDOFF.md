@@ -9,6 +9,37 @@ left, and the roadmap.** Details live in the linked docs; this file is the map.
 
 ---
 
+## Direction since 2026-11-14
+
+**The 1986 port is finished and kept as it is** (Harley, 2026-11-14): git tag `revival-1986`. From
+here the product is improved without having to stay an update of 1986. `transcription/` stays
+faithful as before, and the 1986 distribution in `dist/` keeps working.
+
+**Online, everyone meets at the house's tables, over Courier** (built 2026-11-14, on Nick Briggs's
+advice to use Medley's own Courier packages in place of `HNET`'s relay and its remote evaluation):
+
+- **The house is the Python platform.** Its backend runs a NetHub and speaks XNS on it
+  (`backend/hearts/xns.py`, `backend/hearts/courier.py`). A Medley's players sit at its tables
+  through two Courier programs, `HEARTSHOUSE` and `HEARTSPLAYERS` (`medley/hcourier.lisp`, on the
+  stock `COURIERSERVE`): typed calls, nothing evaluated. People in a browser sit at the same tables.
+- **The protocol is new** (ARCHITECTURE §4.2): every event to every seat that may see it, and
+  requests that carry the legal cards. The 1986 players are behind an adapter in `hcourier.lisp`.
+- **The resident Medley offers its players to the house**, so a person in a browser can play the
+  1986 Expert as it runs on Medley. PlayHearts' online seat opens a table at the house.
+- **Proved:** `backend/tests/test_courier.py`; `tests/run-courier.sh` (a headless Medley's players,
+  a game to 100); `tests/run-resident.sh` (a web visitor and a PlayHearts Medley against the
+  resident's players); and the same game from the emulator built on an Apple Silicon Mac.
+- **The released emulators have no NetHub support.** `docker/Dockerfile` rebuilds Maiko with it for
+  the images, and `./hearts.sh maiko-nethub` beside a local Medley release. Until the Medley
+  project ships it, every Medley user who wants to play online builds one.
+- **Not done:** a person playing from a Medley on a real screen; encryption on the NetHub; more
+  than one game at a time on one Medley. The limits are listed in `TODO.md`.
+- **Next, to plan with Harley (his message of 2026-11-14):** redesign the Medley players for the
+  new protocol, fix obvious bugs, improve the rules, and improve the screens of the game, the
+  human player and the computer players.
+- **The 1986 way is retired** (Harley, 2026-11-14: one live version, the improved one). `HNET`, its
+  relay and their tests are gone from `main` and kept at tag `revival-1986`.
+
 ## TL;DR
 
 The **entire HEARTS system — including the KEE Expert player — runs on current Medley
@@ -21,8 +52,8 @@ Conservative games (every play legal, no rule errors), and a replay of the 1986 
 examples that reproduces the paper's rule firings and certainty factors. It has not yet been
 played interactively on the Mac.
 
-What's **not** done: the original **Ethernet networking** (deferred). Modern Common Lisp and
-Python ports are future phases.
+The network game runs too: see "Direction since 2026-11-14" above. A modern Common Lisp
+port is a future phase.
 
 See it in action: [docs/hearts-game.png](docs/hearts-game.png).
 
@@ -46,7 +77,7 @@ See it in action: [docs/hearts-game.png](docs/hearts-game.png).
 | Headless test Medley | ✅ [docker/](docker/) + [tools/medley-headless](tools/medley-headless) |
 | **Neural network player** (`NP`, 2026) | ✅ runs in pure Lisp; beat the Expert by 3.09 points per deal on 2,800 held-out deals ([docs/benchmarks/](docs/benchmarks/README.md)). See "Benchmarks, rule experiments and the neural network" below. Not yet tried on the Mac. |
 | **LLM player** (`LP`, 2026) | 🟡 complete games pass on a stub and through the real SDK against a mock server ([tests/llmplayer.lisp](tests/llmplayer.lisp)), and a short game has run against the real API on Haiku. See "The LLM player" below for what has not been run. |
-| Ethernet networking | ⛔ deferred (dead PUP/XNS; collapse to one image) |
+| Online play | ✅ at the house's tables, over Courier on its NetHub (`HCOURIER`). See "Direction since 2026-11-14". |
 | Modern CL / Python ports | 🔜 planned (Phases 3–4) |
 
 Original 1986 bugs found and fixed, plus every revival patch, are in [HEARTS-BUGS.md](HEARTS-BUGS.md).
@@ -65,8 +96,8 @@ connected dir `~/il`.
 ./hearts.sh medley        # copies dist/ to ~/il, then: open -a XQuartz; OSTYPE=darwin ./medley --apps --interlisp --noscroll
 ```
 
-`./hearts.sh help` lists the rest: the web platform, the resident Medley and relay, the headless
-tests (`medley-test`), a relay for the local network (`relay`).
+`./hearts.sh help` lists the rest: the web platform, the resident Medley, the NetHub emulator
+(`maiko-nethub`) and the headless tests (`medley-test`).
 
 Then, in the Interlisp Exec:
 
@@ -290,6 +321,9 @@ python3 tests/test_llm_player.py                                # its Python hel
 tools/medley-headless --timeout 900 tests/nnplayer.lisp         # the neural network player, in pure Lisp
 python3 selfplay/test_sim.py                                    # the simulator, against real Medley logs
 python3 tests/real_api_check.py                                 # the real API: costs money, needs a key (see "The LLM player")
+tests/courier/run.sh                                            # two Medleys call each other over Courier (stock packages)
+tests/run-courier.sh                                            # HEARTS over Courier: a Medley's players at the house
+tests/run-resident.sh                                           # the house and the resident, with a web visitor and a Medley visitor
 tests/run-all.sh                                                # everything, with a summary
 tools/medley-headless --loops --timeout 2700 tests/expert-soak.lisp  # 3 more games, rare-situation hunt
 ```
@@ -313,6 +347,16 @@ display. Output in `out/medley/`. Details and the Medley automation traps it wor
    reaching HEARTS symbols from a Common Lisp exec (`IL::|LHearts|`).
 5. **Commit messages** end with the `Co-Authored-By` trailer; keep the trackers/docs updated in the
    same commit as the change they describe.
+6. **Write Interlisp as Interlisp** (Harley, 2026-11-14). New Lisp uses the iterative statement
+   (`for … collect`, `bind … while`, `until`, `thereis`, `always`), `if … then … else`, records
+   (`create`, `fetch`, `replace`) and `LET`, not a `PROG` with labels and `GO`. A `PROG` loop is for
+   the rare case nothing else expresses. Older code of ours has such loops: rewrite them when
+   touching them.
+7. **`HT.CHECK` with an expected value of NIL checks only that the form is true.** To check for
+   NIL, wrap both: `(HT.CHECK "…" (LIST form) (QUOTE (NIL)))`. A check written the first way passed
+   while the call it tested was failing (2026-11-14).
+8. **`medley/hcourier.lisp` and `backend/hearts/courier.py` define the same two Courier programs.**
+   Change the numbers, procedures and types in both, and run `tests/run-courier.sh`.
 
 ---
 
@@ -352,7 +396,7 @@ display. Output in `out/medley/`. Details and the Medley automation traps it wor
   certainty factors). The original `EP.*` code and all 97 rules run from the transcription; the lost
   KB (unit classes, handler wiring, personality thresholds) is reconstructed from the code and the
   1986 overview. See REVIVAL-LOG Challenges 17–20 and HEARTS-BUGS section K.
-- **Phase 2c — Networking. ✅ proved 2026-11-12.** The original Ethernet transport (`EVALSERVER`/PUP/XNS)
+- **Phase 2c — Networking, the 1986 way. ✅ proved 2026-11-12, retired 2026-11-14 (tag `revival-1986`; what follows describes that tag).** The original Ethernet transport (`EVALSERVER`/PUP/XNS)
   is dead, so `HNET` (medley/hnet.lisp) rebuilds `REMOTEVAL` and `EVALSERVER` on a WebSocket relay
   (medley/hnetrelay.py) that each Medley reaches through a child process (medley/hnetlink.py, stdlib
   only). The 1986 HNET code runs unchanged apart from 1986 bugs H6 and H7. A full game to 100 between two headless
@@ -387,7 +431,8 @@ medley/              build-loadfile.py, activeregions.lisp, HEARTS (dev build), 
                      build_expert.py, keeloops.lisp, expert-kb.lisp, EXPERT (dev build), playhearts.lisp,
                      llmplayer.lisp + llm_player.py (the LLM player)
 dist/                Community distribution: ACTIVEREGIONS, HEARTS, KEELOOPS, EXPERT, PLAYHEARTS, LLMPLAYER,
-                     llm_player.py, README.md
+                     llm_player.py, HCOURIER, README.md
+backend/ frontend/   The Python platform: the house (game, players, tables, web, the Courier door) and its web pages
 docker/              Headless Medley (Maiko + Xvfb + LOOPS) for scripted tests
 tests/               Headless test scripts (tools/medley-headless ...)
 attic/               Superseded work kept for the record (the first Expert attempt)

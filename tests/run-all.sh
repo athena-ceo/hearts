@@ -10,7 +10,6 @@ run() {  # run NAME [medley-run options...] SCRIPT
 }
 mkdir -p out
 printf '%-18s %s\n' llm-helper "$(python3 tests/test_llm_player.py 2>&1 | tail -1)"
-printf '%-18s %s\n' hnet-relay "$(python3 tests/test_hnet.py 2>&1 | tail -1)"
 printf '%-18s %s\n' simulator "$(python3 selfplay/test_sim.py 2>&1 | tail -1)"
 run smoke                                   tests/smoke.lisp &
 run expert-load     --loops                 tests/expert-load.lisp &
@@ -32,7 +31,9 @@ run playhearts-utf8 --utf8 --loops --timeout 1500 tests/playhearts.lisp &
 wait
 run expert-game     --loops --timeout 1800  tests/expert-game.lisp   # alone: it needs the CPU
 wait
-# The network game: a relay and two Medleys, each in its own container (tests/run-hnet.sh).
-printf '%-18s %s\n' hnet "$(tests/run-hnet.sh 2>&1 | tail -1)"
-# The demo server's relay and resident Medley, with a visitor playing it twice (tests/run-resident.sh).
-printf '%-18s %s\n' resident "$(tests/run-resident.sh 2>&1 | tail -1)"
+# Courier between two Medleys on a NetHub, with the stock packages (tests/courier/run.sh).
+printf '%-18s %s\n' courier-medleys "$(tests/courier/run.sh 2>&1 | grep -a 'HT-SUMMARY' | sed 's/==HT-SUMMARY== //')"
+# HEARTS over Courier: a Medley's players at a table of the house (tests/run-courier.sh).
+printf '%-18s %s\n' courier-house "$(tests/run-courier.sh 2>&1 | tail -3 | tr '\n' ' ')"
+# The demo server's house and resident Medley, with a visitor from the web and one from a Medley (tests/run-resident.sh).
+printf '%-18s %s\n' resident "$(tests/run-resident.sh 2>&1 | tail -4 | tr '\n' ' ')"

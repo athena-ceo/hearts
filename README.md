@@ -206,8 +206,9 @@ python/          Phase 4 — a Python port for distribution (planned).
   **Phase 2b — the KEE Expert — runs** (headless-verified): its original code and 97 original rules
   on KEELOOPS, a KEE compatibility layer on LOOPS ([REVIVAL-LOG.md](REVIVAL-LOG.md) Challenges
   17–20). The original networking runs again, between Medleys anywhere on the Internet
-  ([docs/medley-networking.md](docs/medley-networking.md)), and a resident Medley plays online
-  ([docs/medley-server.md](docs/medley-server.md)).
+  ([docs/medley-networking.md](docs/medley-networking.md)). Since November 2026 the players on a
+  Medley and the people in a browser meet at the same tables, over Courier, and a resident Medley
+  offers its 1986 Expert to all of them ([docs/medley-server.md](docs/medley-server.md)).
 - **Phases 3–4 (modern Lisp / Python ports) — planned.**
 
 ## License
