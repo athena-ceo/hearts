@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The Expert's rules against the listing, its engine, decide at every position, and rule variants as overlays."""
 import random
 import re

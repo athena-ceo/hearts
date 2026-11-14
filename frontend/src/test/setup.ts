@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 import "@testing-library/jest-dom/vitest";
 import { afterEach } from "vitest";
 import { cleanup } from "@testing-library/react";

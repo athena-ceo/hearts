@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // What floats over the table: waiting for players, the end of a deal, the end of the game.
 import { seatsFrom } from "../game/seats";
 import { fmt, pointsText, useT } from "../i18n";

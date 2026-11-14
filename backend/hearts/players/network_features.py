@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """What the network sees: a request from Medley or the simulator, as 512 numbers from the point of
 view of the seat deciding.  Pure Python, so the same code runs in training and beside Medley."""
 from hearts import INDEX, points

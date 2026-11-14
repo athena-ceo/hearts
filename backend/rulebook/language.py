@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The rule file format: what a file says, before any vocabulary gives its phrases a meaning.
 
     # A comment, on a line of its own.

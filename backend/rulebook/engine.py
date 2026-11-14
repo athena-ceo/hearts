@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The engine: rule classes, weights, and two ways to run a class.
 
 Rules are tried by descending weight, and among equals in the order they were written.  A rule's premises run in order,

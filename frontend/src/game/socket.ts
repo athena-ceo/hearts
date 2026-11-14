@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // A table's live connection, reconnecting by itself with backoff. Each new connection opens with a snapshot.
 import type { ServerMessage } from "../types";
 

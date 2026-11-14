@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The Conservative: the 1986 rule-of-thumb minimizer, CP.* in medley/HEARTS, as one straight procedure.
 
 Its one random choice is CP.Follow's when it must win a spade trick last and holds the queen on top: any of its spades,

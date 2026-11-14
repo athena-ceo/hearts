@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 import type { DealReview, NewTable, Opponent, Player, TableInfo } from "./types";
 
 const API = import.meta.env.VITE_API_BASE ?? "/api";

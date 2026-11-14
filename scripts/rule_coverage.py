@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """Which of the Expert's rules fire, over many deals of self-play: how often, and which never do.
 
     .venv/bin/python scripts/rule_coverage.py [--deals 2000] [--variant x-sr-plus] [--all]

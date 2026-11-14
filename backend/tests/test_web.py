@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The server: invitations, tables, moves, hidden hands, reconnection and restarts, over real sockets."""
 import os
 import tempfile

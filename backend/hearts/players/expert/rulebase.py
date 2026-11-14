@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The knowledge base as it runs in Medley, and the variants of it.  Variants of the rules are .rules files in variants/."""
 from pathlib import Path
 

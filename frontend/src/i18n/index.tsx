@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { en } from "./en";

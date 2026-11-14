@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The Python players against real Medley runs, card for card and reason for reason.
 
 The fixtures are the first 200 deals of traced runs: four Experts, four Conservatives, and the two taking turns, made by

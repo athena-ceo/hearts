@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // Words for what the server already decided. Legality comes only from view.legal; these read that list and say
 // why a card isn't on it, so nothing here can ever allow or forbid a card.
 import type { SeatView } from "../types";

@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The core against real Medley games: the same legal cards, winners and scores, and the rules it enforces."""
 import gzip
 import json

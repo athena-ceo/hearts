@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // Messages shaped as the server sends them, for tests.
 import type { SeatView, SnapshotMessage, TableInfo } from "../types";
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """Reading a rule's phrases with a vocabulary, and compiling them to Python closures.
 
 A line is read by trying every phrase in the vocabulary at every position, as a chart parser does, with types deciding

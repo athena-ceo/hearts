@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 /// <reference types="vite/client" />
 interface ImportMetaEnv {
   readonly VITE_API_BASE?: string;

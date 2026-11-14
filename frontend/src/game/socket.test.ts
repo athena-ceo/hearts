@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BACKOFF_MAX, BACKOFF_START, TableSocket, type ConnectionStatus } from "./socket";

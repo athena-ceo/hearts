@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 import { forwardRef, useLayoutEffect, useRef } from "react";
 
 import { flyIn, flyOut, prefersReducedMotion } from "../game/fly";

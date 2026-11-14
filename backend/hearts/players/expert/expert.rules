@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 #
 # The 97 rules of the 1986 Expert, one to one with the KEE.DEFRULEs in medley/EXPERT, as they run there.  Reasons are
 # verbatim, and tests/test_expert.py checks every class, name, weight, reason and certainty against the listing.

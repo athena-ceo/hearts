@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """Accounts, invitations and game records, in SQLite with the standard library.
 
 Invite-only for now: registering needs an unused invitation code.  Auth is low-ceremony, as in Adventure: name

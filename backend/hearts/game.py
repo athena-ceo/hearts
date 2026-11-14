@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The game as a state machine with no I/O, so the fast benchmark loop and the server drive the same code.
 
 Unlike the 1986 Administrator, this checks every card it gets.  Everything that happens is an event: a

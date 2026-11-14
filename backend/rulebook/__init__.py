@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """A small business rules kernel: rules as text that people can read, change and review.
 
 A domain supplies a Vocabulary, the phrases its rules may use, each typed and backed by a Python function.  Rules live in

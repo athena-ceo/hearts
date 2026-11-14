@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 

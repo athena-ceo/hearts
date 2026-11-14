@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // Cards move as objects: from one place on screen to another, whatever the layout, phone or desktop.
 import { animate } from "motion";
 

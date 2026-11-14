@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // Every string a person reads, except what the server writes: the 1986 reasons and rule names stay in English.
 
 export const en = {

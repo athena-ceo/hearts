@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The 1986 player protocol: GiveHand, PassOut, PassIn, Play, Trick, Results.  Trick and Results are optional.
 
 A player's choice can carry a Thought, its reason.  `decide` answers from a complete seat view, whatever

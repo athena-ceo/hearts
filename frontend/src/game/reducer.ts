@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // The table as this client knows it, built only from what the server sends. A snapshot rebuilds all of it, so
 // reconnecting is the same code as joining.
 import type {

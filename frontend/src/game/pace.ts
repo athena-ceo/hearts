@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // How long each message holds the table, in milliseconds.
 import type { QueuedMessage } from "../types";
 import type { Pace } from "./queue";

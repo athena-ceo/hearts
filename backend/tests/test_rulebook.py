@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The rulebook kernel, on a domain that isn't cards: a small loan desk."""
 import ast
 from pathlib import Path

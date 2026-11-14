@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 #
 # Local full-stack run for Docker Desktop. Values come from a .env file in this
 # directory (copy .env.example to .env). Open http://localhost:3050 -- the

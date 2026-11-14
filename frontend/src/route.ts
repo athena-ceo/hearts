@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // Hash routes: the static build can be served from any path.
 import { useEffect, useState } from "react";
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // Toutes les chaînes affichées, sauf celles du serveur : les raisons de 1986 et les noms de règles restent en anglais.
 import type { Dict } from "./index";
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 #
 # Production stack for apps.athenadecisions.com.
 # Ports: backend 8050, frontend 3050 (distinct from golden-path 8020/3020,

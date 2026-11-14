@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The rulebook command.
 
     python -m rulebook check FILE --vocabulary MODULE:NAME [--base FILE]

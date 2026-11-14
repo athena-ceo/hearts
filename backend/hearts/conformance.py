@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """Does a table of Python players do what the same table did in Medley?  Plays a whole run in order, as Medley did,
 and compares every seat's passes, every trick, every reason, every score and every rule fired.
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, ApiError } from "../api";

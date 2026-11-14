@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 #
 # Control script for HEARTS (mirrors advent.sh / xcape.sh / golden-path): the Python web
 # platform, Medley on this computer, and the resident Medley and relay on the server.

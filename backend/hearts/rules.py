@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The exact rules of the 1986 code: H.GetLegals, Trick.Winner, H.Deal and Deal.SetScore."""
 from .cards import PASS_OFFSET, RANK_OF
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 #
 # bench/rules/x-sr-plus.lisp and the x-high-when-winning it loads, in full: rules from comparing the Expert with the
 # self-play network.  x-sr-combo, plus the non-shooting changes from x-combo: never eclipse, more spade protection, play

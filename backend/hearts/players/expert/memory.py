@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """What an Expert keeps: its History of the deal and a model of each opponent."""
 import struct
 

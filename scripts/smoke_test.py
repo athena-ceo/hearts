@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """End-to-end smoke test against a running HEARTS backend: health, an invitation, a new account, and a table
 that deals.  Needs HEARTS_ADMIN_PASSWORD to create the invitation.
 

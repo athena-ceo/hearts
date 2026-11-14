@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """Tables: one asyncio task per game, holding its seats and connections.
 
 The game itself is hearts.game.Game.  A table asks each seat for its move, writes each event before announcing

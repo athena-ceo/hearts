@@ -1,2 +1,2 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 export default { plugins: { tailwindcss: {}, autoprefixer: {} } };

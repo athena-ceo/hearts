@@ -1,4 +1,4 @@
-<!-- Copyright (c) 2026 Athena Decisions Systems SAS. -->
+<!-- Copyright (c) 2026 Athena Decision Systems SAS. -->
 # rulebook
 
 A small business rules kernel: rules as text that people can read, change and review. It has no dependencies, and

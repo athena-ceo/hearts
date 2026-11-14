@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // Seats are 1-4 clockwise, and a seat's left neighbour is the next number. You always sit at the bottom.
 import type { Direction } from "../types";
 

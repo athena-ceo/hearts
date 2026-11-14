@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // The Thoughts window. The reasons and rule names are quoted exactly as the server sends them: they're the 1986
 // Expert's own words and are never translated.
 import type { TableState } from "../game/reducer";

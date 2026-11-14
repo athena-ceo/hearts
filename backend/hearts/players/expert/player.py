@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The Expert: the 1986 EP.* handlers (medley/EXPERT) around the rules in expert.rules.  It keeps all it knows in its own
 slots, so an Expert carries nothing from one deal to the next that a rule reads, and `decide` can rebuild any position.
 """

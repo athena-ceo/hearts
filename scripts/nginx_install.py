@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """Put the relay and resident Medley locations into the nginx site file.
 
     python3 scripts/nginx_install.py SITE CONF OUT [SERVER_NAME]

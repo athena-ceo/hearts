@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """Compare the Python players with a traced Medley run: every seat's passes, every card, reason, score and rule fired.
 
     python3 bench/run.py --run conform --deals 6000 --trace expert conservative-table mixed-table

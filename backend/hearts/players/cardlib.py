@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The 1986 card, hand and trick functions (Card.*, CardList.*, Hand.*, Trick.*, H.GetLegals), with their exact results.
 
 None stands for NIL.  These keep Lisp's habits, which the players depend on:

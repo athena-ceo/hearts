@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // The server's messages, as backend/hearts/web.py, tables.py, game.py and review.py send them.
 
 export type Direction = "Left" | "Across" | "Right" | null;

@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The players, each answering the six messages of the 1986 protocol.  See base.py."""
 from .base import Player, Thought
 from .clown import Clown

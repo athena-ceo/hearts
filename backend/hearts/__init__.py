@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """HEARTS in Python: the rules and the game (no I/O), its players, and a server.
 
 See docs/design/python-platform.md.  Medley is the reference this must match.

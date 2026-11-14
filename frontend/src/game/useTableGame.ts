@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // One table: its socket, its event queue, and the state they build.
 import { useCallback, useEffect, useRef, useState } from "react";
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 import { useT } from "../i18n";
 import { cardName, cardShort, isRed, rankOf, SUIT_GLYPH, suitOf } from "../game/cards";
 

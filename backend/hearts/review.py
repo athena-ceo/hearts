@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """After a deal: what each seat did and why, beside what the Expert and the network would have done."""
 from __future__ import annotations
 

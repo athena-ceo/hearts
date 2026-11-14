@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """For the people who govern the rules: what changed, what runs in what order, what never fires, and what can be said."""
 from .language import RuleFile
 from .vocabulary import Slot

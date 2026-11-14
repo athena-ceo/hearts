@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """The web backend: accounts by invitation, tables, and a WebSocket per client.
 
     python -m hearts.web        # REST and WebSockets on :8050

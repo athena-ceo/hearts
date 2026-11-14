@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \

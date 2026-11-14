@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // Drawing cards only: what they look like and how a hand is laid out. No rules of the game live here.
 import type { Dict } from "../i18n";
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 import { useT } from "../i18n";
 import type { Route } from "../route";
 import type { Player } from "../types";

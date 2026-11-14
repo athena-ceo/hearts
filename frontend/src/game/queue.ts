@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Athena Decisions Systems SAS.
+// Copyright (c) 2026 Athena Decision Systems SAS.
 // Three bots answering at once still read one card at a time: every message waits its turn here.
 
 export interface Pace { before: number; after: number; }

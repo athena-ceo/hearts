@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """A Vocabulary: the types of a domain, and the phrases its rules may use.
 
     v = Vocabulary()

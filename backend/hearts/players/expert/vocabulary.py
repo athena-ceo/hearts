@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Athena Decisions Systems SAS.
+# Copyright (c) 2026 Athena Decision Systems SAS.
 """What the Expert's rules can say.  Every phrase is one function of the 1986 system, with its exact results and quirks
 (see cardlib.py and memory.py), and the subject of every phrase is the Expert.
 
