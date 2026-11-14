@@ -361,7 +361,7 @@ display. Output in `out/medley/`. Details and the Medley automation traps it wor
   and a **resident Medley** (docker/resident.lisp) that is always in room `athena` offering an
   Expert, the network and a Conservative, with its screen in the browser to watch (public) or control
   (nginx login): [docs/medley-server.md](docs/medley-server.md); tested locally by
-  `tests/run-resident.sh`. Not done: deploying it, PlayHearts menu items, and a try on two real Macs. Guide for the Medley community:
+  `tests/run-resident.sh`. Deployed 2026-11-13 (`./hearts.sh deploy prod`, `./hearts.sh nginx-install`). Not done: PlayHearts menu items, and a try on two real Macs. Guide for the Medley community:
   [docs/medley-networking.md](docs/medley-networking.md).
 - **Phase 3 — Modern Common Lisp port.** Build against the language-neutral contract in
   [ARCHITECTURE.md](ARCHITECTURE.md) (six-message protocol, dispatch, data model, game loop).
