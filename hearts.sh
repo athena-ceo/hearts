@@ -177,7 +177,7 @@ case "$CMD" in
     echo "Now: sudo nginx -t && sudo systemctl reload nginx" ;;
 
   nginx-install)
-    # On the server: add the resident Medley locations to the site's server block
+    # On the server: add the web game's and the resident Medley's locations to the site's server block
     # (scripts/nginx_install.py), check the result with nginx -t, then reload, or put the old
     # file back.  Safe to run again: it replaces its earlier copy.
     SITE="${NGINX_SITE:-/etc/nginx/sites-enabled/apps.athenadecisions.com}"
@@ -279,7 +279,7 @@ The resident Medley (docs/medley-server.md)
   resident [dev|prod]        start the resident Medley (dev: on this computer)
   resident-stop | resident-restart | resident-logs [dev|prod]
   control-login [USER]       on the server: the login for the resident's control screen
-  nginx-install              on the server: add the resident's screen locations to nginx, check, reload
+  nginx-install              on the server: add the game's and the resident's addresses to nginx, check, reload
 
 Medley on this computer (Medley found: ${MEDLEY_DIR:-none; set MEDLEY_DIR})
   medley [ID]                copy the HEARTS files to ${IL_DIR} and start Medley

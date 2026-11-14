@@ -104,7 +104,7 @@ Once, for the Courier game:
    sudo ufw allow 3333/tcp
    ```
 
-Once, for the resident's screens (done on 2026-11-13):
+Once, for the web addresses (run it again after any change to `nginx/hearts-apps-location.conf`):
 
 1. Make the control login (run it again to add someone):
 
@@ -113,19 +113,19 @@ Once, for the resident's screens (done on 2026-11-13):
    ```
 
    It writes `/etc/nginx/hearts-medley.htpasswd` with `htpasswd`, from `apache2-utils`.
-2. Add the locations to nginx:
+2. Add the game's and the resident's addresses to nginx:
 
    ```bash
    ./hearts.sh nginx-install
    ```
 
-   This puts the part of `nginx/hearts-apps-location.conf` between its `hearts-medley` markers
-   (`/hearts/medley/...`) into the site's server block. It goes just before
-   `location ^~ /hearts/ {` if the web platform is already served there. Otherwise it goes at
-   the end of the `apps.athenadecisions.com` block that listens on 443 (certbot's). It keeps a dated backup of the site file, runs `nginx -t`,
-   and reloads, or puts the old file back if the test fails. Running it again after a change to
-   those locations replaces its earlier copy. The site file is
-   `/etc/nginx/sites-enabled/apps.athenadecisions.com`; set `NGINX_SITE` if yours is elsewhere.
+   This puts the part of `nginx/hearts-apps-location.conf` between its `hearts` markers (the game's
+   page, its API and health address, and the resident's two screens) at the end of the
+   `apps.athenadecisions.com` server block that listens on 443 (certbot's). It replaces an earlier
+   copy, keeps a dated backup of the site file, runs `nginx -t`, and reloads, or puts the old file
+   back if the test fails. It refuses if the site has `/hearts/` addresses pasted in by hand. The
+   site file is `/etc/nginx/sites-enabled/apps.athenadecisions.com`; set `NGINX_SITE` if yours is
+   elsewhere.
 
 The resident takes a minute or two to start, because loading the Expert brings in LOOPS.
 `./hearts.sh health prod` checks the house and both screens, and says whether the

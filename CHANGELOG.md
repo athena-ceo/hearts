@@ -42,6 +42,10 @@
   location, `./hearts.sh relay`, and the tests `run-hnet.sh`, `test_hnet.py`, `hnet-*.lisp`. They
   are at tag `revival-1986`. On the server the `/hearts/hnet/` location stays in nginx until
   `./hearts.sh nginx-install` is run again.
+- **`./hearts.sh nginx-install` installs the web game too**: the page, its API and its health
+  address, with the resident's screens, between new `hearts` markers; it replaces a copy from the
+  earlier `hearts-medley` markers (`scripts/nginx_install.py`, `backend/tests/test_nginx_install.py`).
+  Until now the game's own addresses had to be pasted by hand, and on the server they never were.
 - **Courier trial.** Two headless Medleys on a NetHub call each other with the stock
   `COURIERSERVE` / `COURIEREVALSERVE` and a restricted `COURIERPROGRAM` of our own:
   `tests/courier/run.sh` (10 checks pass) and `tools/nethub.py` (a minimal hub).
