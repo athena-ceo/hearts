@@ -5,6 +5,7 @@ again.  The game is kept if a person can come back to it, and ends if no one can
 
 The cases are a matrix: who the people were, how they went, what else was at the table, and when."""
 import asyncio
+import contextlib
 import os
 import tempfile
 import threading
@@ -17,7 +18,7 @@ from hearts import courier
 from hearts.web import create_app
 from hearts.xns import Reader, Writer
 
-from test_courier import EVERY_TABLE, OFFERED, Medleys, names, table_of
+from test_courier import EVERY_TABLE, OFFERED, Medleys, names, table_of, until
 from test_web import play_until_end_of_deal, sign_up
 
 HOLD = 0.4  # Seconds a game keeps a Medley's players after the last browser closed it, in these tests.
@@ -36,15 +37,6 @@ def house(monkeypatch):
                 yield client, medleys
             finally:
                 medleys.stop()
-
-
-def until(what, within=10.0):
-    end = time.time() + within
-    while time.time() < end:
-        if what():
-            return True
-        time.sleep(0.01)
-    return False
 
 
 def offered_now(client):
@@ -296,9 +288,12 @@ def test_one_medleys_players_are_at_several_tables_at_once_and_each_game_is_its_
     full = client.post("/api/tables", json={"seats": ["medley:%s:0" % resident_id(client)] * 1 + ["clown", "clown"]},
                        headers={"X-Hearts-Token": token})
     assert full.status_code == 400 and "taken" in full.json()["detail"]
-    # The games are played in turn here, a deal of each, then to the end: the Medley keeps them apart.
-    for (_, token), table in zip(people, tables):
-        with client.websocket_connect(f"/api/tables/{table.id}/ws?token={token}") as socket:
+    # Each person has their table open, or its players would go home after the wait.  The games are played in turn
+    # here, each to its end: the Medley keeps them apart.
+    with contextlib.ExitStack() as opened:
+        sockets = [opened.enter_context(client.websocket_connect(f"/api/tables/{table.id}/ws?token={token}"))
+                   for (_, token), table in zip(people, tables)]
+        for socket, table in zip(sockets, tables):
             while not table.game.finished:
                 play_until_end_of_deal(socket, 1)
     assert until(lambda: len(resident.ended) == 3)

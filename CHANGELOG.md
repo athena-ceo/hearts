@@ -6,6 +6,18 @@
 
 ### 2026-11-15
 
+- **CI: three house tests no longer depend on the machine's speed.** Run 22 failed on GitHub's
+  runner with tests that pass on a fast machine; each fails on one busy core. Tests only, no change
+  to the house.
+  - `play_until_end_of_deal` (`test_web.py`) answered the same decision twice when it came in the
+    snapshot and again in the turn's announcement before the house had read the first answer, and
+    the house refused the second ("seat 1 can't pass now"). It now answers a decision once.
+  - `test_one_medleys_players_are_at_several_tables_at_once…` opened its three tables one after the
+    other, so the second and third had nobody at them for longer than the wait and their players
+    went home, as the product intends. The three people now have their tables open together.
+  - `test_a_stand_in_plays_for_a_medley…` looked at `door.links` the moment the Medley closed its
+    connection; it now waits for the house to see it (`until`, moved to `test_courier.py`).
+  - `backend/tests`: 126 passed, four times running on one core shared with six busy processes.
 - **One Medley plays at several tables (in progress; committed to change computers, not deployed).**
   Asked by Harley on 2026-11-15, in place of a pool of resident Medleys. Both Courier programs are
   now version 2: every `HEARTSPLAYERS` call names its table first, `OFFER` says how many tables the

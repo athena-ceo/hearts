@@ -50,12 +50,16 @@ def test_admin_routes_need_the_password_and_routes_need_a_player(setup):
 
 def play_until_end_of_deal(socket, seat):
     """Answer as a person until a deal ends, checking that no other seat's cards ever arrive."""
-    view = None
+    view = answered = None
     while True:
         m = socket.receive_json()
         if m["type"] in ("snapshot", "turn") and m.get("view"):
             view = m["view"]
-            if seat in m.get("waiting", []):
+            # The same decision can arrive twice, in the snapshot and then in the turn's announcement, before the
+            # house has read the answer to the first: a person answers it once.
+            asked = (view["decision"], tuple(view["hand"]))
+            if seat in m.get("waiting", []) and asked != answered:
+                answered = asked
                 if view["decision"] == "pass":
                     socket.send_json({"type": "pass", "cards": view["hand"][:3]})
                 elif view["legal"]:

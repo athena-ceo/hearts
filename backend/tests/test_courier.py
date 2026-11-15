@@ -149,6 +149,16 @@ def table_of(client, table_id):
     return client.app.state.tables.tables[table_id]
 
 
+def until(what, within=10.0):
+    """Wait for something the house does in its own time, on its own loop."""
+    end = time.time() + within
+    while time.time() < end:
+        if what():
+            return True
+        time.sleep(0.01)
+    return False
+
+
 def test_courier_values_round_trip():
     w = put_cards(Writer().word(3).boolean(True).string("Kant"), ["C2", "S10", "HA", "DQ"]).word(-26)
     r = Reader(w.bytes())
@@ -311,7 +321,7 @@ def test_a_stand_in_plays_for_a_medley_that_plays_a_card_it_may_not_and_a_game_l
     cheating, leaving = run(play())
     # The cheat's game was played to its end.  The other had nobody left at it, so it ended there (test_presence).
     assert table_of(client, cheating).status == "finished" and table_of(client, leaving).status == "abandoned"
-    assert not door.links
+    assert until(lambda: not door.links)  # The house sees a closed connection a moment after the Medley closes it.
 
 
 def test_a_medley_sits_at_a_table_someone_opened_and_can_leave_it(house):
