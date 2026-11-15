@@ -247,7 +247,9 @@ Without PlayHearts, the calls are in `HCOURIER`:
 
 A seat left open can be taken by a person in a browser or by another Medley. The 1986 card table
 opens on your screen when the game starts, and your players' windows work as in a local game. If
-your Medley goes away, the house plays your seats, so the others can finish.
+your Medley goes away, the house plays your seats, so the others can finish. If there are no
+others (you were the only person at the table), the game ends there, and the resident's players
+are free for the next table.
 
 Tested with Conservatives from a headless Medley on Linux and on a Mac, and with the resident's
 players; a person at a Medley is the next thing to try. More: [docs/medley-server.md](docs/medley-server.md),

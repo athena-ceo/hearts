@@ -1,9 +1,9 @@
 # Copyright (c) 2026 Athena Decision Systems SAS.
 """The Courier door: Medleys sit at the house's tables through two Courier programs on a NetHub.
 
-    HEARTSHOUSE   (19860, version 1)  the house serves it.  A Medley offers players, sits them at a table, leaves.
-    HEARTSPLAYERS (19861, version 1)  a Medley with players serves it.  The house tells it what happens at the table
-                                      and asks its players for their passes and cards.
+    HEARTSHOUSE   (19860, version 2)  the house serves it.  A Medley offers players, sits them at a table, leaves.
+    HEARTSPLAYERS (19861, version 2)  a Medley with players serves it.  The house tells it what happens at each
+                                      table, by the table's name, and asks its players for their passes and cards.
 
 Both are defined for Medley in medley/hcourier.lisp, which must stay in step with the numbers and types here.  The
 calls carry the same game as the WebSocket door: every event a seat may see, and each request with its legal cards.
@@ -30,7 +30,7 @@ from .xns import Closed, CourierError, Writer
 
 log = logging.getLogger("hearts.courier")
 
-HOUSE, PLAYERS, VERSION = 19860, 19861, 1
+HOUSE, PLAYERS, VERSION = 19860, 19861, 2
 HOUSE_MAC = bytes.fromhex("100048454152")  # The house's host number: 0#10000.44105.40522# to Medley.
 DIRECTIONS = [None, "Left", "Across", "Right"]
 # HEARTSPLAYERS procedures
@@ -61,24 +61,26 @@ def refuse(number, message):
 
 
 class Link:
-    """One Medley on the hub: the players it has offered, and the table they are at."""
+    """One Medley on the hub: the players it has put forward, and the tables they are at.  A Medley that offers
+    players to everyone says how many tables it will take at once, and makes a fresh set for each."""
 
     def __init__(self, door, wire):
         self.door, self.wire = door, wire
         self.id = uuid.uuid4().hex[:8]
-        self.names = []  # The players offered, in the Medley's order: a seat's index is its place here.
+        self.names = []  # The players put forward, in the Medley's order: a seat's index is its place here.
         self.public = False  # True if anyone may choose them as opponents.
-        self.table = None
-        self.seats = {}  # index -> seat number at self.table
+        self.capacity = 1  # How many tables they can be at.
+        self.games = {}  # table id -> {"table", "seats": index -> seat number, "scores", "watch"}
         self.address = None  # Where it connected from.
         self.opened = []  # When it opened each of its recent tables.
-        self.scores = [0, 0, 0, 0]  # The deal just ended, until its totals follow.
         self.client = None
         self.jobs = asyncio.Queue()
+        self.asked = None  # The answer the Medley is being waited on for now.
         self.closed = False
         self.worker = asyncio.create_task(self._work())
 
-    # Calls to the Medley, one at a time and in order: a hand must arrive before the request to play from it.
+    # Calls to the Medley, one at a time and in order: a hand must arrive before the request to play from it, and
+    # the 1986 Expert's rules have one working memory, so only one of a Medley's players thinks at a time.
     async def _call(self, procedure, arguments):
         if self.client is None or self.client.closed:
             self.client = await self.wire.open()
@@ -87,7 +89,7 @@ class Link:
     async def _work(self):
         while True:
             procedure, arguments, answer = await self.jobs.get()
-            result = None
+            result, self.asked = None, answer
             try:
                 result = await asyncio.wait_for(self._call(procedure, arguments),
                                                 self.door.answer_within if answer else 120)
@@ -102,81 +104,101 @@ class Link:
             if answer and not answer.done():
                 answer.set_result(result)
 
-    def tell(self, procedure, arguments=b""):
+    def tell(self, procedure, table, arguments=None):
+        """A HEARTSPLAYERS call that returns nothing.  Every call names its table first."""
         if not self.closed:
-            self.jobs.put_nowait((procedure, arguments, None))
+            w = Writer().string(table.id)
+            self.jobs.put_nowait((procedure, w.bytes() + (arguments.bytes() if arguments else b""), None))
 
-    async def ask(self, procedure, arguments):
+    async def ask(self, procedure, table, arguments):
         if self.closed:
             return None
         answer = asyncio.get_running_loop().create_future()
-        self.jobs.put_nowait((procedure, arguments, answer))
+        self.jobs.put_nowait((procedure, Writer().string(table.id).bytes() + arguments.bytes(), answer))
         return await answer
 
-    # The table
-    def attach(self, table):
-        """The game is starting: open the Medley's card table and follow the table's events."""
-        if self.table is table and self.event in table.watchers:
-            return
-        self.table = table
-        self.seats = {s["index"]: i + 1 for i, s in enumerate(table.seats)
-                      if s["kind"] == "medley" and s.get("link") == self.id}
-        seats = [self.seats.get(i, 0) for i in range(len(self.names))]
-        names = [table.seat_name(i + 1) or "" for i in range(4)]
-        self.tell(TABLE, Writer().sequence(names, Writer.string).sequence(seats, Writer.word).bytes())
-        table.watchers.append(self.event)
+    # The tables
+    def plays(self, table, seat):
+        """Is this seat at this table one the Medley is playing now?"""
+        game = self.games.get(table.id)
+        return bool(game and not self.closed and seat in game["seats"].values())
 
-    def event(self, event):
+    def attach(self, table):
+        """The game is starting: tell the Medley its seats, and follow the table's events."""
+        if table.id in self.games:
+            return
+        seats = {s["index"]: i + 1 for i, s in enumerate(table.seats)
+                 if s["kind"] == "medley" and s.get("link") == self.id}
+        game = self.games[table.id] = {"table": table, "seats": seats, "scores": [0, 0, 0, 0],
+                                       "watch": lambda event: self.event(table, event)}
+        names = [table.seat_name(i + 1) or "" for i in range(4)]
+        self.tell(TABLE, table, Writer().sequence(names, Writer.string)
+                  .sequence([seats.get(i, 0) for i in range(len(self.names))], Writer.word))
+        table.watchers.append(game["watch"])
+
+    def event(self, table, event):
         """What happened at the table, as HEARTSPLAYERS calls.  Each seat is told only what it may see."""
-        kind, mine = event["type"], sorted(self.seats.values())
+        game = self.games.get(table.id)
+        if game is None:
+            return
+        kind, mine = event["type"], sorted(game["seats"].values())
         if kind == "deal":
-            totals = self.table.game.totals
             for seat in mine:
                 w = Writer().word(seat).word(event["number"]).word(DIRECTIONS.index(event["direction"]))
-                put_cards(w, event["hands"][seat - 1]).sequence(totals, Writer.word)
-                self.tell(DEAL, w.bytes())
+                self.tell(DEAL, table, put_cards(w, event["hands"][seat - 1]).sequence(table.game.totals, Writer.word))
         elif kind == "received":
             for seat in mine:
-                self.tell(RECEIVED, put_cards(Writer().word(seat), event["cards"][seat - 1]).bytes())
+                self.tell(RECEIVED, table, put_cards(Writer().word(seat), event["cards"][seat - 1]))
         elif kind == "card":
-            self.tell(CARD, put_card(Writer().word(event["seat"]), event["card"]).bytes())
+            self.tell(CARD, table, put_card(Writer().word(event["seat"]), event["card"]))
         elif kind == "trick":
             w = put_cards(Writer().word(event["leader"]), event["cards"])
-            self.tell(TRICK, w.word(event["winner"]).word(event["points"]).bytes())
+            self.tell(TRICK, table, w.word(event["winner"]).word(event["points"]))
         elif kind == "deal_end":
-            self.scores = event["scores"]
+            game["scores"] = event["scores"]
         elif kind == "totals":
-            w = Writer().sequence(self.scores, Writer.word).sequence(event["totals"], Writer.word)
-            self.tell(SCORES, w.bytes())
+            self.tell(SCORES, table, Writer().sequence(game["scores"], Writer.word).sequence(event["totals"], Writer.word))
         elif kind == "game_end":
-            self.tell(GAME_OVER, Writer().sequence(event["winners"], Writer.word).bytes())
-            self.release()
+            self.tell(GAME_OVER, table, Writer().sequence(event["winners"], Writer.word))
+            self.release(table)
         elif kind == "stopped":
-            self.tell(GAME_OVER, Writer().sequence([], Writer.word).bytes())
-            self.release()
+            self.tell(GAME_OVER, table, Writer().sequence([], Writer.word))
+            self.release(table)
 
-    def release(self):
-        """The game is over, or this Medley left it: its players are no longer anyone's."""
-        table, self.table, self.seats, self.names, self.public = self.table, None, {}, [], False
-        if table and self.event in table.watchers:
-            table.watchers.remove(self.event)
+    def release(self, table):
+        """This table's game is over, or this Medley left it.  Players offered to everyone stay on offer: the Medley
+        makes new ones for the next table.  Players a Medley sat itself are nobody's until it sits them again."""
+        game = self.games.pop(table.id, None)
+        if game and game["watch"] in table.watchers:
+            table.watchers.remove(game["watch"])
+        if not self.public and not self.games:
+            self.names = []
 
-    def leave(self):
-        """Take this Medley's players away from their table: an open table gets its seats back, a game a stand-in."""
-        table = self.table or next((t for t in self.door.tables.tables.values() if t.status == "open" and any(
-            s["kind"] == "medley" and s.get("link") == self.id for s in t.seats)), None)
-        if table and table.status == "open":
-            for i, s in enumerate(table.seats):
-                if s["kind"] == "medley" and s.get("link") == self.id:
-                    table.seats[i] = {"kind": "person"}
-            table.save()
-            table.refresh_clients()
-        elif table:  # A game goes on: the seats stay Medley seats in name, and the stand-in plays them.
-            for s in table.seats:
-                if s["kind"] == "medley" and s.get("link") == self.id:
-                    s["link"] = None
-            table.save()
-        self.release()
+    def _tables(self):
+        """Every table with this Medley's players in its seats, waiting or playing."""
+        return [t for t in self.door.tables.tables.values() if t.status in ("open", "playing") and any(
+            s["kind"] == "medley" and s.get("link") == self.id for s in t.seats)]
+
+    def leave(self, table=None):
+        """Take this Medley's players away from a table, or from all of them: a table still waiting gets its seats
+        back, a game a stand-in.  If that leaves nobody at the table, the table sees to it."""
+        for t in [table] if table else self._tables():
+            mine = [i for i, s in enumerate(t.seats) if s["kind"] == "medley" and s.get("link") == self.id
+                    and t.status in ("open", "playing")]
+            for i in mine:
+                if t.status == "open":
+                    t.seats[i] = {"kind": "person"}
+                else:  # The seats stay Medley seats in name, and the stand-in plays them.
+                    t.seats[i]["link"] = None
+            if mine:
+                t.save()
+            self.release(t)
+            if mine:
+                t.refresh_clients()
+                t.unattended()
+        if table is None:
+            for game in list(self.games.values()):
+                self.release(game["table"])
 
     def close(self):
         if self.closed:
@@ -184,8 +206,10 @@ class Link:
         self.closed = True
         self.leave()
         self.door.links.pop(self.id, None)
+        waiting = [self.asked]  # A seat waiting for this Medley's answer gets none: its stand-in plays.
         while not self.jobs.empty():
-            answer = self.jobs.get_nowait()[2]
+            waiting.append(self.jobs.get_nowait()[2])
+        for answer in waiting:
             if answer and not answer.done():
                 answer.set_result(None)
         if self.worker is not asyncio.current_task():
@@ -202,14 +226,15 @@ class MedleySeat(Player):
     plays_forced_cards = True  # The Medley's players keep their own hands: they must see every turn.
     remote = True
 
-    def __init__(self, link, loop, name, seat):
+    def __init__(self, link, loop, name, seat, table):
         super().__init__(name)
-        self.link, self.loop, self.seat = link, loop, seat
+        self.link, self.loop, self.seat, self.table = link, loop, seat, table
 
     def _ask(self, procedure, arguments, read):
-        if self.link.closed or self.seat not in self.link.seats.values():
+        # The Medley may have left this game and be in others, where it can hold a seat with the same number.
+        if not self.link.plays(self.table, self.seat):
             return None
-        raw = asyncio.run_coroutine_threadsafe(self.link.ask(procedure, arguments), self.loop).result()
+        raw = asyncio.run_coroutine_threadsafe(self.link.ask(procedure, self.table, arguments), self.loop).result()
         try:
             return read(xns.Reader(raw)) if raw is not None else None
         except ValueError:
@@ -224,7 +249,7 @@ class MedleySeat(Player):
         if not view["direction"]:
             return []
         w = put_cards(Writer().word(self.seat).word(DIRECTIONS.index(view["direction"])), view["hand"])
-        cards = self._ask(PASS, w.bytes(), lambda r: r.sequence(get_card))
+        cards = self._ask(PASS, w, lambda r: r.sequence(get_card))
         if cards and len(set(cards)) == 3 and all(c in view["hand"] for c in cards):
             return cards
         return self._stand_in(view, "no pass from the Medley" if cards is None else f"it passed {cards}")
@@ -233,7 +258,7 @@ class MedleySeat(Player):
         trick = view["trick"]
         w = put_cards(Writer().word(self.seat).word(trick["leader"]), trick["cards"])
         put_cards(w, view["legal"]).boolean(view["hearts_broken"]).boolean(view["first_trick"])
-        card = self._ask(PLAY, w.bytes(), get_card)
+        card = self._ask(PLAY, w, get_card)
         if card in view["legal"]:
             return card
         return self._stand_in(view, "no card from the Medley" if card is None else f"it played {card}")
@@ -244,7 +269,8 @@ class Door:
 
     MAX_LINKS = 64
     MAX_FROM_ONE_ADDRESS = 8
-    TABLES_AN_HOUR = 12  # New tables one Medley may open: each is a game the house plays to its end.
+    TABLES_AN_HOUR = 12  # New tables one Medley may open: each is a game the house plays while it stays.
+    MAX_TABLES = 16  # The most tables one Medley's offered players may be at, whatever it says it will take.
 
     def __init__(self, tables, offer_key=None, answer_within=None):
         self.tables = tables
@@ -298,11 +324,11 @@ class Door:
             raise CourierError("reject", 1)
         try:
             if procedure == OFFER:
-                key, names = r.string(), self._names(r)
+                key, names, tables = r.string(), self._names(r), r.word()
                 if self.offer_key and not hmac.compare_digest(key.encode(), self.offer_key.encode()):
                     raise refuse(NOT_ALLOWED, "That isn't the key for offering players to everyone.")
                 link.leave()
-                link.names, link.public = names, True
+                link.names, link.public, link.capacity = names, True, max(1, min(tables, self.MAX_TABLES))
                 return b""
             if procedure == SIT:
                 table_id, names = r.string(), self._names(r)
@@ -311,8 +337,7 @@ class Door:
                     raise refuse(NO_SUCH_TABLE, "There's no table with that name waiting for players.")
                 if sum(table.is_open(i + 1) for i in range(4)) < len(names):
                     raise refuse(NO_SEATS, "That table hasn't enough free seats.")
-                link.leave()
-                link.names = names
+                self._visits(link, names)
                 for index, name in enumerate(names):
                     table.seat_medley(link.id, index, name)
                 table.maybe_start()
@@ -327,15 +352,18 @@ class Door:
                 if len(link.opened) >= self.TABLES_AN_HOUR:
                     raise refuse(BAD_REQUEST, "This Medley has opened many tables. Try again later.")
                 link.opened.append(now)
-                link.leave()
-                link.names = names
+                self._visits(link, names)
                 seats = [{"kind": "medley", "name": name, "link": link.id, "index": i} for i, name in enumerate(names)]
                 kinds = self._fill(link, kinds)
                 claimed = self.claim([k for k in kinds if k.startswith("medley:")])
                 table = self.tables.create_table(seats + [self.tables.seat_for(k, claimed) for k in kinds], {})
                 return Writer().string(table.id).bytes()
-            if procedure == LEAVE:
-                link.leave()
+            if procedure == LEAVE:  # One table, or with no name every table.
+                table_id = r.string()
+                table = self.tables.tables.get(table_id)
+                if table_id and table is None:
+                    raise refuse(NO_SUCH_TABLE, "There's no table with that name.")
+                link.leave(table)
                 return b""
             if procedure == TABLES:
                 rows = [t for t in self.tables.tables.values() if t.status == "open" and not t.config.get("invite_only")]
@@ -354,6 +382,11 @@ class Door:
             raise refuse(BAD_REQUEST, str(e))
         raise CourierError("reject", 2)
 
+    def _visits(self, link, names):
+        """This Medley is sitting its own players at one table: they leave wherever they were."""
+        link.leave()
+        link.names, link.public, link.capacity = names, False, 1
+
     def _names(self, r):
         """One to four players' names, with anything but plain letters, digits and spaces taken out."""
         names = [NOT_NAME.sub("", n).strip()[:32] or "Medley player" for n in r.sequence(lambda x: x.string(60), 4)]
@@ -369,15 +402,40 @@ class Door:
 
     # What the tables ask of the door ----------------------------------------------------------------------------
     def offers(self):
-        """The players any table may take: those offered to everyone by a Medley that isn't in a game."""
+        """The players any table may take: those offered to everyone by a Medley that has room for another table."""
         return [{"kind": f"medley:{link.id}:{i}", "label": name}
                 for link in self.links.values() if link.public and not self._busy(link)
                 for i, name in enumerate(link.names)]
 
     def _busy(self, link):
-        return link.table is not None or any(s["kind"] == "medley" and s.get("link") == link.id
-                                             for t in self.tables.tables.values() if t.status in ("open", "playing")
-                                             for s in t.seats)
+        return len(link._tables()) >= link.capacity
+
+    def holds(self, table, seat):
+        """Is this Medley seat still played by its Medley?"""
+        link = self.links.get(seat.get("link"))  # A Medley that leaves a game takes its name off the seat.
+        return bool(link and not link.closed)
+
+    def _at(self, table, public):
+        """The Medleys with players in this table's seats: those that offered them to everyone, or the others."""
+        ids = {s.get("link") for s in table.seats if s["kind"] == "medley"}
+        return [link for link in self.links.values() if link.id in ids and link.public == public and not link.closed]
+
+    def visiting(self, table):
+        """Is a Medley that sat its own players at this table still there?  Its owner chose this table, at a screen
+        or not; a Medley whose players were offered to everyone is nobody's presence."""
+        return bool(self._at(table, False))
+
+    def vacate(self, table):
+        """Nobody is at this table: send home the players a Medley offered to everyone.  True if any went.  From a
+        game, the Medley is told it is over.  From a table still waiting for players, the Medley was told nothing
+        yet, and its seats are open again.  Either way the Medley has room for another table."""
+        gone = self._at(table, True)
+        for link in gone:
+            log.info("table %s: nobody is here, so Medley %s has its players back", table.id, link.id)
+            if table.status == "playing":
+                link.tell(GAME_OVER, table, Writer().sequence([], Writer.word))
+            link.leave(table)
+        return bool(gone)
 
     def claim(self, kinds):
         """Seats for these offered kinds ("medley:LINK:INDEX"), or IllegalMove if any has been taken meanwhile."""
@@ -392,7 +450,7 @@ class Door:
     def player(self, table, seat, info):
         """The player for a Medley seat as a game starts: the Medley if it is still there, or a stand-in."""
         link = self.links.get(info.get("link"))
-        if link is None or link.closed or (link.table is not None and link.table is not table):
+        if link is None or link.closed:
             return StandIn(info.get("name"))
         link.attach(table)
-        return MedleySeat(link, self.loop, info.get("name"), seat)
+        return MedleySeat(link, self.loop, info.get("name"), seat, table)

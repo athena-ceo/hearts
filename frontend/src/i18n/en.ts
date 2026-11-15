@@ -127,6 +127,8 @@ export const en = {
     reconnecting: "Connection lost. Reconnecting…",
     gone: "There's no such table.",
     failed: "This table stopped because of an error.",
+    abandoned: "This game ended because its players left.",
+    medleyLeft: "The Medley's players have left this table. A stand-in is playing for them.",
     notConnected: "Not connected. Try again in a moment.",
     notStarted: "Not dealt yet.",
     dealPassing: "Deal {deal}, passing {direction}.",

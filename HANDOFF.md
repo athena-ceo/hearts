@@ -9,6 +9,37 @@ left, and the roadmap.** Details live in the linked docs; this file is the map.
 
 ---
 
+## In progress (2026-11-15): one Medley at several tables
+
+Committed unfinished, to change computers. **Do not deploy this state**: the live server runs
+commit `be7f926`, and its resident speaks version 1 of the Courier programs.
+
+- **Done and tested:** the house side (`backend/tests`, 126 passed); the new `medley/hcourier.lisp`
+  with one game on a headless Medley (`tests/run-courier.sh`, 20 of 20); the rule that a Medley's
+  offered players go home when nobody is at their table (`backend/tests/test_presence.py`, and
+  `tests/run-resident.sh --web-only` before the several-tables change).
+- **Written, never run:** the new `docker/resident.lisp` (standing offer, tabs: `R.Tabs`,
+  `R.TabSelected`, `R.Pick`); `tests/courier/tables.lisp` with `tests/tables_visitors.py`;
+  the changes to `tests/resident-visitor.lisp`, `tests/resident_visitor.py` and
+  `medley/playhearts.lisp` (`PH.RunOnline` waits on `HC.Last`).
+- **Next, in order:** (1) `tests/run-resident.sh`, and look at the resident's screen at
+  `http://localhost:8052/vnc.html` for the tabs and the window places (status window, tabs, card
+  table at `HNET.CTReg` 475 384, Exec under it); (2) `VISITORS=4 LOOPS=1 tests/run-courier.sh
+  tests/courier/tables.lisp`, then with 8; (3) the time of a deal with 1, 2 and 8 games, to tell
+  Harley; if the 1-second pause of the game on show slows the others too much, give each table
+  its own Courier stream and keep one lock around the players' thinking; (4) move
+  `tests/resident_visitor.py` onto `tests/house_client.py`; (5) `docs/medley-server.md`,
+  `docs/medley-networking.md`, `USER-MANUAL.md` ("Playing online": `HC.Offer` takes forms, `HC.Leave`
+  takes a table), `dist/README.md`, `TODO.md` (the "one game at a time" entry is done);
+  (6) `tests/run-all.sh` and the frontend suite; (7) `docs/drafts/note-to-nick-2026-11-14.md` needs
+  the several-tables news before Harley sends it.
+- **A rule learned:** a field of a record declared in `hcourier.lisp` must be fetched as
+  `(fetch (HCGAME Winners) of Game)`: HEARTS has records with the same field names (`Game` has
+  `Winners`), and the short form fails with "fetch is an undefined function".
+- **Decided by Harley on 2026-11-15:** several tables on one Medley, not a pool of Medleys; a
+  tabbed way to choose the table on the resident's screen, bringing its players' Thoughts windows
+  with it; the same 2-minute rule for a table still waiting for players.
+
 ## Direction since 2026-11-14
 
 **The 1986 port is finished and kept as it is** (Harley, 2026-11-14): git tag `revival-1986`. From
@@ -26,6 +57,11 @@ advice to use Medley's own Courier packages in place of `HNET`'s relay and its r
   requests that carry the legal cards. The 1986 players are behind an adapter in `hcourier.lisp`.
 - **The resident Medley offers its players to the house**, so a person in a browser can play the
   1986 Expert as it runs on Medley. PlayHearts' online seat opens a table at the house.
+- **The resident's players are held only while someone is at their table** (Harley, 2026-11-15):
+  a browser with the table open in the last 2 minutes (`HEARTS_MEDLEY_HOLD`), or a Medley that sat
+  its own players. Otherwise they go home and are offered again; the game is kept for a person to
+  come back to, with stand-ins, and ends (`abandoned`) if no one can. A table still waiting for
+  players gives them back too, as open seats. `backend/tests/test_presence.py`.
 - **Proved:** `backend/tests/test_courier.py`; `tests/run-courier.sh` (a headless Medley's players,
   a game to 100); `tests/run-resident.sh` (a web visitor and a PlayHearts Medley against the
   resident's players); and the same game from the emulator built on an Apple Silicon Mac.

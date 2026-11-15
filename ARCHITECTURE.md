@@ -155,10 +155,25 @@ differs from the six messages in three ways:
   every answer (`hearts.game`): one it may not accept is replaced by a stand-in's choice.
 - **The game survives a player that goes away.** A stand-in that answers from the view alone takes
   the seat at once.
+- **Players offered to everyone are held only while someone is there.** A table with nobody at it
+  (no browser with the table open in the last `HEARTS_MEDLEY_HOLD` seconds, no Medley that sat its
+  own players) sends them home with `GAME.OVER` and no winner, and stand-ins take their seats. If
+  no person can come back, the game ends (`abandoned`). At a table still waiting for players their
+  seats are open again.
 
-| Courier call (house → a machine with players) | Arguments | Returns |
+- **One machine plays at several tables.** Every call from the house names its table first, and
+  the machine keeps a game object for each (`HCGAME` in `medley/hcourier.lisp`: seats, players,
+  card table, score) in a list. A machine that offers players to everyone says how many tables it
+  will take at once and makes a fresh set of players for each. The house sends one machine its
+  calls one at a time, whatever the table: the 1986 Expert's rules share one working memory, so
+  only one of a machine's players thinks at a time.
+
+Version 2 of both programs (2026-11-15). Each call below takes the table's name as its first
+argument.
+
+| Courier call (house → a machine with players) | Arguments after the table's name | Returns |
 |---|---|---|
-| `TABLE` | the four seats' names; for each player the machine offered, its seat or 0 | — |
+| `TABLE` | the four seats' names; for each player the machine put forward, its seat or 0 | — |
 | `DEAL` | seat, deal number, direction, hand, totals | — |
 | `PASS` | seat, direction, hand | 3 cards |
 | `RECEIVED` | seat, the 3 cards passed to it | — |
@@ -166,7 +181,16 @@ differs from the six messages in three ways:
 | `CARD` | seat, the card it played (every seat's, as played) | — |
 | `TRICK` | leader, cards, winner, points | — |
 | `SCORES` | the deal's scores, the totals | — |
-| `GAME.OVER` | the winners' seats (none: the game was stopped) | — |
+| `GAME.OVER` | the winners' seats (none: the game was stopped, or the machine's players were sent home) | — |
+
+| Courier call (a machine → the house) | Arguments | Returns |
+|---|---|---|
+| `OFFER` | the key, the players' names, how many tables they can be at at once | — |
+| `SIT` | a waiting table's name, the players' names | the table's name |
+| `NEW.TABLE` | the players' names, the kinds of player for the other seats | the table's name |
+| `LEAVE` | a table's name, or an empty name for every table | — |
+| `TABLES` | — | the tables waiting for players |
+| `OPPONENTS` | — | the kinds of player the house can seat now |
 
 `PASS` is sent only on a deal with a pass. The 1986 players on Medley are behind an adapter
 (`HC.Deal` … `HC.GameOver`) that turns these calls into the six messages, including the `PassOut`

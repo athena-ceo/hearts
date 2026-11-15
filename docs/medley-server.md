@@ -141,6 +141,14 @@ local only), and `./hearts.sh resident dev` adds a resident beside it.
   asks it for their passes and cards. If the Medley goes away, answers with a card it may not play,
   or doesn't answer for 15 minutes (`HEARTS_MEDLEY_ANSWER_WITHIN`), a Conservative of the house's
   plays the seat from then on, so a game never waits for a machine that has gone.
+- **The resident's players are held only while someone is at their table.** Someone is there if a
+  person has the table open in a browser, or closed it less than 2 minutes ago
+  (`HEARTS_MEDLEY_HOLD`, in seconds: long enough for a reload or a lost connection), or if a Medley
+  sat its own players there. When nobody is, the resident is told the game is over, clears its
+  screen and offers its players again. The game is kept, with the house's Conservative in those
+  seats, and the table says so to a person who comes back. A game whose only people were on a
+  Medley that has left cannot be come back to, so it ends there. A table still waiting for players
+  gives them back in the same way: their seats are open again when its owner comes back.
 - **The image** is the `resident` stage of `docker/Dockerfile`: the headless test image's Medley,
   with the emulator rebuilt for NetHub, plus `x11vnc`, `novnc` and `websockify`, running as an
   ordinary user.

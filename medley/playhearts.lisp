@@ -306,14 +306,14 @@
                   (PROMPTPRINT (CONCAT "Hearts: can't play online: " (CADDR Result)))
                   NIL
            else (PROMPTPRINT (CONCAT "Hearts: new game, at the house's table " Result "."))
-                (until HC.Winners do (DISMISS 500))
+                (until (AND HC.Last (STREQUAL (fetch (HCGAME Id) of HC.Last) Result)) do (DISMISS 500))
                 (WINDOWPROP PH.OnlineTable (QUOTE PH.Process) NIL)
                 (PROMPTPRINT (CONCAT "Game over -- "
-                                    (PH.Names (for N in HC.Winners
+                                    (PH.Names (for N in (fetch (HCGAME Winners) of HC.Last)
                                                  collect (fetch Name of (CAR (NTH (WINDOWPROP PH.OnlineTable (QUOTE PH.Players))
                                                                                   N)))))
                                     " won.  Start Game to play again, or Exit."))
-                HC.Scores))))
+                (fetch (HCGAME Totals) of HC.Last)))))
 
 (PH.OnlineOpen
   (LAMBDA (Players)

@@ -128,6 +128,8 @@ export const fr: Dict = {
     reconnecting: "Connexion perdue. Reconnexion…",
     gone: "Cette table n’existe pas.",
     failed: "Cette table s’est arrêtée à cause d’une erreur.",
+    abandoned: "Cette partie s’est terminée parce que ses joueurs sont partis.",
+    medleyLeft: "Les joueurs du Medley ont quitté cette table. Un remplaçant joue à leur place.",
     notConnected: "Pas de connexion. Réessayez dans un instant.",
     notStarted: "Pas encore distribué.",
     dealPassing: "Donne {deal}, passe {direction}.",

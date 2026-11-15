@@ -3,6 +3,8 @@
 # computer, and a headless Medley in a container whose 1986 players sit at a table and play a game.
 #
 #   tests/run-courier.sh [SCRIPT]       default tests/courier/table.lisp
+#   VISITORS=4 LOOPS=1 tests/run-courier.sh tests/courier/tables.lisp
+#                                       one Medley at four tables at once, with four visitors from the web
 #
 # Needs the hearts-medley image (tools/medley-headless --build) and the backend's virtual
 # environment (.venv).  Results in out/courier-table/ and out/courier-house.log.
@@ -20,11 +22,22 @@ HOUSE=$!
 cleanup() { kill $HOUSE 2>/dev/null; rm -rf "$WORK"; }
 trap cleanup EXIT
 for _ in $(seq 1 50); do curl -sf http://127.0.0.1:8059/health >/dev/null && break; sleep 0.2; done
-docker run --rm -e MEDLEY_NETHUB="host.docker.internal:$PORT:10-00-AA-00-00-01" -e HOUSE_URL=http://host.docker.internal:8059 \
+VISIT=0
+if [ -n "${VISITORS:-}" ]; then  # Web visitors, each at a table with the players this Medley offers.
+  PYTHONPATH=tests .venv/bin/python tests/tables_visitors.py http://127.0.0.1:8059 test-admin "$VISITORS" ${OVER_SCORE:-} \
+    >"out/courier-$NAME-visitors.txt" 2>&1 &
+  VISITORS_PID=$!
+fi
+docker run --rm -e VISITORS -e MEDLEY_NETHUB="host.docker.internal:$PORT:10-00-AA-00-00-01" -e HOUSE_URL=http://host.docker.internal:8059 \
   -v "$ROOT:/hearts" -v "$ROOT/docker/medley-run:/usr/local/bin/medley-run:ro" -w /hearts hearts-medley \
   --out "/hearts/out/courier-$NAME" --timeout "${TIMEOUT:-1800}" ${LOOPS:+--loops} "$SCRIPT" >"out/courier-$NAME.txt" 2>&1
 RC=$?
 grep -a -E "^(PASS|FAIL|ERROR|==HT-SUMMARY)|^= \(SCORE" "out/courier-$NAME.txt"
+if [ -n "${VISITORS:-}" ]; then
+  wait "$VISITORS_PID"; VISIT=$?
+  cat "out/courier-$NAME-visitors.txt"
+fi
 REFUSED="$(grep -c "refused call" out/courier-house.log)"
-echo "calls the Medley refused: $REFUSED"
-[ "$RC" = 0 ] && [ "$REFUSED" = 0 ]
+STOODIN="$(grep -c "the stand-in chooses" out/courier-house.log)"
+echo "calls the Medley refused: $REFUSED; moves a stand-in made for it: $STOODIN"
+[ "$RC" = 0 ] && [ "$VISIT" = 0 ] && [ "$REFUSED" = 0 ] && [ "$STOODIN" = 0 ]

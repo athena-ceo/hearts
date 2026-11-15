@@ -391,3 +391,31 @@ describe("a table waiting for players", () => {
     expect(screen.queryByRole("button", { name: /Fill the empty seats/ })).not.toBeInTheDocument();
   });
 });
+
+describe("a table the Medley's players have left", () => {
+  const medley = (stand_in: boolean) => ({ kind: "medley", name: "Expert on Medley", open: false, stand_in });
+  const left = "The Medley's players have left this table. A stand-in is playing for them.";
+
+  it("says a stand-in is playing for them", () => {
+    connect(snapshot({ table: { ...TABLE, seats: [TABLE.seats[0], medley(true), medley(true), medley(true)] } }));
+    expect(screen.getByText(left)).toBeInTheDocument();
+  });
+
+  it("says nothing while the Medley is still playing them, and learns of it when they go", () => {
+    connect(snapshot({ table: { ...TABLE, seats: [TABLE.seats[0], medley(false), medley(false), medley(false)] } }));
+    expect(screen.queryByText(left)).not.toBeInTheDocument();
+    serve(snapshot({ table: { ...TABLE, seats: [TABLE.seats[0], medley(true), medley(true), medley(true)] } }));
+    expect(screen.getByText(left)).toBeInTheDocument();
+  });
+
+  it("says so in French", () => {
+    localStorage.setItem("hearts.lang", "fr");
+    connect(snapshot({ table: { ...TABLE, seats: [TABLE.seats[0], medley(true), TABLE.seats[2], TABLE.seats[3]] } }));
+    expect(screen.getByText("Les joueurs du Medley ont quitté cette table. Un remplaçant joue à leur place.")).toBeInTheDocument();
+  });
+
+  it("tells someone watching that a game ended because its players left", () => {
+    connect(snapshot({ seat: null, view: null, table: { ...TABLE, status: "abandoned", your_seat: null } }));
+    expect(screen.getByText("This game ended because its players left.")).toBeInTheDocument();
+  });
+});

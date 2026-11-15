@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import random
 import time
 import uuid
@@ -56,6 +57,8 @@ class Table:
         self.caught_up = asyncio.Event()
         self.advice = {}  # The latest advice for each seat, sent again when someone connects.
         self.watchers = []  # Called with every new event, whole: the Courier door tells its Medleys from here.
+        self.last_seen = time.time()  # When a person here last had the table open, or moved.
+        self.check = None  # The pending look at whether anyone is still here.
 
     # Seats ----------------------------------------------------------------------------------------------------
     @property
@@ -71,8 +74,8 @@ class Table:
         return {
             "id": self.id, "status": self.status, "study": self.study,
             "time_limit": self.config.get("time_limit"), "invite_only": bool(self.config.get("invite_only")),
-            "seats": [{"kind": s["kind"], "name": self.seat_name(i + 1), "open": self.is_open(i + 1)}
-                      for i, s in enumerate(self.seats)],
+            "seats": [{"kind": s["kind"], "name": self.seat_name(i + 1), "open": self.is_open(i + 1),
+                       "stand_in": self._stood_in(s)} for i, s in enumerate(self.seats)],
             "your_seat": seat, "your_turn": bool(seat and deal and self.status == "playing" and seat in deal.waiting()),
             "deal": self.game.number, "totals": list(self.game.totals),
             "waiting_for": [self.seat_name(s) for s in deal.waiting()] if deal and self.status == "playing" else [],
@@ -100,8 +103,14 @@ class Table:
             raise IllegalMove("That seat isn't free.")
         self.seats[seat - 1] = {"kind": "person", "player_id": player["id"], "name": player["name"]}
         self.save()
+        self.seen()
         self.maybe_start()
         return seat
+
+    def _stood_in(self, seat):
+        """True for a Medley seat in a game whose Medley has gone: a stand-in plays it."""
+        remote = self.manager.remote
+        return seat["kind"] == "medley" and self.status == "playing" and not (remote and remote.holds(self, seat))
 
     def seat_medley(self, link, index, name):
         """Seat a player that lives on a Medley (hearts.courier) in the first free seat."""
@@ -123,7 +132,54 @@ class Table:
         if self.status == "open" and not any(self.is_open(i + 1) for i in range(4)):
             self.status = "playing"
             self.save()
+            self.seen()
             self.task = asyncio.create_task(self.run())
+
+    # Who is here ----------------------------------------------------------------------------------------------
+    def seen(self):
+        """A person here has just moved, or closed the table: look again once they have been away too long."""
+        self.last_seen = time.time()
+        if self.check:
+            self.check.cancel()
+        self.check = asyncio.get_running_loop().call_later(self.manager.hold + 0.05, self.unattended)
+
+    def detach(self, send):
+        if self.connections.pop(send, None):
+            self.seen()
+
+    def present(self):
+        """Is anyone at this table: a Medley that sat its own players here, or a person in a browser who has the
+        table open or had it open a moment ago.  A person who can no longer come back is not counted."""
+        remote = self.manager.remote
+        if remote and remote.visiting(self):
+            return True
+        if not self._person_seats():
+            return False
+        return any(self.connections.values()) or time.time() - self.last_seen < self.manager.hold
+
+    def unattended(self):
+        """Called when someone may have gone.  With nobody here, the players a Medley offers to everyone go home, so
+        that others can have them.  At a table still waiting for players their seats are open again.  In a game,
+        stand-ins hold their seats and the game is kept for a person to come back to; if no one can come back (its
+        people were on a Medley that has left), it ends here."""
+        if self.status not in ("open", "playing") or self.present():
+            return
+        if self.manager.remote and self.manager.remote.vacate(self):
+            self.refresh_clients()
+        if self.status == "playing" and not self._person_seats():
+            self.abandon()
+
+    def abandon(self):
+        if self.status != "playing":
+            return
+        log.info("table %s: everyone has left, so the game ends", self.id)
+        self.status = "abandoned"
+        self.save()
+        if self.task:
+            self.task.cancel()
+        for watch in list(self.watchers):
+            watch({"type": "stopped"})
+        self.refresh_clients()
 
     # Events ---------------------------------------------------------------------------------------------------
     def _emit(self, events):
@@ -225,6 +281,7 @@ class Table:
             self._emit(self.game.submit_play(seat, card))
         else:
             self._emit(self.game.submit_pass(seat, cards))
+        self.seen()
         self.wake.set()
 
     def _person_seats(self):
@@ -418,6 +475,8 @@ class Tables:
         self.store = store
         self.tables = {}
         self.remote = None  # The Courier door (hearts.courier.Door), when it is open.
+        # How long a game keeps a Medley's offered players after the last person closed it (a reload, a lost line).
+        self.hold = float(os.environ.get("HEARTS_MEDLEY_HOLD", "120"))
 
     def make_player(self, table, seat, info):
         """The automated player for a seat as its game starts."""
@@ -463,6 +522,7 @@ class Tables:
         table = Table(self, table_id, random.randrange(2 ** 31), config, table_seats)
         self.tables[table_id] = table
         table.save()
+        table.seen()
         table.maybe_start()
         fill_after = config.get("fill_after")
         if fill_after is not None and table.status == "open":
@@ -477,7 +537,7 @@ class Tables:
     async def restore(self):
         """After a restart: rebuild every unfinished game from its record, before serving anyone."""
         for row in self.store.tables():
-            if row["status"] == "failed":
+            if row["status"] in ("failed", "abandoned"):
                 continue
             table = Table(self, row["id"], row["seed"], row["config"], row["seats"], row["status"])
             self.tables[row["id"]] = table
@@ -488,6 +548,7 @@ class Tables:
                 table.rebuild(self.store.events(row["id"]))
                 table.task = asyncio.create_task(table.run())
                 await table.caught_up.wait()
+                table.unattended()  # A Medley cannot come back to a game: one with no other person ends here.
 
     def visible(self, player_id):
         result = []
@@ -499,7 +560,7 @@ class Tables:
 
     async def stop(self):
         for table in self.tables.values():
-            for task in (table.task, table.fill_task):
+            for task in (table.task, table.fill_task, table.check):
                 if task:
                     task.cancel()
 

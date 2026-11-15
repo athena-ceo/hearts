@@ -228,7 +228,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         except WebSocketDisconnect:
             pass
         finally:
-            table.connections.pop(client, None)
+            table.detach(client)
             writer.cancel()
 
     # Admin

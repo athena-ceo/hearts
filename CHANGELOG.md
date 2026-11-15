@@ -4,6 +4,55 @@
 
 ## [Unreleased]
 
+### 2026-11-15
+
+- **One Medley plays at several tables (in progress; committed to change computers, not deployed).**
+  Asked by Harley on 2026-11-15, in place of a pool of resident Medleys. Both Courier programs are
+  now version 2: every `HEARTSPLAYERS` call names its table first, `OFFER` says how many tables the
+  players can be at at once, and `LEAVE` names a table or, with an empty name, all of them
+  (ARCHITECTURE §4.2). There is one version: a Medley with the old `HCOURIER` is rejected.
+  - House (`backend/hearts/courier.py`): a `Link` holds `games`, one per table; players offered to
+    everyone stay on offer until the Medley is at `capacity` tables; its calls still go one at a
+    time, because the 1986 Expert's rules share one working memory. Fixed on the way: a seat
+    waiting for the answer of a Medley whose connection closed during the call waited for ever.
+  - Medley (`medley/hcourier.lisp`): a game is an `HCGAME` record and `HC.Games` is the list of
+    them; the globals `HC.Players`, `HC.Playing`, `HC.Winners`, `HC.Scores` and the use of
+    `Player.Array`, `HNET.MyPlayers` and `HNET.CardTable` are gone. `HC.Offer` takes forms that
+    make players, and they are made fresh for each table.
+  - One game is on show (`HC.Shown`, `HC.Show`, `HC.Pick`). Tried on Medley 260810: any drawing in
+    a covered or closed window brings it to the top, so games not on show draw nothing (their
+    players' windows are closed and marked `HC.Quiet`, `ThinkFlag?` and `NP.Thoughts?` are bound to
+    NIL around their players' calls) and `HC.CatchUp` redraws a card table when its game takes the
+    screen.
+  - Resident (`docker/resident.lisp`): one standing offer for `RESIDENTTABLES` tables (8), and a
+    row of tabs under the status window, one for each game.
+  - Proved so far: `backend/tests` 126 passed; `tests/run-courier.sh` (a whole game on a headless
+    Medley) 20 of 20. **Not yet run:** `tests/run-resident.sh` with the new resident and its tabs;
+    `VISITORS=4 LOOPS=1 tests/run-courier.sh tests/courier/tables.lisp` (several tables at once,
+    switching the game on show); timings with 1, 2 and 8 games. `tests/resident_visitor.py` is
+    still to be moved onto `tests/house_client.py`. See HANDOFF, "In progress".
+- **A Medley's offered players are held only while someone is at their table.** Seen on the live
+  server: a visitor left after one deal and the resident's players played the game out against
+  stand-ins, unavailable to anyone else for about 5 minutes; a browser player who closed a table
+  with no move timer held them until the next restart. Now a table knows who is there
+  (`Table.present`, `backend/hearts/tables.py`): a person with the table open in a browser, or
+  who had it open or moved within `HEARTS_MEDLEY_HOLD` seconds (120), or a Medley that sat its own
+  players. When nobody is (`Table.unattended`), the players a Medley offered to everyone go home
+  (`Door.vacate`: `GAME.OVER` with no winner, stand-ins in their seats) and can be offered again.
+  The game is kept if a person can come back to it. If no one can, because its only people were on
+  a Medley that has left, it ends there with the new status `abandoned`, and a restart does not
+  bring it back. A table still waiting for players follows the same rule (Harley, 2026-11-15): the
+  offered players' seats are open again and the Medley's offer stands, since it was told nothing
+  of a table that never started.
+  - Web: a seat carries `stand_in`; the table says that the Medley's players have left and a
+    stand-in is playing for them, and tells someone watching that a game ended because its players
+    left (EN/FR).
+  - Fixed on the way: a Medley that had left one game and begun another could be asked for a card
+    by the first, where the seat number was the same (`MedleySeat` now checks the table).
+  - Tests: `backend/tests/test_presence.py`, a matrix over who the people were, how they went, what
+    else was at the table and when, for games and for waiting tables (23 cases). `tests/resident_visitor.py` walks away from a game
+    with the real resident and comes back to finish it.
+
 ### 2026-11-14
 
 - **The 1986 port is boxed.** Tag `revival-1986` marks the finished revival; `HANDOFF.md` has the

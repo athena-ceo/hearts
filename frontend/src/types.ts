@@ -3,12 +3,13 @@
 
 export type Direction = "Left" | "Across" | "Right" | null;
 export type Phase = "pass" | "play" | "done";
-export type TableStatus = "open" | "playing" | "finished" | "failed";
+export type TableStatus = "open" | "playing" | "finished" | "failed" | "abandoned";
 
 export interface Player { id: string; name: string; }
 export interface Opponent { kind: string; label: string; }
 
-export interface SeatInfo { kind: string; name: string | null; open: boolean; }
+/** stand_in: a Medley seat whose Medley has left the game, so the house's stand-in plays it. */
+export interface SeatInfo { kind: string; name: string | null; open: boolean; stand_in?: boolean; }
 
 export interface TableInfo {
   id: string;

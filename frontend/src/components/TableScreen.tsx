@@ -376,6 +376,8 @@ export function TableScreen({ tableId }: { tableId: string }) {
           {state.refused && <p className="notice" role="alert">{state.refused}</p>}
           {state.timedOut && <p className="notice" role="status">{t.table.timedOut}</p>}
           {failed && <p className="notice" role="alert">{state.failure ?? t.table.failed}</p>}
+          {table.status === "abandoned" && <p className="notice" role="status">{t.table.abandoned}</p>}
+          {table.seats.some((s) => s.stand_in) && <p className="notice" role="status">{t.table.medleyLeft}</p>}
         </div>
         <div className="you" ref={handEl}>
           {watching ? seatPlate("south") : (

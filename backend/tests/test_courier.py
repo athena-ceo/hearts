@@ -26,7 +26,9 @@ class FakeMedley:
     def __init__(self, port):
         self.port = port
         self.calls = []  # (procedure, arguments read) for each HEARTSPLAYERS call
-        self.hands = {}
+        self.tables = []  # The table each of those calls was about.
+        self.hands = {}  # (table, seat) -> cards
+        self.ended = {}  # table -> its winners, once GAME.OVER came
         self.over = asyncio.Event()
         self.winners = None
         self.illegal = False  # Answer PLAY with a card that isn't legal.
@@ -44,16 +46,19 @@ class FakeMedley:
 
     def serve(self, program, version, procedure, r):
         assert (program, version) == (PLAYERS, VERSION)
+        table = r.string()
+        if procedure != courier.GAME_OVER:
+            self.tables.append(table)
         if procedure == courier.TABLE:
             self.calls.append(("table", r.sequence(Reader.string), r.sequence(Reader.word)))
         elif procedure == courier.DEAL:
             seat, number, direction = r.word(), r.word(), r.word()
-            self.hands[seat] = r.sequence(get_card)
-            self.calls.append(("deal", seat, number, direction, list(self.hands[seat]), r.sequence(Reader.integer)))
+            self.hands[table, seat] = r.sequence(get_card)
+            self.calls.append(("deal", seat, number, direction, list(self.hands[table, seat]), r.sequence(Reader.integer)))
         elif procedure == courier.PASS:
             seat, direction, hand = r.word(), r.word(), r.sequence(get_card)
             self.calls.append(("pass", seat, direction))
-            assert sorted(hand) == sorted(self.hands[seat])
+            assert sorted(hand) == sorted(self.hands[table, seat])
             return put_cards(Writer(), hand[:3]).bytes()
         elif procedure == courier.RECEIVED:
             self.calls.append(("received", r.word(), r.sequence(get_card)))
@@ -68,7 +73,7 @@ class FakeMedley:
         elif procedure == courier.SCORES:
             self.calls.append(("scores", r.sequence(Reader.integer), r.sequence(Reader.integer)))
         elif procedure == courier.GAME_OVER:
-            self.winners = r.sequence(Reader.word)
+            self.winners = self.ended[table] = r.sequence(Reader.word)
             self.over.set()
         else:
             raise CourierError("reject", 2)
@@ -76,6 +81,50 @@ class FakeMedley:
 
     def close(self):
         self.wire.close()
+
+
+OFFERED = ["Expert on Medley", "Network on Medley", "Conservative on Medley"]
+
+
+class Medleys:
+    """Fake Medleys on a loop of their own, so that a test can also make blocking web requests."""
+
+    def __init__(self, port):
+        self.port = port
+        self.loop = asyncio.new_event_loop()
+        self.thread = threading.Thread(target=self.loop.run_forever, daemon=True)
+        self.thread.start()
+        self.all = []
+
+    def do(self, coroutine):
+        return asyncio.run_coroutine_threadsafe(coroutine, self.loop).result(30)
+
+    def connect(self):
+        medley = self.do(FakeMedley(self.port).connect())
+        self.all.append(medley)
+        return medley
+
+    def resident(self, tables=1):
+        """A Medley that offers three players to everyone, at this many tables at once."""
+        medley = self.connect()
+        self.offer(medley, tables)
+        return medley
+
+    def offer(self, medley, tables=1):
+        self.do(medley.call(courier.OFFER, Writer().string("the-key").bytes() + names(*OFFERED).word(tables).bytes()))
+
+    def new_table(self, medley, *kinds):
+        return Reader(self.do(medley.call(courier.NEW_TABLE, names("Visitor").bytes() + names(*kinds).bytes()))).string()
+
+    def stop(self):
+        for medley in self.all:
+            self.loop.call_soon_threadsafe(medley.close)
+        time.sleep(0.05)
+        self.loop.call_soon_threadsafe(self.loop.stop)
+        self.thread.join(5)
+
+
+EVERY_TABLE = Writer().string("").bytes()  # LEAVE with no table's name: leave them all.
 
 
 def names(*items):
@@ -150,8 +199,8 @@ def test_refusals_are_declared_errors(house):
         medley = await FakeMedley(door.port).connect()
         results = []
         for procedure, arguments in [
-            (courier.SIT, Writer().string("no-such-table").bytes() + names("Kant").bytes()),
-            (courier.OFFER, Writer().string("wrong").bytes() + names("Kant").bytes()),
+            (courier.SIT, Writer().string("no-such-table").bytes() + names("Kant").word(1).bytes()),
+            (courier.OFFER, Writer().string("wrong").bytes() + names("Kant").word(1).bytes()),
             (courier.NEW_TABLE, names("A", "B").bytes() + names("clown", "clown", "clown").bytes()),
             (courier.NEW_TABLE, names("A").bytes() + names("clown", "clown", "nobody").bytes()),
         ]:
@@ -207,12 +256,12 @@ def test_players_offered_to_everyone_are_chosen_from_the_web(house):
     async def offer():
         medley = await FakeMedley(door.port).connect()
         await medley.call(courier.OFFER, Writer().string("the-key").bytes() + names("Expert on Medley", "Network on Medley",
-                                                                                 "Conservative on Medley").bytes())
+                                                                                 "Conservative on Medley").word(1).bytes())
         ready.set()
         await medley.over.wait()
         seen["first"] = list(medley.calls)
         played.set()
-        await medley.call(courier.OFFER, Writer().string("the-key").bytes() + names("Fresh one").bytes())
+        await medley.call(courier.OFFER, Writer().string("the-key").bytes() + names("Fresh one").word(1).bytes())
         ready.set()
         await asyncio.to_thread(finished.wait, 30)
         medley.close()
@@ -243,7 +292,7 @@ def test_players_offered_to_everyone_are_chosen_from_the_web(house):
     thread.join(20)
 
 
-def test_a_stand_in_plays_for_a_medley_that_leaves_or_plays_a_card_it_may_not(house):
+def test_a_stand_in_plays_for_a_medley_that_plays_a_card_it_may_not_and_a_game_left_empty_ends(house):
     client, door = house
 
     async def play():
@@ -256,15 +305,12 @@ def test_a_stand_in_plays_for_a_medley_that_leaves_or_plays_a_card_it_may_not(ho
             await asyncio.sleep(0.01)
         gone.close()
         await cheat.over.wait()
-        for _ in range(3000):
-            if table_of(client, leaving).status == "finished":
-                break
-            await asyncio.sleep(0.01)
         cheat.close()
         return cheating, leaving
 
     cheating, leaving = run(play())
-    assert table_of(client, cheating).status == "finished" and table_of(client, leaving).status == "finished"
+    # The cheat's game was played to its end.  The other had nobody left at it, so it ended there (test_presence).
+    assert table_of(client, cheating).status == "finished" and table_of(client, leaving).status == "abandoned"
     assert not door.links
 
 
@@ -280,7 +326,7 @@ def test_a_medley_sits_at_a_table_someone_opened_and_can_leave_it(house):
         assert listed == [(table["id"], ["Ana", table["seats"][3]["name"]], 2)]
         await medley.call(courier.SIT, Writer().string(table["id"]).bytes() + names("Kant").bytes())
         assert not table_of(client, table["id"]).is_open(2)
-        await medley.call(courier.LEAVE)
+        await medley.call(courier.LEAVE, EVERY_TABLE)
         assert table_of(client, table["id"]).status == "open" and table_of(client, table["id"]).is_open(2)
         with pytest.raises(CourierError):  # Three players for two seats.
             await medley.call(courier.SIT, Writer().string(table["id"]).bytes() + names("A", "B", "C").bytes())
@@ -298,7 +344,7 @@ def test_a_medley_sits_at_a_table_someone_opened_and_can_leave_it(house):
         m = socket.receive_json()
         while not (m["type"] == "snapshot" and m["table"]["status"] == "playing"):
             m = socket.receive_json()
-        assert m["table"]["seats"][1] == {"kind": "medley", "name": "Kant", "open": False}
+        assert m["table"]["seats"][1] == {"kind": "medley", "name": "Kant", "open": False, "stand_in": False}
         while not table_of(client, table["id"]).game.finished:
             play_until_end_of_deal(socket, 1)
     thread.join(30)
@@ -306,32 +352,52 @@ def test_a_medley_sits_at_a_table_someone_opened_and_can_leave_it(house):
 
 
 def test_a_game_with_medley_seats_survives_a_restart_with_stand_ins(monkeypatch):
+    monkeypatch.setenv("HEARTS_ADMIN_PASSWORD", "secret-for-tests")
     monkeypatch.setenv("HEARTS_NETHUB_PORT", "0")
-    monkeypatch.setenv("HEARTS_MEDLEY_ANSWER_WITHIN", "1")
     with tempfile.TemporaryDirectory() as folder:
         path = os.path.join(folder, "hearts.db")
         with TestClient(create_app(path)) as client:
-            door = client.app.state.door
-
-            async def start():
-                medley = await FakeMedley(door.port).connect()
-                table_id = Reader(await medley.call(courier.NEW_TABLE, names("Kant").bytes()
-                                                    + names("clown", "clown", "clown").bytes())).string()
-                while len([c for c in medley.calls if c[0] == "trick"]) < 20:
-                    await asyncio.sleep(0.01)
-                return table_id
-
-            table_id = run(start())
-            before = len(client.app.state.store.events(table_id))
+            headers, token = sign_up(client)
+            made = client.post("/api/tables", json={"seats": ["person", "clown", "clown"]}, headers=headers).json()
+            medleys = Medleys(client.app.state.door.port)
+            medley = medleys.connect()
+            medleys.do(medley.call(courier.SIT, Writer().string(made["id"]).bytes() + names("Kant").bytes()))
+            with client.websocket_connect(f"/api/tables/{made['id']}/ws?token={token}") as socket:
+                play_until_end_of_deal(socket, 1)  # One deal cannot end a game to 100.
+            assert [c for c in medley.calls if c[0] == "play"]
+            before = len(client.app.state.store.events(made["id"]))
+            medleys.stop()
         with TestClient(create_app(path)) as client:
-            table = table_of(client, table_id)
-            for _ in range(3000):
-                if table.status == "finished":
+            table = table_of(client, made["id"])  # A person can come back to it, so it was kept.
+            assert table.status == "playing" and table.describe()["seats"][1]["stand_in"]
+            with client.websocket_connect(f"/api/tables/{made['id']}/ws?token={token}") as socket:
+                while not table.game.finished:
+                    play_until_end_of_deal(socket, 1)
+            events = client.app.state.store.events(made["id"])
+            assert len(events) > before and events[-1]["type"] == "game_end"
+
+
+def test_a_game_whose_only_people_were_on_a_medley_is_not_brought_back_by_a_restart(monkeypatch):
+    monkeypatch.setenv("HEARTS_NETHUB_PORT", "0")
+    with tempfile.TemporaryDirectory() as folder:
+        path = os.path.join(folder, "hearts.db")
+        with TestClient(create_app(path)) as client:
+            medleys = Medleys(client.app.state.door.port)
+            medley = medleys.connect()
+            table_id = medleys.new_table(medley, "clown", "clown", "clown")
+            for _ in range(1000):
+                if any(c[0] == "trick" for c in medley.calls):
                     break
                 time.sleep(0.01)
-            assert table.status == "finished"
-            events = client.app.state.store.events(table_id)
-            assert len(events) > before and events[-1]["type"] == "game_end"
+            medleys.stop()
+        with TestClient(create_app(path)) as client:  # It ended as the Medley went.  Put it back as a crash leaves it.
+            store = client.app.state.store
+            row = next(r for r in store.tables() if r["id"] == table_id)
+            assert row["status"] == "abandoned"
+            store.save_table(table_id, row["seed"], row["config"], row["seats"], "playing")
+        with TestClient(create_app(path)) as client:
+            assert table_of(client, table_id).status == "abandoned"
+            assert not table_of(client, table_id).game.finished
 
 
 def test_the_hub_passes_nothing_between_machines_and_survives_rubbish(house):

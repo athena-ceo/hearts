@@ -2,10 +2,12 @@
 
 (* "The resident HEARTS Medley (docs/medley-server.md).  Started by docker/resident-run.
 
-    It keeps offering players to the house, over Courier (HCOURIER): anyone opening a table there,
-    from a browser or from a Medley, can take them as opponents, and they play here, on this
-    Medley.  When a game ends, or nothing happens for R.IdleMinutes, it offers fresh players.  Its
-    screen is on the web: watch it, or control it.")
+    It offers players to the house, over Courier (HCOURIER): anyone opening a table there, from a
+    browser or from a Medley, can take them as opponents, and they play here, on this Medley, at up
+    to R.Tables tables at once, a fresh set of players for each.  Its screen is on the web: watch
+    it, or control it.  One game is on show.  The row of tabs under the status window has one tab
+    for each game: choosing one puts that game's card table and its players' Thoughts windows on
+    the screen.")
 
 (* "Nobody is at the keyboard to release a page hold, so the Exec never holds.")
 (ADVISE (QUOTE PAGEFULLFN) (QUOTE (RETURN)))
@@ -56,78 +58,122 @@
 
 (R.Tidy
   (LAMBDA NIL
+    (* ; "Close every window of a game: card tables, hands, players' thoughts.")
+    (HC.Switch NIL)
     (for W in (OPENWINDOWS) when (R.Ours? W) do (CLOSEW W))
-    (SETQ HNET.CardTable NIL)
     (SETQ R.NextSlot 0)))
 
 (R.Make
   (LAMBDA (Type)
-    (* ; "A player, with its Thoughts window.  The Conservative and the network make their own; a closed-hand Expert narrates only into its hand window, so give it one as PlayHearts does.")
+    (* ; "A player, with its Thoughts window.  The Conservative and the network make their own; a closed-hand Expert narrates only into its hand window, so give it one as PlayHearts does.  HCOURIER calls this for each table, through the forms given to HC.Offer.")
     (LET ((Player (H.MakePlayer Type NIL)))
          (if (EQ Type (QUOTE EP))
              then (PH.GiveThoughtsWindow Player))
          Player)))
 
+(R.NewGame
+  (LAMBDA NIL
+    (* ; "Before a table's players are made: their Thoughts windows take the same places as every other table's.")
+    (SETQ R.NextSlot 0)))
+
 (R.Offer
   (LAMBDA NIL
-    (* ; "Fresh players, offered to the house.  If the house can't be reached three times running, stop Medley: the emulator joins the NetHub only as it starts, and resident-run starts it again.")
+    (* ; "Offer the players to the house, for R.Tables tables at once.  If the house can't be reached three times running, stop Medley: the emulator joins the NetHub only as it starts, and resident-run starts it again.")
     (R.Tidy)
-    (LET ((Result (HC.Offer (for X in R.Players collect (R.Make X))
+    (LET ((Result (HC.Offer (for X in R.Players collect (LIST (QUOTE R.Make) (KWOTE X)))
                          R.Key
-                         (for X in R.Players collect (R.Label X)))))
+                         (for X in R.Players collect (R.Label X))
+                         R.Tables)))
          (if (EQ (CAR (LISTP Result)) (QUOTE ERROR))
              then (R.Lost (CADDR Result))
            else (SETQ R.Misses 0)
-                (SETQ R.CheckedAt (CLOCK 0))
-                (SETQ R.State "waiting for someone to choose these players")))))
+                (SETQ R.CheckedAt (CLOCK 0))))))
 
 (R.Lost
   (LAMBDA (Why)
     (add R.Misses 1)
     (SETQ R.State (CONCAT "can't reach the house: " Why))
-    (R.Show)
-    (if (IGEQ R.Misses 3) then (LOGOUT T))
-    (DISMISS 20000)))
-
-(R.Minutes
-  (LAMBDA (Since)
-    (if Since
-        then (IQUOTIENT (IDIFFERENCE (CLOCK 0) Since) 60000)
-      else 0)))
-
-(R.Show
+    (R.Show
   (LAMBDA NIL
     (if (NOT (AND R.Status (OPENWP R.Status)))
-        then (SETQ R.Status (CREATEW (CREATEREGION 475 798 450 96) "The resident HEARTS Medley")))
+        then (SETQ R.Status (CREATEW (CREATEREGION 475 818 450 62) "The resident HEARTS Medley"))
+             (SETQ R.TabsShown (QUOTE None)))
     (CLEARW R.Status)
     (printout R.Status "At the house " HC.House T)
     (printout R.Status "Offering: " (for X in R.Players collect (R.Label X)) T)
     (printout R.Status (OR R.State "") T)
-    (printout R.Status "Games played here: " R.Games T)))
+    (printout R.Status "Games played here: " HC.Ended)
+    (R.Tabs)))
+
+(R.People
+  (LAMBDA (Game)
+    (* ; "Who this Medley's players are playing in GAME: the names in the seats that are not its own.")
+    (for Name in (fetch (HCGAME Names) of Game) as Seat from 1
+       unless (ELT (fetch (HCGAME Seats) of Game) Seat) collect Name)))
+
+(R.TabLabel
+  (LAMBDA (Game N)
+    (* ; "A tab: the game's number here, the first of the people in it, and a mark on the game on show.")
+    (LET ((Who (MKSTRING (OR (CAR (R.People Game)) "table"))))
+         (CONCAT (if (EQ Game HC.Shown) then "*" else " ")
+                N " " (if (IGREATERP (NCHARS Who) 5) then (SUBSTRING Who 1 5) else Who)))))
+
+(R.Tabs
+  (LAMBDA NIL
+    (* ; "The row of tabs under the status window, one for each game, oldest first.  It is made again only when the games or the game on show have changed.")
+    (LET* ((Games (REVERSE HC.Games))
+           (Now (CONS HC.Shown Games)))
+          (if (NOT (EQUAL Now R.TabsShown))
+              then (if (AND R.TabsWindow (OPENWP R.TabsWindow))
+                       then (DETACHWINDOW R.TabsWindow)
+                            (CLOSEW R.TabsWindow))
+                   (SETQ R.TabsWindow NIL)
+                   (if Games
+                       then (SETQ R.TabsWindow
+                             (MENUWINDOW (create MENU
+                                                ITEMS _ (for Game in Games as N from 1
+                                                           collect (LIST (R.TabLabel Game N) Game
+                                                                         (CONCAT "Show the game with "
+                                                                                (PH.Names (R.People Game)))))
+                                                WHENSELECTEDFN _ (FUNCTION R.TabSelected)
+                                                MENUROWS _ 1
+                                                MENUFONT _ (QUOTE (GACHA 10 BOLD)))))
+                            (ATTACHWINDOW R.TabsWindow R.Status (QUOTE BOTTOM)))
+                   (SETQ R.TabsShown Now)))))
+
+(R.TabSelected
+  (LAMBDA (Item Menu Button)
+    (* ; "Runs in the mouse process: the game is put on show in a process of its own, which may wait for a trick to finish.")
+    (ADD.PROCESS (LIST (QUOTE R.Pick) (KWOTE (CADR Item))) (QUOTE NAME) (QUOTE Hearts.Tab))))
+
+(R.Pick
+  (LAMBDA (Game)
+    (if (MEMB Game HC.Games) then (HC.Pick Game))
+    (R.Show)))
 
 (R.Step
   (LAMBDA NIL
+    (for Game in (COPY HC.Games) when (IGREATERP (R.Minutes (fetch (HCGAME HeardAt) of Game)) R.IdleMinutes)
+       do (* ; "A game the house has said nothing about for a long time: give its place to another.")
+          (HC.Leave Game))
     (COND
-       (HC.Winners (* ; "A game ended here.")
-              (add R.Games 1)
-              (SETQ R.State "game over; new players in a moment")
-              (R.Show)
-              (DISMISS 3000)
-              (R.Offer))
-       ((AND HC.Playing (IGREATERP (R.Minutes HC.LastCallAt) R.IdleMinutes))
-        (* ; "A game nobody is playing any more.  Offering again takes the players away from it.")
+       ((NULL HC.Forward)
         (R.Offer))
-       (HC.Playing (SETQ R.State (CONCAT "playing seats " (for P in HNET.MyPlayers collect (fetch Number of P))
-                                        " at a table of the house")))
-       ((NULL HC.Players)
-        (R.Offer))
+       ((AND HC.Shown (NOT (MEMB HC.Shown HC.Games))
+             (IGREATERP (IDIFFERENCE (CLOCK 0) (fetch (HCGAME EndedAt) of HC.Shown))
+                    (if HC.Games then 5000 else 60000)))
+        (* ; "The game on show is over: after a moment the newest game takes the screen, or after a minute with no game the screen is cleared.")
+        (HC.Switch (CAR HC.Games)))
        ((IGEQ (R.Minutes R.CheckedAt) 1)
-        (* ; "Waiting to be chosen: is the house still there?")
+        (* ; "Is the house still there?")
         (LET ((Answer (HC.Tables)))
              (if (EQ (CAR (LISTP Answer)) (QUOTE ERROR))
                  then (R.Lost (CADDR Answer))
                else (SETQ R.Misses 0)
                     (SETQ R.CheckedAt (CLOCK 0))))))
+    (SETQ R.State (if HC.Games
+                      then (CONCAT "playing at " (LENGTH HC.Games) " of " R.Tables " tables")
+                    else "waiting for someone to choose these players"))
     (R.Show)))
 
 (R.Loop
@@ -141,13 +187,19 @@
 
 (SETQ R.Players (R.Words (R.Env "RESIDENTPLAYERS" "EP NP CP")))
 (SETQ R.Key (R.Env "RESIDENTKEY" ""))
+(* "How many tables the players are at at once.")
+(SETQ R.Tables (OR (FIXP (MKATOM (R.Env "RESIDENTTABLES" "8"))) 8))
 (SETQ R.Misses 0)
 (SETQ R.CheckedAt NIL)
 (SETQ R.IdleMinutes 20)
 (* "A finished trick stays on the card table for a second (the 1986 table held it for two): long enough to watch, and half the time of a deal.")
 (SETQ HC.TrickPause 1000)
-(SETQ R.Games 0)
 (SETQ R.Status NIL)
+(SETQ R.TabsWindow NIL)
+(SETQ R.TabsShown (QUOTE None))
+(SETQ HC.NewGameFn (QUOTE R.NewGame))
+(* "The card table sits under the status window and its row of tabs.")
+(SETQ HNET.CTReg (QUOTE (475 384 450 400)))
 (SETQ R.State "starting")
 (SETQ R.NextSlot 0)
 (SETQ R.Slots (QUOTE ((10 530 455 250) (935 530 335 250) (10 270 455 250) (935 270 335 250) (10 10 455 250) (935 10 335 250))))
@@ -159,7 +211,7 @@
 (ADVISE (QUOTE GETREGION) (QUOTE BEFORE) (QUOTE (RETURN (R.Place (OR MINWIDTH 300) (OR MINHEIGHT 200)))))
 (* "The Exec goes under the card table, out of the way of the players' Thoughts windows.")
 (LET ((Exec (WFROMDS (TTYDISPLAYSTREAM))))
-     (if Exec then (SHAPEW Exec (CREATEREGION 475 10 450 370))))
+     (if Exec then (SHAPEW Exec (CREATEREGION 475 10 450 348))))
 (R.Show)
 (ADD.PROCESS (QUOTE (R.Loop)) (QUOTE NAME) (QUOTE Resident))
 STOP
