@@ -74,10 +74,16 @@
            (NOT Prefix))))
 
 (HT.ERRSTRING
-  (LAMBDA (C)
-    (XCL:CONDITION-CASE (CL:FORMAT NIL "~A" C)
-           (CL:ERROR NIL (CONCAT "<unprintable condition " (CL:TYPE-OF C)
-                                ">")))))
+  (LAMBDA NIL
+    (* "The last error's message, as Medley prints it (ERRORMESS), as a string.  Call it just
+        after NLSETQ has caught the error.")
+    (LET ((S (OPENSTREAM (QUOTE {NODIRCORE}) (QUOTE BOTH))))
+         (LET ((*ERROR-OUTPUT* S))
+              (DECLARE (SPECVARS *ERROR-OUTPUT*))
+              (ERRORMESS NIL))
+         (SETFILEPTR S 0)
+         (PROG1 (CONCATCODES (bind C until (EOFP S) collect (BIN S)))
+                (CLOSEF S)))))
 
 (HT.RUNFILE
   (LAMBDA (File)
@@ -86,15 +92,17 @@
     (LET ((S (OPENSTREAM File (QUOTE INPUT)
                     (QUOTE OLD)))
           (RT (FIND-READTABLE "INTERLISP"))
+          (* "Packages are Common Lisp's: Interlisp has no form of its own for them.")
           (*PACKAGE* (CL:FIND-PACKAGE "INTERLISP"))
           (*READTABLE* (FIND-READTABLE "INTERLISP"))
           Form)
          (until (PROGN (SKIPSEPRS S RT)
                        (EOFP S))
-            do (SETQ Form (XCL:CONDITION-CASE (READ S RT)
-                                 (CL:ERROR (C)
-                                        (HT.LOG (CONCAT "READ-ERROR: " (HT.ERRSTRING C)))
-                                        (QUOTE HT.READ-FAILED))))
+            do (SETQ Form (LET ((Read (NLSETQ (READ S RT))))
+                               (if Read
+                                   then (CAR Read)
+                                 else (HT.LOG (CONCAT "READ-ERROR: " (HT.ERRSTRING)))
+                                      (QUOTE HT.READ-FAILED))))
                (if (EQ Form (QUOTE HT.READ-FAILED))
                    then (RETURN NIL))
                (if (NOT (AND (LISTP Form)
@@ -109,23 +117,21 @@
         Returns the value, or NIL on error.")
     (if HT.ECHO
         then (HT.SHOW Form "> "))
-    (XCL:CONDITION-CASE (LET ((V (EVAL Form)))
-                          (if HT.ECHO
-                              then (HT.SHOW V "= "))
-                          V)
-           (CL:ERROR (C)
-                  (HT.LOG (CONCAT "ERROR: " (HT.ERRSTRING C)))
-                  NIL))))
+    (LET ((Result (NLSETQ (EVAL Form))))
+         (if Result
+             then (if HT.ECHO
+                      then (HT.SHOW (CAR Result) "= "))
+                  (CAR Result)
+           else (HT.LOG (CONCAT "ERROR: " (HT.ERRSTRING)))
+                NIL))))
 
 (HT.CHECK
   (NLAMBDA (Label Form Expected)
     (* "(HT.CHECK label form [expected])  -- PASS if form evaluates non-NIL (or EQUAL to
         the evaluated Expected, when given).  Errors count as FAIL.")
-    (LET* ((Err NIL)
-           (V (XCL:CONDITION-CASE (EVAL Form)
-                     (CL:ERROR (C)
-                            (SETQ Err (HT.ERRSTRING C))
-                            NIL)))
+    (LET* ((Result (NLSETQ (EVAL Form)))
+           (Err (if (NULL Result) then (HT.ERRSTRING)))
+           (V (CAR Result))
            (Want (AND Expected (EVAL Expected)))
            (OK (AND (NOT Err)
                     (if Expected
@@ -179,6 +185,7 @@
     (LET ((Dir (CONCAT "{DSK}" (UNIX-GETENV "LOOPSDIR")
                       "/system/")))
          (CNDIR Dir)
+         (* "Packages are Common Lisp's: Interlisp has no form of its own for them.")
          (LET ((*PACKAGE* (CL:FIND-PACKAGE "XCL-USER")))
               (DECLARE (SPECVARS *PACKAGE*))
               (FILESLOAD LOADLOOPS)

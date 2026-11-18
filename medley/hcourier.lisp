@@ -80,8 +80,6 @@
 (RPAQ? HC.OpenTableFn NIL)
 (* "A function of no arguments, called before the players offered to everyone are made for a new table.")
 (RPAQ? HC.NewGameFn NIL)
-(* "Variables bound to NIL around a call to a player whose game is not on show, so that it writes nothing.")
-(RPAQ? HC.QuietVars (QUOTE (ThinkFlag? NP.Thoughts?)))
 
 (* "State.  HC.Forward: the players put forward (HC.Sit, HC.NewTable), or with HC.Fresh? the forms that make them (HC.Offer).  HC.Games: the games being played here, newest first.  HC.Last: the game that ended last.  HC.Shown: the game on show, which may have ended.  HC.Picked: someone chose it (HC.Pick), so a new game does not take the screen from it.")
 (RPAQ? HC.Stream NIL)
@@ -97,9 +95,10 @@
 (* "Held while a call from the house is handled, and while the game on show changes: the two run in different processes.")
 (RPAQ? HC.Lock (CREATE.MONITORLOCK (QUOTE HEARTS)))
 
-(* "A player whose game is not on show draws nothing in a window marked HC.Quiet.  The Expert writes through these two.")
+(* "A player whose game is not on show draws nothing in a window marked HC.Quiet.  The Expert writes through these two, and clears its window with CLEARW on each deal: drawing in a closed window opens it.")
 (ADVISE (QUOTE Open.Print) (QUOTE BEFORE) (QUOTE (if (WINDOWPROP Win (QUOTE HC.Quiet)) then (RETURN NIL))))
 (ADVISE (QUOTE Open.RemakeWindow) (QUOTE BEFORE) (QUOTE (if (WINDOWPROP HWin (QUOTE HC.Quiet)) then (RETURN NIL))))
+(ADVISE (QUOTE CLEARW) (QUOTE BEFORE) (QUOTE (if (AND (WINDOWP WINDOW) (WINDOWPROP WINDOW (QUOTE HC.Quiet))) then (RETURN NIL))))
 
 (DEFINEQ
 
@@ -264,8 +263,11 @@
     (* ; "Send one of the six 1986 messages to PLAYER.  A player made here for a game that is not on show is kept quiet.")
     (if (OR (EQ Game HC.Shown) (NULL (fetch (HCGAME Windows) of Game)))
         then (HNET.Apply Player Op Args)
-      else (CL:PROGV HC.QuietVars (for V in HC.QuietVars collect NIL)
-               (HNET.Apply Player Op Args)))))
+      else (* ; "ThinkFlag? (the Expert and the Conservative) and NP.Thoughts? (the network) off: the player writes nothing.")
+           (LET ((ThinkFlag? NIL)
+                 (NP.Thoughts? NIL))
+                (DECLARE (SPECVARS ThinkFlag? NP.Thoughts?))
+                (HNET.Apply Player Op Args)))))
 
 (HC.Pick
   (LAMBDA (Game)

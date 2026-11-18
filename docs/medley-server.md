@@ -25,12 +25,17 @@ The 1986 way of playing between machines (`HNET`, a relay and remote evaluation 
 ## Playing the resident's players from a browser
 
 Start a game, and choose **Expert on Medley**, **Neural network on Medley** or **Conservative on
-Medley** for a seat. They are in the seat menus while the resident is free. Each move is then made
-on the resident Medley, and you can watch it think on the watch page.
+Medley** for a seat. Each move is then made on the resident Medley, and you can watch it think on
+the watch page.
 
-**One game at a time.** While its players are at a table they are not in the menus. If someone
-takes them just before you, the lobby says so and shows who can be chosen now. The house's own
-Expert is the same 1986 rules in Python and is always there.
+**Up to eight games at once.** Each table gets a fresh set of the resident's players, so they are
+in the seat menus until eight tables have them (`RESIDENT_TABLES`). One game is on show: its card
+table and its players' Thoughts windows. The row of tabs under the status window has one tab for
+each game; choosing one, on the control page, puts that game on the screen. A finished trick stays
+on the table for a second, so a deal takes about 15 seconds, and extra tables barely slow the
+others (26 s a deal with one game, 31 s with eight, at the 1986 table's 2-second pause). If all
+eight are taken, the lobby says so and shows who can be chosen now. The house's own Expert is the
+same 1986 rules in Python and is always there.
 
 ## Playing from your Medley
 
@@ -57,8 +62,11 @@ Without PlayHearts:
 (HC.NewTable (LIST (HP.Create)) '("expert" "network" "person"))  ; you, two of the house's, a seat left open
 (HC.Tables)                                                 ; tables waiting for players
 (HC.Sit (LIST (HP.Create)) "the-table's-name")              ; a seat at one of them
-(HC.Leave)
+(HC.Leave)                                                  ; leave every table (or give one)
+(HC.Offer '((H.MakePlayer 'CP)) NIL '("Conservative on Medley") 4)  ; offer a player to everyone, at 4 tables
 ```
+
+`HC.Offer` takes forms, each making one player: they are made afresh for every table.
 
 A seat left open (`"person"`) can be taken by someone in a browser, or by another Medley with
 `HC.Sit`. The game starts when the last seat is taken.
@@ -162,10 +170,13 @@ local only), and `./hearts.sh resident dev` adds a resident beside it.
 - **`docker/resident.lisp`** loads `dist/` (mounted read-only), turns the Exec's page hold off,
   places windows itself (the players' Thoughts windows beside the card table, the Exec under it;
   the closed-hand Expert gets its Thoughts window as in PlayHearts), and runs a process that keeps
-  offering players: after each game, and after 20 minutes of a game in which nothing happens.
+  offering players, at up to `RESIDENT_TABLES` (8) tables at once, and draws the row of tabs.
+  A game in which nothing happens for 20 minutes gives its place to another.
+  Only the game on show draws: the others' windows are marked quiet, so they neither open nor
+  rise over the one on show.
   The emulator joins the hub only as it starts, so when the house stops answering (a deploy), the
   resident logs out after three tries and `resident-run` starts it again.
-  Settings in the server's `.env`: `HEARTS_OFFER_KEY`, and `RESIDENT_PLAYERS` (e.g. `EP NP CP`).
+  Settings in the server's `.env`: `HEARTS_OFFER_KEY`, `RESIDENT_PLAYERS` (e.g. `EP NP CP`) and `RESIDENT_TABLES` (8).
 - Ports 8052 (watch) and 8053 (control) are published on 127.0.0.1 only, so nginx is
   the only way in. Port 3333 (the NetHub) is published to the Internet: it is XNS in TCP, which
   nginx's web server can't carry.

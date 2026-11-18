@@ -238,6 +238,7 @@
 
 (LP.ParseReply
   (LAMBDA (Line)
+    (* ; "Read in the INTERLISP package.  Packages are Common Lisp's: Interlisp has no form of its own for them.")
     (LET ((CL:*PACKAGE* (CL:FIND-PACKAGE "INTERLISP")))
          (CAR (NLSETQ (READ (OPENSTRINGSTREAM Line (QUOTE INPUT))
                             FILERDTBL))))))
@@ -266,27 +267,20 @@
     (LET ((S (CREATE-PROCESS-STREAM (LP.Sys Command))))
          (* ; "LP.Sys: a _ in LP.Python, LP.Helper and the like, read from a file, would reach the shell as an arrow on a Mac.")
          (if S
-             then (CL:UNWIND-PROTECT
-                      (LP.ReadLine S (ITIMES 1000 (IPLUS LP.TimeoutSeconds LP.GraceSeconds)))
-                      (NLSETQ (CLOSEF S)))
+             then (RESETLST
+                      (RESETSAVE NIL (LIST (QUOTE CLOSEF?) S))
+                      (LP.ReadLine S (ITIMES 1000 (IPLUS LP.TimeoutSeconds LP.GraceSeconds))))
            else "(ERROR %"cannot start a process: Medley needs the X11 path (MEDLEY-ISSUES M2)%")"))))
 
 (LP.ReadLine
   (LAMBDA (S LimitMS)
     (* ; "One line, or NIL at the time limit.  Polled rather than READ directly, because READ would wait forever on a stuck helper.  BLOCK lets the rest of Medley run meanwhile.  EOFP is true whenever nothing is waiting, so it can't tell a slow helper from a dead one; the limit covers both.")
-    (PROG ((Start (CLOCK 0))
-           Codes B)
-      LOOP
-          (if (IGREATERP (IDIFFERENCE (CLOCK 0) Start) LimitMS)
-              then (RETURN NIL))
-          (if (EOFP S)
+    (bind (Start _ (CLOCK 0)) Codes B until (IGREATERP (IDIFFERENCE (CLOCK 0) Start) LimitMS)
+       do (if (EOFP S)
               then (BLOCK 200)
-                   (GO LOOP))
-          (SETQ B (BIN S))
-          (if (EQ B 10)
-              then (RETURN (CONCATCODES (REVERSE Codes))))
-          (push Codes B)
-          (GO LOOP))))
+            elseif (EQ (SETQ B (BIN S)) 10)
+              then (RETURN (CONCATCODES (REVERSE Codes)))
+            else (push Codes B)))))
 
 (LP.FindHelper
   (LAMBDA NIL
@@ -326,8 +320,9 @@
 
 (LP.WriteRequest
   (LAMBDA (self File Decision Candidates Trick HeartsBroken? FirstTrick?)
-    (LET ((S (OPENSTREAM File (QUOTE OUTPUT) (QUOTE NEW))))
-         (CL:UNWIND-PROTECT
+    (RESETLST
+        (LET ((S (OPENSTREAM File (QUOTE OUTPUT) (QUOTE NEW))))
+             (RESETSAVE NIL (LIST (QUOTE CLOSEF?) S))
              (PROGN (LP.JField S "decision" T)
                     (LP.JString S Decision)
                     (LP.JField S "seat")
@@ -364,8 +359,7 @@
                         then (LP.JField S "plan")
                              (LP.JString S (fetch LP.Plan of self)))
                     (PRIN3 "}" S)
-                    (TERPRI S))
-             (CLOSEF S)))))
+                    (TERPRI S))))))
 
 (LP.JField
   (LAMBDA (S Name First?)

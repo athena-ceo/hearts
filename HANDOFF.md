@@ -9,31 +9,27 @@ left, and the roadmap.** Details live in the linked docs; this file is the map.
 
 ---
 
-## In progress (2026-11-15): one Medley at several tables
+## In progress (2026-11-18): one Medley at several tables — proved, not deployed
 
-Committed unfinished, to change computers. **Do not deploy this state**: the live server runs
-commit `be7f926`, and its resident speaks version 1 of the Courier programs.
+**Do not deploy until Harley says so**: the live server runs commit `be7f926`, and its resident
+speaks version 1 of the Courier programs; the house and the resident must go out together.
 
-- **Done and tested:** the house side (`backend/tests`, 126 passed); the new `medley/hcourier.lisp`
-  with one game on a headless Medley (`tests/run-courier.sh`, 20 of 20); the rule that a Medley's
-  offered players go home when nobody is at their table (`backend/tests/test_presence.py`, and
-  `tests/run-resident.sh --web-only` before the several-tables change).
-- **Written, never run:** the new `docker/resident.lisp` (standing offer, tabs: `R.Tabs`,
-  `R.TabSelected`, `R.Pick`); `tests/courier/tables.lisp` with `tests/tables_visitors.py`;
-  the changes to `tests/resident-visitor.lisp`, `tests/resident_visitor.py` and
-  `medley/playhearts.lisp` (`PH.RunOnline` waits on `HC.Last`).
-- **Next, in order:** (1) `tests/run-resident.sh`, and look at the resident's screen at
-  `http://localhost:8052/vnc.html` for the tabs and the window places (status window, tabs, card
-  table at `HNET.CTReg` 475 384, Exec under it); (2) `VISITORS=4 LOOPS=1 tests/run-courier.sh
-  tests/courier/tables.lisp`, then with 8; (3) the time of a deal with 1, 2 and 8 games, to tell
-  Harley; if the 1-second pause of the game on show slows the others too much, give each table
-  its own Courier stream and keep one lock around the players' thinking; (4) move
-  `tests/resident_visitor.py` onto `tests/house_client.py`; (5) `docs/medley-server.md`,
-  `docs/medley-networking.md`, `USER-MANUAL.md` ("Playing online": `HC.Offer` takes forms, `HC.Leave`
-  takes a table), `dist/README.md`, `TODO.md` (the "one game at a time" entry is done);
-  (6) `tests/run-all.sh` and the frontend suite; (7) `docs/drafts/note-to-nick-2026-11-14.md` (third
-  version, 2026-11-18: it answers Nick's judgment on the relay and says several tables are in
-  progress) gets the several-tables result once it is proved, before Harley sends it.
+- **Proved on 2026-11-18:** `tests/courier/tables.lisp` with 1, 2, 4 and 8 web visitors at once
+  (12 of 12 each, no call refused, no stand-in move); `tests/run-resident.sh` (14 of 14, and the web
+  visitor's checks); `tests/run-all.sh` (all green but `netguide`'s 5,000-character pipe line,
+  which fails only with sixteen Medleys running at once and passes alone); `backend/tests` 126,
+  frontend 105.
+- **Time of a deal** at the 1986 table's 2-second trick pause: 26 s with one game, 27 with two, 28
+  with four, 31 with eight. The game on show sets the pace and the others barely slow it, so the
+  planned fallback (a Courier stream per table) is not needed. The resident pauses 1 s: about 16 s.
+- **Fixed on the way:** the Expert's Thoughts window is its own prompt window, and Medley's
+  `GETPROMPTWINDOW` re-attached a closed one to itself ("Attempt to create a loop in window
+  attachment"), so calls for games not on show were refused (`playhearts.lisp` advice); `CLEARW`
+  on a quiet window is skipped (`hcourier.lisp`); `NP.Think` drew though its game was quiet.
+- **Not proved:** a person clicking a tab on the control screen (VNC input injected from here does
+  not reach Medley). Ask Harley to click one once after the deploy.
+- **Then:** Harley deploys (`./hearts.sh deploy prod`); `docs/drafts/note-to-nick-2026-11-14.md`
+  (fourth version, short) waits for Harley's word before it is sent.
 - **A rule learned:** a field of a record declared in `hcourier.lisp` must be fetched as
   `(fetch (HCGAME Winners) of Game)`: HEARTS has records with the same field names (`Game` has
   `Winners`), and the short form fails with "fetch is an undefined function".
@@ -389,6 +385,12 @@ display. Output in `out/medley/`. Details and the Medley automation traps it wor
    (`create`, `fetch`, `replace`) and `LET`, not a `PROG` with labels and `GO`. A `PROG` loop is for
    the rare case nothing else expresses. Older code of ours has such loops: rewrite them when
    touching them.
+   Write Interlisp, not Common Lisp (Harley, 2026-11-18): `NLSETQ`/`ERSETQ` to catch an error
+   and `ERRORMESS` to word it (Medley has no `ERRORN` any more), `RESETLST`/`RESETSAVE` to clean
+   up, a `LET` with `(DECLARE (SPECVARS …))` to bind special variables, `READ` from an
+   `OPENSTRINGSTREAM`, `ADDTOVAR GLOBALVARS`. Common Lisp only where Interlisp has no form, with
+   a comment saying so: packages (`CL:FIND-PACKAGE`, `*PACKAGE*`), and `CL:COMPILE`, because
+   Interlisp's `COMPILE` asks its questions at the terminal.
 7. **`HT.CHECK` with an expected value of NIL checks only that the form is true.** To check for
    NIL, wrap both: `(HT.CHECK "…" (LIST form) (QUOTE (NIL)))`. A check written the first way passed
    while the call it tested was failing (2026-11-14).

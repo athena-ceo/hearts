@@ -242,8 +242,12 @@ Without PlayHearts, the calls are in `HCOURIER`:
 (HC.NewTable (LIST (HP.Create)) '("expert" "network" "person"))  ; you, two of the house's, one seat left open
 (HC.Tables)                                                      ; tables waiting for players
 (HC.Sit (LIST (HP.Create)) "the-table's-name")                   ; a seat at one of them
-(HC.Leave)
+(HC.Leave)                                                       ; leave every table (or give one)
+(HC.Offer '((H.MakePlayer 'CP)) NIL '("Conservative on Medley") 4)  ; offer a player to everyone, at 4 tables
 ```
+
+`HC.Offer` takes forms, each making one player, so every table gets players of its own; one Medley
+can play at several tables at once, and shows one of them at a time.
 
 A seat left open can be taken by a person in a browser or by another Medley. The 1986 card table
 opens on your screen when the game starts, and your players' windows work as in a local game. If

@@ -111,7 +111,8 @@
 
 (NP.Think
   (LAMBDA (self Text)
-    (if (fetch NP.ThoughtWindow of self)
+    (* ; "NP.Thoughts? NIL silences a network that has a window: HCOURIER binds it so around a player whose game is not on show.")
+    (if (AND NP.Thoughts? (fetch NP.ThoughtWindow of self))
         then (printout (fetch NP.ThoughtWindow of self) Text T))))
 
 (NP.Best
@@ -128,7 +129,7 @@
                          (SETQ BestScore S)))
           (SETQ NP.Moves (ADD1 NP.Moves))
           (SETQ NP.Milliseconds (IPLUS NP.Milliseconds (IDIFFERENCE (CLOCK 0) Start)))
-          (if (fetch NP.ThoughtWindow of self)
+          (if (AND NP.Thoughts? (fetch NP.ThoughtWindow of self))
               then (NP.Think self (NP.Summary Decision Candidates Scores)))
           Best)))
 
@@ -311,16 +312,16 @@
         then (LET ((Path (NP.FindModel)))
                   (if (NULL Path)
                       then (ERROR "NNPLAYER: can't find the network file HEARTSNET; set NP.ModelFile"))
-                  (LET ((S (OPENSTREAM (CONCAT "{UNIX}" Path) (QUOTE INPUT) (QUOTE OLD))))
-                       (CL:UNWIND-PROTECT
+                  (RESETLST
+                      (LET ((S (OPENSTREAM (CONCAT "{UNIX}" Path) (QUOTE INPUT) (QUOTE OLD))))
+                           (RESETSAVE NIL (LIST (QUOTE CLOSEF) S))
                            (LET* ((W1 (NP.ReadRows S 256 512))
                                   (B1 (NP.ReadBlock S 256))
                                   (W2 (NP.ReadRows S 256 256))
                                   (B2 (NP.ReadBlock S 256))
                                   (WP (NP.ReadRows S 52 256))
                                   (BP (NP.ReadBlock S 52)))
-                                 (SETQ NP.Net (LIST W1 B1 W2 B2 WP BP)))
-                           (CLOSEF S)))))
+                                 (SETQ NP.Net (LIST W1 B1 W2 B2 WP BP)))))))
     T))
 
 (NP.Stats
@@ -330,8 +331,10 @@
 )
 
 (* "Compile the arithmetic: interpreted, a move takes far too long.  NP.Scores reads the global NP.Net,
-    so declare it special first, or the compiler warns that it was unknown.")
-(CL:PROCLAIM (QUOTE (CL:SPECIAL NP.Net)))
+    so declare it global first, or the compiler warns that it was unknown.  CL:COMPILE because
+    Interlisp's COMPILE first asks the compiler questions at the terminal, and nobody is at the
+    resident's.")
+(ADDTOVAR GLOBALVARS NP.Net)
 (NLSETQ (CL:COMPILE (QUOTE NP.Layer)))
 (NLSETQ (CL:COMPILE (QUOTE NP.Scores)))
 

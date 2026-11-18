@@ -16,8 +16,6 @@ Working notes for the Python platform. We work directly on `main` (solo project,
   that can speak it or a local tunnel on the Medley side. Matters once people play who care about being watched.
 - [ ] A Medley needs no account, while a person in a browser needs an invitation. Decide whether a Medley should
   sign in (a code from the web lobby given to `HC.Sit`), in `backend/hearts/courier.py`.
-- [ ] A Medley hosts one game at a time (the 1986 `Player.Array` is one table). Done would be a table number in
-  each `HEARTSPLAYERS` call and per-table state in `medley/hcourier.lisp`.
 - [ ] The NetHub takes 64 machines, 8 from one address, and never drops an idle one, because an emulator that is
   dropped can't rejoin without a restart. Someone could hold the places. Done would be a way for Medley to rejoin
   (in Maiko, or a logout-and-restart in `hcourier.lisp`), then an idle limit.

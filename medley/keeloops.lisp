@@ -77,6 +77,7 @@
              (CNDIR Dir)
              (RESETLST
                  (RESETSAVE NIL (LIST (QUOTE CNDIR) Here))
+                 (* ; "LOOPS is read in the XCL-USER package.  Packages are Common Lisp's: Interlisp has no form of its own for them.")
                  (LET ((*PACKAGE* (CL:FIND-PACKAGE "XCL-USER")))
                       (DECLARE (SPECVARS *PACKAGE*))
                       (FILESLOAD LOADLOOPS)
@@ -463,18 +464,26 @@
 (KEE.Try
   (LAMBDA (Rule Form Env)
     (* ; "Evaluate Form under Env.  An error fails the premise and is recorded against the rule.")
-    (XCL:CONDITION-CASE (LIST (KEE.Eval Form Env))
-           (CL:ERROR (C)
-                  (KEE.NoteError Rule Form C)
-                  NIL))))
+    (OR (NLSETQ (KEE.Eval Form Env))
+        (PROGN (KEE.NoteError Rule Form (KEE.ErrorText))
+               NIL))))
 
 (KEE.NoteError
-  (LAMBDA (Rule Form Condition)
-    (LET ((Msg (XCL:CONDITION-CASE (CL:FORMAT NIL "~A" Condition)
-                      (CL:ERROR NIL "<error>"))))
-         (push KEE.RuleErrors (LIST (CAR Rule) (CADR (CDDDDR Rule)) Msg))
-         (if KEE.Trace
-             then (printout KEE.TraceStream "   ! " (CAR Rule) ": " Msg T)))))
+  (LAMBDA (Rule Form Msg)
+    (push KEE.RuleErrors (LIST (CAR Rule) (CADR (CDDDDR Rule)) Msg))
+    (if KEE.Trace
+        then (printout KEE.TraceStream "   ! " (CAR Rule) ": " Msg T))))
+
+(KEE.ErrorText
+  (LAMBDA NIL
+    (* ; "The last error's message, as Medley prints it (ERRORMESS), as a string.  Call it just after NLSETQ has caught the error.")
+    (LET ((S (OPENSTREAM (QUOTE {NODIRCORE}) (QUOTE BOTH))))
+         (LET ((*ERROR-OUTPUT* S))
+              (DECLARE (SPECVARS *ERROR-OUTPUT*))
+              (ERRORMESS NIL))
+         (SETFILEPTR S 0)
+         (PROG1 (CONCATCODES (bind C until (EOFP S) collect (BIN S)))
+                (CLOSEF S)))))
 
 )
 
@@ -493,7 +502,7 @@
                   (CDDDDR G)
                   (KEE.Word? (CAR (CDDDDR G)) (QUOTE IS)))
              (QUOTE SLOT))
-            ((AND Op (LITATOM Op) (NOT (KEE.Var? Op)) (CL:FBOUNDP Op)) (QUOTE LISP))
+            ((AND Op (LITATOM Op) (NOT (KEE.Var? Op)) (OR (GETD Op) (MACRO-FUNCTION Op))) (QUOTE LISP))
             (T (QUOTE FACT))))))
 
 (KEE.Solve

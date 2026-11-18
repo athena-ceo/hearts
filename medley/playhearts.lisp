@@ -39,21 +39,22 @@
 (RPAQ? PH.Placing NIL)
 (RPAQQ PH.PlaceAdvice (if PH.Placing then (RETURN (PH.CenterOn PH.Placing WIDTH HEIGHT))))
 (* "(The advice is compiled when it is attached, so it is attached at the end of this file, once
-    PH.CenterOn is defined, and PH.Placing is declared special: PlayHearts binds it.)")
-(CL:PROCLAIM (QUOTE (CL:SPECIAL PH.Placing)))
+    PH.CenterOn is defined.  The functions that bind PH.Placing declare it SPECVARS.)")
 
 (* "The only hooks into 1986 code, for Thoughts windows: they show no cards, and each message
     starts a new line (the 1986 code prints plays 'same line' because its narration area was a
     tiny prompt window).  Advice, not redefinitions: they act only on windows PlayHearts marked
     PH.Thoughts (a Thoughts window) or PH.NewLines (a hand window whose narration goes to a
-    Thoughts window), and (UNADVISE 'Open.RemakeWindow) / (UNADVISE 'Open.Print) remove them.")
+    Thoughts window), and (UNADVISE 'Open.RemakeWindow) / (UNADVISE 'Open.Print) remove them.
+    A Thoughts window is its own prompt window, so GETPROMPTWINDOW returns it as it is: asked for the
+    prompt window of a closed window, Medley would attach the window to itself, which is an error
+    ('Attempt to create a loop in window attachment').  The Expert asks on every deal.")
 (RPAQQ PH.ThoughtsAdvice (if (WINDOWPROP HWin (QUOTE PH.Thoughts)) then (RETURN NIL)))
 (RPAQQ PH.ThoughtsPrintAdvice (if (OR (WINDOWPROP Win (QUOTE PH.Thoughts)) (WINDOWPROP Win (QUOTE PH.NewLines)))
                                   then (SETQ SameLine? NIL)))
 (ADVISE (QUOTE Open.RemakeWindow) (QUOTE BEFORE) PH.ThoughtsAdvice)
-(* "Open.Print's advice changed in 2026-11; take off an older copy loaded earlier in this session.")
-(if (GETPROP (QUOTE Open.Print) (QUOTE ADVISED)) then (UNADVISE (QUOTE Open.Print)))
 (ADVISE (QUOTE Open.Print) (QUOTE BEFORE) PH.ThoughtsPrintAdvice)
+(ADVISE (QUOTE GETPROMPTWINDOW) (QUOTE BEFORE) (QUOTE (if (WINDOWPROP MAINWINDOW (QUOTE PH.Thoughts)) then (RETURN MAINWINDOW))))
 (* "(Re-advising with the same advice doesn't add a second copy, so reloading is safe.)")
 
 (* "Playing online (seat type NET): the game is played at a table of the house, over Courier (HCOURIER).
@@ -88,6 +89,7 @@
   (LAMBDA (Config Open? ManualDeal? Region)
     (* ; "Set up a Hearts session and return its card table.  With no Config, ask for the players and options.  Seats left empty are filled with Conservatives.  Region (optional) places the table.")
     (PROG (Answers Before Players Table PH.Placing)
+          (DECLARE (SPECVARS PH.Placing))
           (if (NULL Config)
               then (SETQ Answers (PH.AskConfig))
                    (if (NULL Answers)
@@ -278,6 +280,7 @@
         then (PH.RunOnline Table)
       else (LET ((Players (WINDOWPROP Table (QUOTE PH.Players)))
                  (PH.Placing (AND PH.AutoPlace? (WINDOWPROP Table (QUOTE REGION)))))
+                (DECLARE (SPECVARS PH.Placing))
                 (* ; "PH.Placing: a dealing window opens over the table.")
                 (if (WINDOWPROP Table (QUOTE PH.Played?))
                     then (SETQ Table (PH.ReopenTable Table)))

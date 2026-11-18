@@ -189,12 +189,12 @@ recognize.
 (Fetch
   (LAMBDA (Url)
     (* ; "The lines of the page at Url, using curl.  .END. marks the end; avoid _ in commands (MEDLEY-ISSUES M11).")
-    (LET ((S (CREATE-PROCESS-STREAM (CONCAT "curl -s --max-time 20 '" Url "'; echo; echo .END."))))
-         (CL:UNWIND-PROTECT
+    (RESETLST
+        (LET ((S (CREATE-PROCESS-STREAM (CONCAT "curl -s --max-time 20 '" Url "'; echo; echo .END."))))
+             (RESETSAVE NIL (LIST (QUOTE CLOSEF?) S))
              (bind Line while (AND (SETQ Line (Pipe.ReadLine S 30000))
                                    (NOT (EQUAL Line ".END.")))
-                collect Line)
-             (CLOSEF S)))))
+                collect Line)))))
 )
 (Fetch "https://example.com/")                    ; => the page's lines; one has "Example Domain"
 ```

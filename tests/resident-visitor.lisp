@@ -45,5 +45,5 @@
 (* "' and backquote in the Interlisp readtable, as typed at the Exec.")
 (SETQ RV.Me (QUOTE (Harley 1)))
 (HT.CHECK "' and backquote read as at the Exec"
-  (CL:WITH-INPUT-FROM-STRING (In "(LIST 'A `(Hearts ',(LIST RV.Me)))") (EVAL (READ In (FIND-READTABLE "INTERLISP"))))
+  (EVAL (READ (OPENSTRINGSTREAM "(LIST 'A `(Hearts ',(LIST RV.Me)))") (FIND-READTABLE "INTERLISP")))
   (QUOTE (A (Hearts (QUOTE ((Harley 1)))))))

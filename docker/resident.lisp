@@ -27,19 +27,22 @@
 (R.Words
   (LAMBDA (Text)
     (* ; "The words of TEXT, as upper-case atoms: EP NP CP.")
-    (for W in (CL:WITH-INPUT-FROM-STRING (In (CONCAT "(" Text ")")) (READ In))
+    (for W in (READ (OPENSTRINGSTREAM (CONCAT "(" Text ")")))
        collect (MKATOM (U-CASE W)))))
+
+(R.Kind
+  (LAMBDA (Type)
+    (SELECTQ Type
+        (EP "Expert")
+        (NP "Neural network")
+        (CP "Conservative")
+        (CLOWN "Clown")
+        (MKSTRING Type))))
 
 (R.Label
   (LAMBDA (Type)
     (* ; "What the house calls a player of this type in its list of opponents.")
-    (CONCAT (SELECTQ Type
-                (EP "Expert")
-                (NP "Neural network")
-                (CP "Conservative")
-                (CLOWN "Clown")
-                (MKSTRING Type))
-            " on Medley")))
+    (CONCAT (R.Kind Type) " on Medley")))
 
 (R.Place
   (LAMBDA (W H)
@@ -93,14 +96,27 @@
   (LAMBDA (Why)
     (add R.Misses 1)
     (SETQ R.State (CONCAT "can't reach the house: " Why))
-    (R.Show
+    (R.Show)
+    (if (IGEQ R.Misses 3) then (LOGOUT T))
+    (DISMISS 20000)))
+
+(R.Minutes
+  (LAMBDA (Since)
+    (if Since
+        then (IQUOTIENT (IDIFFERENCE (CLOCK 0) Since) 60000)
+      else 0)))
+
+(R.Show
   (LAMBDA NIL
     (if (NOT (AND R.Status (OPENWP R.Status)))
-        then (SETQ R.Status (CREATEW (CREATEREGION 475 818 450 62) "The resident HEARTS Medley"))
+        then (SETQ R.Status (CREATEW (CREATEREGION 475 804 450 76) "The resident HEARTS Medley"))
              (SETQ R.TabsShown (QUOTE None)))
     (CLEARW R.Status)
     (printout R.Status "At the house " HC.House T)
-    (printout R.Status "Offering: " (for X in R.Players collect (R.Label X)) T)
+    (* ; "Four lines fit above the tabs, so the players go on one.")
+    (printout R.Status "Offering:")
+    (for X in R.Players as N from 1 do (printout R.Status (if (EQ N 1) then " " else ", ") (R.Kind X)))
+    (TERPRI R.Status)
     (printout R.Status (OR R.State "") T)
     (printout R.Status "Games played here: " HC.Ended)
     (R.Tabs)))
@@ -178,10 +194,11 @@
 
 (R.Loop
   (LAMBDA NIL
-    (while T do (XCL:CONDITION-CASE (R.Step)
-                       (CL:ERROR (C)
-                              (SETQ R.State (CONCAT "error: " (CL:PRINC-TO-STRING C)))
-                              (NLSETQ (R.Show))))
+    (* ; "An error in a step is shown in the status window, and its message (ERRORMESS) in the Exec; the next step comes two seconds later.")
+    (while T do (if (NOT (NLSETQ (R.Step)))
+                    then (ERRORMESS NIL)
+                         (SETQ R.State "error: see the Exec")
+                         (NLSETQ (R.Show)))
                 (DISMISS 2000))))
 )
 
@@ -199,7 +216,7 @@
 (SETQ R.TabsShown (QUOTE None))
 (SETQ HC.NewGameFn (QUOTE R.NewGame))
 (* "The card table sits under the status window and its row of tabs.")
-(SETQ HNET.CTReg (QUOTE (475 384 450 400)))
+(SETQ HNET.CTReg (QUOTE (475 370 450 400)))
 (SETQ R.State "starting")
 (SETQ R.NextSlot 0)
 (SETQ R.Slots (QUOTE ((10 530 455 250) (935 530 335 250) (10 270 455 250) (935 270 335 250) (10 10 455 250) (935 10 335 250))))
@@ -211,7 +228,7 @@
 (ADVISE (QUOTE GETREGION) (QUOTE BEFORE) (QUOTE (RETURN (R.Place (OR MINWIDTH 300) (OR MINHEIGHT 200)))))
 (* "The Exec goes under the card table, out of the way of the players' Thoughts windows.")
 (LET ((Exec (WFROMDS (TTYDISPLAYSTREAM))))
-     (if Exec then (SHAPEW Exec (CREATEREGION 475 10 450 348))))
+     (if Exec then (SHAPEW Exec (CREATEREGION 475 10 450 334))))
 (R.Show)
 (ADD.PROCESS (QUOTE (R.Loop)) (QUOTE NAME) (QUOTE Resident))
 STOP

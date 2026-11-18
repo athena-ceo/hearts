@@ -6,6 +6,25 @@
 
 ### 2026-11-18
 
+- **One Medley plays at several tables: proved** (not deployed). The resident offers its players
+  at up to eight tables (`RESIDENT_TABLES`) and shows one game, chosen from a row of tabs.
+  - Trials: `tests/courier/tables.lisp` with 1, 2, 4 and 8 visitors (12 of 12, no refused call, no
+    stand-in move); a deal takes 26 s with one game and 31 s with eight at the 1986 2-second trick
+    pause, so tables do not hold each other up. `tests/run-resident.sh` 14 of 14.
+  - Fixed: calls for games not on show were refused (REJECT 65535) because `GETPROMPTWINDOW`
+    re-attached a closed Expert's Thoughts window to itself; `PLAYHEARTS` now advises it to return
+    the Thoughts window. `HCOURIER` skips `CLEARW` on a quiet window; `NP.Think` and `NP.Best` draw
+    only when thoughts are on. `docker/resident.lisp`: an unbalanced `R.Lost` had stopped the
+    resident offering; status window shows the players' kinds on one line; `R.Loop` prints a
+    step's error in the Exec.
+  - Interlisp, not Common Lisp (`HANDOFF.md` convention 6): `NLSETQ` and `ERRORMESS` for
+    `CL:HANDLER-CASE`, `RESETLST`/`RESETSAVE` for `CL:UNWIND-PROTECT`, a `LET` with `SPECVARS` for
+    `CL:PROGV` and `CL:PROCLAIM`, `READ` of `OPENSTRINGSTREAM` for `CL:WITH-INPUT-FROM-STRING`,
+    `GETD`/`MACRO-FUNCTION` for `CL:FBOUNDP`, `bind … until` for a `PROG`/`GO` loop, in `medley/`,
+    `docker/` and `tests/`; `dist/` rebuilt. Packages and `CL:COMPILE` stay Common Lisp, with a
+    comment saying why.
+  - `tests/resident_visitor.py` uses `tests/house_client.py`; docs (`docs/medley-server.md`,
+    `USER-MANUAL.md`, `TODO.md`) describe several tables and `HC.Offer`'s forms.
 - **Convention: on Medley, build the Medley way** (Harley, 2026-11-18). `HANDOFF.md`, convention 9:
   look first for what Medley has and build in Lisp on it; a child process or another language
   doing a Medley's work is the last resort and is justified where it is used.
