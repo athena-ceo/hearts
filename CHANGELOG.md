@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### 2026-11-18
+
+- **Convention: on Medley, build the Medley way** (Harley, 2026-11-18). `HANDOFF.md`, convention 9:
+  look first for what Medley has and build in Lisp on it; a child process or another language
+  doing a Medley's work is the last resort and is justified where it is used.
+
 ### 2026-11-15
 
 - **CI: three house tests no longer depend on the machine's speed.** Run 22 failed on GitHub's

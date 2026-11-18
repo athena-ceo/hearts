@@ -31,8 +31,9 @@ commit `be7f926`, and its resident speaks version 1 of the Courier programs.
   `tests/resident_visitor.py` onto `tests/house_client.py`; (5) `docs/medley-server.md`,
   `docs/medley-networking.md`, `USER-MANUAL.md` ("Playing online": `HC.Offer` takes forms, `HC.Leave`
   takes a table), `dist/README.md`, `TODO.md` (the "one game at a time" entry is done);
-  (6) `tests/run-all.sh` and the frontend suite; (7) `docs/drafts/note-to-nick-2026-11-14.md` needs
-  the several-tables news before Harley sends it.
+  (6) `tests/run-all.sh` and the frontend suite; (7) `docs/drafts/note-to-nick-2026-11-14.md` (third
+  version, 2026-11-18: it answers Nick's judgment on the relay and says several tables are in
+  progress) gets the several-tables result once it is proved, before Harley sends it.
 - **A rule learned:** a field of a record declared in `hcourier.lisp` must be fetched as
   `(fetch (HCGAME Winners) of Game)`: HEARTS has records with the same field names (`Game` has
   `Winners`), and the short form fails with "fetch is an undefined function".
@@ -393,6 +394,17 @@ display. Output in `out/medley/`. Details and the Medley automation traps it wor
    while the call it tested was failing (2026-11-14).
 8. **`medley/hcourier.lisp` and `backend/hearts/courier.py` define the same two Courier programs.**
    Change the numbers, procedures and types in both, and run `tests/run-courier.sh`.
+9. **On Medley, build the Medley way** (Harley, 2026-11-18, after Nick Briggs judged the relay, a
+   child process started with `CREATE-PROCESS-STREAM` and Python doing a Medley's networking, "the
+   wrong thing"). Before writing anything for a Medley, look for what the system already has: the
+   library and LispUsers sources, the manuals, and every likely spelling of a name (`REMOTEVAL` was
+   `REMOTEEVAL`). Use it, and write the rest in Lisp on top of it: Courier programs, processes and
+   monitors, records, windows and menus. A Unix child process or a program in another language
+   doing a Medley's work is the last resort. Where one is used, the code and the report say what
+   was looked for in Medley and why it did not serve. Still outside this rule today: the LLM
+   player's helper (`medley/llmplayer.lisp` starts `llm_player.py` for the HTTPS call, since the
+   release has no TCP from Lisp). The house being Python is a different case: it is the web
+   product, and it speaks Medley's protocols to a Medley that runs only stock Courier.
 
 ---
 
