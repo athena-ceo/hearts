@@ -308,7 +308,8 @@ run with no rules engine at all; the Expert can be added later.
   image with four `ADD.PROCESS` players** — the `Net` transport is simply not used; `Lisp`/`Kee`
   dispatch is unchanged. Phases 3–4 reintroduce real networking cleanly with WebSockets, keeping
   the same six-message protocol as the wire contract.
-- **2026-11-14: one house for everyone, over Courier.** The network game moved to Medley's own Courier packages. The house is the Python platform; a Medley's players sit
+- **2026-11-14: one house for everyone, over Courier.** On Nick Briggs's advice the network game
+  moved to Medley's own Courier packages. The house is the Python platform; a Medley's players sit
   at its tables through two Courier programs with typed arguments and no remote evaluation
   (§4.2), on a NetHub that the house itself runs. People in a browser sit at the same tables. See
   [docs/medley-server.md](docs/medley-server.md) and [docs/medley-networking.md](docs/medley-networking.md).

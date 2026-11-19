@@ -10,8 +10,9 @@
   hub connection the hub has closed, so `(RESTART.ETHER)` can't rejoin; a one-line fix in
   `recvPacket()` makes it rejoin. M13: the cmake build crashes in the garbage collector with gcc
   because `CMakeLists.txt` tests a variable that doesn't exist (`CMAKE_COMPILER_ID`) and drops
-  `-fno-strict-aliasing`. Correspondence about the networking is kept out of the repository's
-  docs (Harley, 2026-11-19).
+  `-fno-strict-aliasing`. People outside the project are thanked by name, never quoted, and no
+  criticism is attributed to them without their permission (Harley, 2026-11-19; `HANDOFF.md`
+  convention 10).
 
 ### 2026-11-18
 

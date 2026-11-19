@@ -1,12 +1,11 @@
 # Networking in Medley 2026: what's left, what works, and the gotchas
 
 *Harley Davis and Claude, November 2026. From the revival of HEARTS, a 1986 Interlisp-D game,
-whose four players could sit on different machines.*
+whose four players could sit on different machines. With thanks to Nick Briggs for his help.*
 
 > **Correction, 14 November 2026.** The first version of this note said that remote evaluation is
-> not in the release, and that we had not tried XNS. Both were wrong places to
-> stop: `REMOTEEVAL` and `REMOTEAPPLY` are in LispUsers (`COURIEREVALSERVE`, on
-> `COURIERSERVE`), and a NetHub is no more to run than the relay we built. We tried it, and it
+> not in the release, and that we had not tried XNS. Nick Briggs pointed us further: `REMOTEEVAL`
+> and `REMOTEAPPLY` are in LispUsers (`COURIEREVALSERVE`, on `COURIERSERVE`), and a NetHub is no more to run than the relay we built. We tried it, and it
 > works: see [The standard way: Courier over a NetHub](#the-standard-way-courier-over-a-nethub).
 > That is the way we now recommend for Medley-to-Medley calls, and since the same day it is how
 > HEARTS is played online: see [HEARTS on Courier](#hearts-on-courier-a-house-that-is-not-a-medley).

@@ -43,8 +43,8 @@ left, and the roadmap.** Details live in the linked docs; this file is the map.
 here the product is improved without having to stay an update of 1986. `transcription/` stays
 faithful as before, and the 1986 distribution in `dist/` keeps working.
 
-**Online, everyone meets at the house's tables, over Courier** (built 2026-11-14 on Medley's own Courier
-packages, in place of `HNET`'s relay and its remote evaluation):
+**Online, everyone meets at the house's tables, over Courier** (built 2026-11-14, on Nick Briggs's
+advice to use Medley's own Courier packages in place of `HNET`'s relay and its remote evaluation):
 
 - **The house is the Python platform.** Its backend runs a NetHub and speaks XNS on it
   (`backend/hearts/xns.py`, `backend/hearts/courier.py`). A Medley's players sit at its tables
@@ -409,9 +409,10 @@ display. Output in `out/medley/`. Details and the Medley automation traps it wor
    speaks Medley's protocols to a Medley that runs only stock Courier.
 
 ---
-10. **Other people's comments stay out of the repository** (Harley, 2026-11-19). What someone outside
-   the project said or wrote, by email, on a list or in a meeting, is not quoted, summarised or
-   credited in its docs: it is theirs to publish, not ours. Record only what we found ourselves.
+10. **No quoting people, no criticism put in their mouths** (Harley, 2026-11-19). Acknowledge the
+   help of people outside the project by name. Do not quote what they said or wrote (email, list,
+   meeting), and never attribute a negative comment to anyone, without their permission. Record
+   what we found ourselves.
 
 ## Follow-ups (near-term, concrete)
 
