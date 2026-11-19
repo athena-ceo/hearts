@@ -65,8 +65,10 @@ What was missing, outside Lisp:
   beside the release and leaves the release as it is). On the Mac the Darwin makefile takes no
   flags from the environment, so the flag goes into its `DEBUGFLAGS` line. A cmake Release build
   of the same tag with `MAIKO_NETWORK_TYPE=NETHUB` crashed at startup on Linux aarch64; we did not
-  look for the cause. Nick Briggs expects no difference between the two builds, and asks for a
-  stack trace from a `RelWithDebInfo` build if it crashes too.
+  look for the cause. Nick Briggs expected no difference between the two builds. The cause (2026-11-19):
+  Maiko's `CMakeLists.txt` tests `CMAKE_COMPILER_ID` for gcc, a variable that doesn't exist, so a
+  gcc build lacks `-fno-strict-aliasing` and crashes in the garbage collector, network or not
+  (MEDLEY-ISSUES M13).
 - **A hub.** For calls between machines on one hub, none of Dodo's services are needed, and the
   hub's protocol is small: each packet is a 2-byte length and an Ethernet frame. `tools/nethub.py`
   (about 40 lines, standard library) was enough.
@@ -121,7 +123,10 @@ Medley's own `SPP`, `COURIER` and `COURIERSERVE` sources):
   retransmits, which covers the rare split.
 - **Maiko joins the hub once, as it starts.** If the hub isn't there, or goes away, the emulator
   does not try again: Medley has to be restarted. `(RESTART.ETHER)` is meant to reset Medley's
-  network state and, under Maiko, close and reopen the hub connection (Nick Briggs); not tried yet. A hub that doesn't answer at all (a firewall
+  network state and, under Maiko, close and reopen the hub connection (Nick Briggs). It asks Maiko
+  to connect again, but Maiko never notices that the hub closed the connection, so it keeps the dead
+  one; a one-line change to Maiko fixes it, and then `(RESTART.ETHER)` rejoins (MEDLEY-ISSUES M12,
+  `tests/run-rejoin.sh`). A hub that doesn't answer at all (a firewall
   that drops packets) delays the start by the TCP timeout.
 - **With no router on the hub, Medley's first connection waits 8 seconds.** `SPP.OPEN` asks
   `NSNET.DISTANCE` for the way to network 0, which broadcasts a routing information request and

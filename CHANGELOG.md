@@ -12,6 +12,11 @@
   the released emulators, and `TCPOPS` is the intended way to TCP from Lisp (two functions
   missing). The note to him is recorded as sent; `HANDOFF.md` convention 9 names the source of
   "the wrong thing" (an Interlisp core team meeting, by its transcript).
+- **Two Maiko bugs root-caused, for Nick Briggs** (docs only). MEDLEY-ISSUES M12: Maiko keeps a
+  hub connection the hub has closed, so `(RESTART.ETHER)` can't rejoin; a one-line fix in
+  `recvPacket()` makes it rejoin. M13: the cmake build crashes in the garbage collector with gcc
+  because `CMakeLists.txt` tests a variable that doesn't exist (`CMAKE_COMPILER_ID`) and drops
+  `-fno-strict-aliasing`.
 
 ### 2026-11-18
 

@@ -26,10 +26,12 @@ left, and the roadmap.** Details live in the linked docs; this file is the map.
 - **Deployed** by Harley on 2026-11-18. **Not proved:** a person clicking a tab on the control
   screen (VNC input injected from here does not reach Medley); Harley clicks one once.
 - **Nick Briggs answered** the note (sent 2026-11-18, `docs/drafts/note-to-nick-2026-11-14.md`) on
-  2026-11-19; his answers are in `docs/medley-networking.md`. Next, in order: try `(RESTART.ETHER)`
-  to rejoin the hub without restarting Medley (the resident logs out after each deploy today);
-  a cmake `RelWithDebInfo` NetHub build on Linux aarch64, with a stack trace if it crashes, for
-  Nick; later, `TCPOPS` (TCP from Lisp) as a project of its own.
+  2026-11-19; his answers are in `docs/medley-networking.md`. Followed up the same day: why
+  `(RESTART.ETHER)` can't rejoin the hub (a Maiko bug, MEDLEY-ISSUES M12, one-line fix proved with
+  `tests/run-rejoin.sh` on a patched emulator) and why the cmake build crashed (a typo in Maiko's
+  `CMakeLists.txt`, M13). Both go to Nick; neither is fixed in our own emulator builds yet, and
+  `tests/run-rejoin.sh` and `tests/courier/rejoin.lisp` are not committed (code: Harley's word).
+  Later, `TCPOPS` (TCP from Lisp) as a project of its own.
 - **A rule learned:** a field of a record declared in `hcourier.lisp` must be fetched as
   `(fetch (HCGAME Winners) of Game)`: HEARTS has records with the same field names (`Game` has
   `Winners`), and the short form fails with "fetch is an undefined function".
