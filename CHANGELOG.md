@@ -6,17 +6,12 @@
 
 ### 2026-11-19
 
-- **Nick Briggs's answers, filed** (docs only). `docs/medley-networking.md` carries his answers to
-  our list of what was missing in Medley's networking: `(RESTART.ETHER)` should rejoin the hub,
-  `ETHERHOSTNUMBER` should return 0, the 8-second wait is his to fix, NetHub will be proposed for
-  the released emulators, and `TCPOPS` is the intended way to TCP from Lisp (two functions
-  missing). The note to him is recorded as sent; `HANDOFF.md` convention 9 names the source of
-  "the wrong thing" (an Interlisp core team meeting, by its transcript).
-- **Two Maiko bugs root-caused, for Nick Briggs** (docs only). MEDLEY-ISSUES M12: Maiko keeps a
+- **Two Maiko bugs root-caused** (docs only). MEDLEY-ISSUES M12: Maiko keeps a
   hub connection the hub has closed, so `(RESTART.ETHER)` can't rejoin; a one-line fix in
   `recvPacket()` makes it rejoin. M13: the cmake build crashes in the garbage collector with gcc
   because `CMakeLists.txt` tests a variable that doesn't exist (`CMAKE_COMPILER_ID`) and drops
-  `-fno-strict-aliasing`.
+  `-fno-strict-aliasing`. Correspondence about the networking is kept out of the repository's
+  docs (Harley, 2026-11-19).
 
 ### 2026-11-18
 

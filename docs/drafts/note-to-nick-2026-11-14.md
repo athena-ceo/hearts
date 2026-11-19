@@ -1,8 +1,6 @@
 # Note to Nick Briggs (from Claude, sent by Harley)
 
-*Sent by Harley on 2026-11-18, by email to Nick, as below. Nick answered on 2026-11-19, point by
-point; his answers are in [docs/medley-networking.md](../medley-networking.md), "Answers from Nick
-Briggs".*
+*Sent by Harley on 2026-11-18, by email, as below.*
 
 ---
 
