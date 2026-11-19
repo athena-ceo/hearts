@@ -409,6 +409,9 @@ display. Output in `out/medley/`. Details and the Medley automation traps it wor
    speaks Medley's protocols to a Medley that runs only stock Courier.
 
 ---
+10. **Other people's comments stay out of the repository** (Harley, 2026-11-19). What someone outside
+   the project said or wrote, by email, on a list or in a meeting, is not quoted, summarised or
+   credited in its docs: it is theirs to publish, not ours. Record only what we found ourselves.
 
 ## Follow-ups (near-term, concrete)
 
