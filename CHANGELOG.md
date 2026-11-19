@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### 2026-11-19
+
+- **Nick Briggs's answers, filed** (docs only). `docs/medley-networking.md` carries his answers to
+  our list of what was missing in Medley's networking: `(RESTART.ETHER)` should rejoin the hub,
+  `ETHERHOSTNUMBER` should return 0, the 8-second wait is his to fix, NetHub will be proposed for
+  the released emulators, and `TCPOPS` is the intended way to TCP from Lisp (two functions
+  missing). The note to him is recorded as sent; `HANDOFF.md` convention 9 names the source of
+  "the wrong thing" (an Interlisp core team meeting, by its transcript).
+
 ### 2026-11-18
 
 - **One Medley plays at several tables: proved** (not deployed). The resident offers its players

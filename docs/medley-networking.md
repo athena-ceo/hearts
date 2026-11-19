@@ -26,7 +26,7 @@ tested examples, and the gotchas that cost us time. Everything here was tested i
 |---|---|
 | PUP, Xerox's first Ethernet protocol | Doesn't work any more. |
 | XNS (Courier, SPP, the NS file servers) | Works, through a NetHub: a virtual Ethernet that each Maiko joins with `-nh-host` (`--nethub` in the `medley` script). XNS then starts by itself. The emulators in the 260810 release are built without it, on Linux and on macOS, so Maiko has to be rebuilt with one flag (below). A plain hub is a shared Ethernet with no access control or encryption. |
-| The in-Lisp TCP/IP stack | Removed. Medley uses the host's network through Unix processes instead. |
+| The in-Lisp TCP/IP stack | Removed. Medley uses the host's network through Unix processes instead. The intended replacement, `TCPOPS` on the emulator's own TCP subroutines (Maiko `src/inet.c`), was set aside as obsolete; see "Answers from Nick Briggs" below. |
 | `EVALSERVER` / `REMOTEVAL` (the PUP remote evaluation HEARTS used) | Not in the release. Its Courier counterpart is: `REMOTEEVAL` and `REMOTEAPPLY` in LispUsers `COURIEREVALSERVE`, served by `COURIERSERVE`. We missed it at first because we searched for the 1986 spelling. |
 | Broadcast to find other machines | Doesn't cross the Internet. |
 | Evaluating whatever form arrives | Fine on a 1986 office Ethernet. On the Internet it lets anyone run code on your machine. |
@@ -65,7 +65,8 @@ What was missing, outside Lisp:
   beside the release and leaves the release as it is). On the Mac the Darwin makefile takes no
   flags from the environment, so the flag goes into its `DEBUGFLAGS` line. A cmake Release build
   of the same tag with `MAIKO_NETWORK_TYPE=NETHUB` crashed at startup on Linux aarch64; we did not
-  look for the cause.
+  look for the cause. Nick Briggs expects no difference between the two builds, and asks for a
+  stack trace from a `RelWithDebInfo` build if it crashes too.
 - **A hub.** For calls between machines on one hub, none of Dodo's services are needed, and the
   hub's protocol is small: each packet is a 2-byte length and an Ethernet frame. `tools/nethub.py`
   (about 40 lines, standard library) was enough.
@@ -111,20 +112,44 @@ Medley's own `SPP`, `COURIER` and `COURIERSERVE` sources):
   holds a `PLAY` call open, and SPP's probes every 15 seconds keep the connection alive.
 - **A procedure definition is positional for the server.** `COURIERSERVE` reads
   `(NAME n (ARGS) RETURNS (RESULTS) REPORTS (ERRORS) IMPLEMENTEDBY FN)` by position, so a
-  procedure with no result still needs `RETURNS NIL REPORTS NIL` before `IMPLEMENTEDBY`.
+  procedure with no result still needs `RETURNS NIL REPORTS NIL` before `IMPLEMENTEDBY`. This is
+  documented in `COURIERSERVE.TEDIT`: a library or LispUsers package's documentation is the file of
+  the same name with `.TEDIT`, and files.interlisp.org keeps PDF copies
+  (`medley/lispusers/COURIERSERVE.TEDIT.pdf`). Read those first.
 - **A frame must reach Maiko in one piece.** Maiko reads the 2-byte length and then the frame with
   a non-blocking `recv`, and drops the frame if it gets less. Write both in one call. SPP
   retransmits, which covers the rare split.
 - **Maiko joins the hub once, as it starts.** If the hub isn't there, or goes away, the emulator
-  does not try again: Medley has to be restarted. A hub that doesn't answer at all (a firewall
+  does not try again: Medley has to be restarted. `(RESTART.ETHER)` is meant to reset Medley's
+  network state and, under Maiko, close and reopen the hub connection (Nick Briggs); not tried yet. A hub that doesn't answer at all (a firewall
   that drops packets) delays the start by the TCP timeout.
 - **With no router on the hub, Medley's first connection waits 8 seconds.** `SPP.OPEN` asks
   `NSNET.DISTANCE` for the way to network 0, which broadcasts a routing information request and
   waits four times two seconds for an answer. A hub that answers one such request with "network
-  0, no hops" (38 bytes) removes the wait for the rest of the session.
+  0, no hops" (38 bytes) removes the wait for the rest of the session. Nick Briggs has also seen
+  Medley stop in a break window for want of routing information, and means to fix it in Medley's
+  Ethernet code.
 - **On a hub with no PUP service, `(ETHERHOSTNUMBER)` never returns.** It waits for a PUP host
   number from a gateway. The 1986 HEARTS file called it as it loaded, so loading hung
-  (HEARTS-BUGS H8). `\MY.NSADDRESS` is the address to use.
+  (HEARTS-BUGS H8). `\MY.NSADDRESS` is the address to use. It should return 0 when no gateway has
+  given a PUP number (Nick Briggs); with Dodo, give each host a PUP number in `machines.cfg`.
+
+## Answers from Nick Briggs (2026-11-19)
+
+Nick answered our list of what was missing; his answers are folded in above. Two more:
+
+- **NetHub in the released emulators:** he will open an issue so that every packaged build
+  includes it. An emulator with NetHub that is started without `-nh-` arguments behaves as before;
+  using the network still needs Dodo or another hub.
+- **TCP/IP from Lisp:** the intended way was `TCPOPS`, Lisp code over the emulator's TCP
+  subroutines (Maiko `src/inet.c`), moved to `obsolete/` with the old in-Lisp TCP/IP. It is in the
+  Medley repository's history: `git show 9273cffce2b3a46e7b40ec64a2f4436ba11a9077:obsolete/tcp/TCPOPS`.
+  It compiles today (load `EXPORTS.ALL` first, then `(TCOMPL 'TCPOPS)`, "Store and Redefine"), but
+  two functions it calls exist nowhere: `\BUFFCHAR-OTHER-BOUT`, likely on the pattern of
+  `\SPP.OTHER.BOUT` (file `SPP`), and `\BUFFCHAR-DEV-OPENFILE`, likely on the pattern of
+  `\CHAR-DEV-OPENFILE` (file `CHARDEVICE`). His advice: read `TCPOPS` for the intent of its design,
+  and the other obsolete files for uses of it, before writing code on it. This is the Medley way to
+  the Internet that we asked about.
 
 ## The relay way: a child process does the networking
 

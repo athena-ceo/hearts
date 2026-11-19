@@ -9,10 +9,7 @@ left, and the roadmap.** Details live in the linked docs; this file is the map.
 
 ---
 
-## In progress (2026-11-18): one Medley at several tables — proved, not deployed
-
-**Do not deploy until Harley says so**: the live server runs commit `be7f926`, and its resident
-speaks version 1 of the Courier programs; the house and the resident must go out together.
+## In progress (2026-11-19): one Medley at several tables — deployed; Nick's answers
 
 - **Proved on 2026-11-18:** `tests/courier/tables.lisp` with 1, 2, 4 and 8 web visitors at once
   (12 of 12 each, no call refused, no stand-in move); `tests/run-resident.sh` (14 of 14, and the web
@@ -26,10 +23,13 @@ speaks version 1 of the Courier programs; the house and the resident must go out
   `GETPROMPTWINDOW` re-attached a closed one to itself ("Attempt to create a loop in window
   attachment"), so calls for games not on show were refused (`playhearts.lisp` advice); `CLEARW`
   on a quiet window is skipped (`hcourier.lisp`); `NP.Think` drew though its game was quiet.
-- **Not proved:** a person clicking a tab on the control screen (VNC input injected from here does
-  not reach Medley). Ask Harley to click one once after the deploy.
-- **Then:** Harley deploys (`./hearts.sh deploy prod`); `docs/drafts/note-to-nick-2026-11-14.md`
-  (fourth version, short) waits for Harley's word before it is sent.
+- **Deployed** by Harley on 2026-11-18. **Not proved:** a person clicking a tab on the control
+  screen (VNC input injected from here does not reach Medley); Harley clicks one once.
+- **Nick Briggs answered** the note (sent 2026-11-18, `docs/drafts/note-to-nick-2026-11-14.md`) on
+  2026-11-19; his answers are in `docs/medley-networking.md`. Next, in order: try `(RESTART.ETHER)`
+  to rejoin the hub without restarting Medley (the resident logs out after each deploy today);
+  a cmake `RelWithDebInfo` NetHub build on Linux aarch64, with a stack trace if it crashes, for
+  Nick; later, `TCPOPS` (TCP from Lisp) as a project of its own.
 - **A rule learned:** a field of a record declared in `hcourier.lisp` must be fetched as
   `(fetch (HCGAME Winners) of Game)`: HEARTS has records with the same field names (`Game` has
   `Winners`), and the short form fails with "fetch is an undefined function".
@@ -398,7 +398,7 @@ display. Output in `out/medley/`. Details and the Medley automation traps it wor
    Change the numbers, procedures and types in both, and run `tests/run-courier.sh`.
 9. **On Medley, build the Medley way** (Harley, 2026-11-18, after Nick Briggs judged the relay, a
    child process started with `CREATE-PROCESS-STREAM` and Python doing a Medley's networking, "the
-   wrong thing"). Before writing anything for a Medley, look for what the system already has: the
+   wrong thing", in an Interlisp core team meeting, by its transcript). Before writing anything for a Medley, look for what the system already has: the
    library and LispUsers sources, the manuals, and every likely spelling of a name (`REMOTEVAL` was
    `REMOTEEVAL`). Use it, and write the rest in Lisp on top of it: Courier programs, processes and
    monitors, records, windows and menus. A Unix child process or a program in another language
