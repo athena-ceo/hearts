@@ -6,6 +6,9 @@
 
 ### 2026-11-19
 
+- **Backlog: accounts a person can look after themselves** (docs only). `TODO.md`: an email on each account,
+  "forgot my password", and changing password and email (Harley, 2026-11-19). The Courier door, live since
+  2026-11-14, is no longer listed as to do.
 - **Two Maiko bugs root-caused** (docs only). MEDLEY-ISSUES M12: Maiko keeps a
   hub connection the hub has closed, so `(RESTART.ETHER)` can't rejoin; a one-line fix in
   `recvPacket()` makes it rejoin. M13: the cmake build crashes in the garbage collector with gcc
